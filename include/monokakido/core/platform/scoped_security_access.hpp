@@ -1,0 +1,46 @@
+//
+// Caoimheにより 2026/01/15 に作成されました。
+//
+
+#pragma once
+
+#include <expected>
+#include <filesystem>
+#include <vector>
+
+namespace monokakido::platform::fs
+{
+
+    class ScopedSecurityAccess
+    {
+    public:
+
+        explicit ScopedSecurityAccess(const std::filesystem::path& path);
+        ~ScopedSecurityAccess();
+
+        // not copyable
+        ScopedSecurityAccess(const ScopedSecurityAccess&) = delete;
+        ScopedSecurityAccess& operator=(const ScopedSecurityAccess&) = delete;
+
+        // movable
+        ScopedSecurityAccess(ScopedSecurityAccess&&) noexcept;
+        ScopedSecurityAccess& operator=(ScopedSecurityAccess&&) noexcept;
+
+        bool isValid() const;
+
+    private:
+        void* url_ = nullptr; // NSUrl*
+        bool valid_ = false;
+
+    };
+
+    struct BookmarkAccess
+    {
+        std::filesystem::path path;
+        ScopedSecurityAccess access;
+    };
+
+    std::expected<BookmarkAccess, std::string> restoreAccessFromBookmark(const std::vector<uint8_t>& bookmarkData);
+
+
+}

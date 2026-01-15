@@ -1,0 +1,91 @@
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+._*
+
+# CMake build directories
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+Testing/
+build/
+*.ninja
+.ninja_deps
+.ninja_log
+
+# Dependencies
+_deps/
+third_party/*/  # Keep directory but ignore downloaded dependencies
+!third_party/.gitkeep
+
+# Executables and libraries
+*.app/
+*.dylib
+*.so
+*.a
+*.lib
+*.dll
+*.exe
+monokakido_extractor
+libmonokakido_*.a
+
+# Object files
+*.o
+*.obj
+*.pch
+
+# IDE files (CLion, VS Code, Xcode)
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.cproject
+.project
+.settings/
+
+# CLion specific
+cmake-build*/
+out/
+
+# Xcode
+*.xcodeproj/
+*.xcworkspace/
+xcuserdata/
+DerivedData/
+
+# Compiled documentation
+docs/_build/
+docs/.doctrees/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# Logs
+*.log
+
+# Package files
+*.pkg
+*.dmg
+
+# Test coverage
+*.gcda
+*.gcno
+coverage/
+
+# macOS app bundle contents (except Info.plist)
+*.app/Contents/MacOS/
+*.app/Contents/Resources/
+*.app/Contents/_CodeSignature/

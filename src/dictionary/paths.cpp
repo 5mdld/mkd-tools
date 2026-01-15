@@ -1,0 +1,60 @@
+//
+// Caoimheにより 2026/01/15 に作成されました。
+//
+
+#include "monokakido/dictionary/paths.hpp"
+
+
+namespace monokakido::dictionary
+{
+    std::expected<DictionaryPaths, std::string> DictionaryPaths::create(const fs::path& rootPath,
+                                                                        const DictionaryMetadata& metadata)
+    {
+        const auto contentDirectoryName = metadata.contentDirectoryName();
+        if (!contentDirectoryName)
+            return std::unexpected(std::format("Failed to get content directory for '{}'", rootPath.stem().string()));
+
+        return DictionaryPaths(std::move(rootPath), std::move(rootPath / "Contents" / contentDirectoryName.value()));
+    }
+
+
+    DictionaryPaths::DictionaryPaths(fs::path rootPath, fs::path contentDirectory)
+        : rootPath_(std::move(rootPath)), contentDirectory_(std::move(contentDirectory))
+    {
+    }
+
+
+    fs::path DictionaryPaths::resolve(const PathType type) const
+    {
+        switch (type)
+        {
+            case PathType::Contents: return contentDirectory_ / "contents";
+            case PathType::Graphics: return rootPath_ / "graphics";
+            case PathType::Audio: return rootPath_ / "audio";
+            case PathType::Headline: return rootPath_ / "headline";
+            case PathType::Keystore: return rootPath_ / "key";
+            case PathType::Appendix: return rootPath_ / "appendix";
+            default: return fs::path();
+        }
+    }
+
+
+    std::optional<fs::path> DictionaryPaths::tryResolve(const PathType type) const
+    {
+        auto path = resolve(type);
+        return fs::exists(path) ? std::make_optional(path) : std::nullopt;
+    }
+
+
+    std::expected<fs::path, std::string> DictionaryPaths::validate(const PathType type) const
+    {
+        auto path = resolve(type);
+        if (!fs::exists(path))
+        {
+            return std::unexpected(std::format("Path '{}' does not exist", path.string()));
+        }
+        return path;
+    }
+
+
+}
