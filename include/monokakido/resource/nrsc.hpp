@@ -5,9 +5,11 @@
 #pragma once
 
 #include "nrsc_index.hpp"
+#include "nrsc_data.hpp"
 
 #include <expected>
 #include <filesystem>
+#include <iterator>
 #include <span>
 #include <string>
 #include <string_view>
@@ -47,7 +49,7 @@ namespace monokakido::resource
          * @param id String ID of the resource
          * @return Data view of resource data, error string if failure
          */
-        [[nodiscard]] std::expected<std::span<const uint8_t>, std::string> get(std::string_view id);
+        [[nodiscard]] std::expected<std::span<const uint8_t>, std::string> get(std::string_view id) const;
 
 
         /**
@@ -57,7 +59,7 @@ namespace monokakido::resource
          * @param index
          * @return
          */
-        [[nodiscard]] std::expected<ResourceItem, std::string> getByIndex(size_t index);
+        [[nodiscard]] std::expected<ResourceItem, std::string> getByIndex(size_t index) const;
 
 
         /**
@@ -66,12 +68,42 @@ namespace monokakido::resource
          */
         [[nodiscard]] size_t size() const noexcept;
 
+        class Iterator
+        {
+        public:
+            using iterator_category = std::forward_iterator_tag;
+            using iterator_concept = std::forward_iterator_tag;
+            using difference_type = std::ptrdiff_t;
+            using value_type = std::expected<ResourceItem, std::string>;
+            using pointer = value_type*;
+            using reference = value_type&;
+
+            Iterator(Nrsc* nrsc, size_t index);
+
+            value_type operator*() const;
+
+            Iterator& operator++();
+            Iterator operator++(int);
+
+            bool operator==(const Iterator& other) const;
+            bool operator!=(const Iterator& other) const;
+
+
+        private:
+            Nrsc* nrsc_;
+            size_t index_;
+
+        };
+
+        Iterator begin();
+        Iterator end();
+
     private:
 
         explicit Nrsc(NrscIndex&& index, NrscData&& data);
 
         NrscIndex index_;
-        //NrscData data_;
+        NrscData data_;
 
     };
 

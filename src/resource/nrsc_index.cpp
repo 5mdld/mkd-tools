@@ -101,14 +101,13 @@ namespace monokakido::resource
     std::expected<NrscIndexRecord, std::string> NrscIndex::findById(std::string_view id) const
     {
         const auto it = std::lower_bound(records_.begin(), records_.end(), id,
-            [this](const NrscIndexRecord& record, std::string_view searchId)
-            {
-                const auto idResult = this->getIdAt(record.idOffset());
-                if (!idResult)
-                    return false;
+                                         [this](const NrscIndexRecord& record, std::string_view searchId) {
+                                             const auto idResult = this->getIdAt(record.idOffset());
+                                             if (!idResult)
+                                                 return false;
 
-                return *idResult < searchId;
-            });
+                                             return *idResult < searchId;
+                                         });
 
         if (it == records_.end())
             return std::unexpected(std::format("Resource not found: {}", id));
@@ -124,7 +123,8 @@ namespace monokakido::resource
     }
 
 
-    std::expected<std::pair<std::string_view, NrscIndexRecord>, std::string> NrscIndex::getByIndex(const size_t index) const
+    std::expected<std::pair<std::string_view, NrscIndexRecord>, std::string> NrscIndex::getByIndex(
+        const size_t index) const
     {
         if (index >= records_.size())
             return std::unexpected(std::format("Index {} out of range (size: {})", index, records_.size()));
@@ -144,10 +144,73 @@ namespace monokakido::resource
     }
 
 
+    bool NrscIndex::empty() const noexcept
+    {
+        return size() == 0;
+    }
+
+
+    NrscIndex::Iterator::Iterator(const NrscIndex* index, const size_t pos)
+        : index_(index), position_(pos)
+    {
+    }
+
+    NrscIndex::Iterator::value_type NrscIndex::Iterator::operator*() const
+    {
+        if (!cachedValue_)
+        {
+            auto result = index_->getByIndex(position_);
+            if (!result)
+            {
+                throw std::runtime_error(
+                    std::format("Index iteration failed at position {}: {}\nCorrupted index?",
+                        position_, result.error()));
+            }
+            cachedValue_ = *result;
+        }
+
+        return *cachedValue_;
+    }
+
+    NrscIndex::Iterator& NrscIndex::Iterator::operator++()
+    {
+        ++position_;
+        cachedValue_.reset();
+        return *this;
+    }
+
+    NrscIndex::Iterator NrscIndex::Iterator::operator++(int)
+    {
+        const auto temp = *this;
+        ++(*this);
+        return temp;
+    }
+
+    bool NrscIndex::Iterator::operator==(const Iterator& other) const
+    {
+        return index_ == other.index_ && position_ == other.position_;
+    }
+
+    bool NrscIndex::Iterator::operator!=(const Iterator& other) const
+    {
+        return !(*this == other);
+    }
+
+    NrscIndex::Iterator NrscIndex::begin() const
+    {
+        return Iterator{this, 0};
+    }
+
+    NrscIndex::Iterator NrscIndex::end() const
+    {
+        return Iterator{this, size()};
+    }
+
+
     NrscIndex::NrscIndex(std::vector<NrscIndexRecord>&& records, std::string&& idStrings, const size_t headerSize)
         : records_(std::move(records))
-        , idStrings_(std::move(idStrings))
-        , headerSize_(headerSize)
+          , idStrings_(std::move(idStrings))
+          , headerSize_(headerSize)
     {
     }
 
@@ -182,6 +245,7 @@ namespace monokakido::resource
         if (!file)
             return std::unexpected(platform::fs::makeFilestreamError(file, "read header"));
 
+        // convert to native endianness if needed
         if constexpr (std::endian::native == std::endian::big)
             header.recordCount = std::byteswap(header.recordCount);
 
@@ -189,7 +253,8 @@ namespace monokakido::resource
     }
 
 
-    std::expected<std::vector<NrscIndexRecord>, std::string> NrscIndex::readRecords(std::ifstream& file, uint32_t count)
+    std::expected<std::vector<NrscIndexRecord>, std::string> NrscIndex::readRecords(
+        std::ifstream& file, const uint32_t count)
     {
         std::vector<NrscIndexRecord> records(count);
 

@@ -163,7 +163,7 @@ TEST_F(NrscIndexTest, FindRecordById)
 
 TEST_F(NrscIndexTest, DisplayIndexStatistics)
 {
-    auto indexResult = NrscIndex::load(testDataPath_);
+    const auto indexResult = NrscIndex::load(testDataPath_);
     ASSERT_TRUE(indexResult.has_value());
 
     const auto& index = indexResult.value();
@@ -176,13 +176,8 @@ TEST_F(NrscIndexTest, DisplayIndexStatistics)
 
     std::map<uint16_t, size_t> fileDistribution;
 
-    for (size_t i = 0; i < index.size(); ++i)
+    for (const auto& [id, record] : index)
     {
-        auto recordResult = index.getByIndex(i);
-        ASSERT_TRUE(recordResult.has_value());
-
-        const auto& [id, record] = recordResult.value();
-
         if (record.compressionFormat() == CompressionFormat::Uncompressed)
             ++uncompressedCount;
         else

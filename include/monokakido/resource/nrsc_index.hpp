@@ -8,6 +8,9 @@
 
 #include <expected>
 #include <filesystem>
+#include <iterator>
+#include <optional>
+#include <ranges>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -116,6 +119,44 @@ namespace monokakido::resource
          * @return Number of records
          */
         [[nodiscard]] size_t size() const noexcept;
+
+
+        /**
+         * Check if NrscIndex is empty
+         * @return true if empty
+         */
+        [[nodiscard]] bool empty() const noexcept;
+
+
+        class Iterator
+        {
+        public:
+            using iterator_category = std::forward_iterator_tag;
+            using iterator_concept = std::forward_iterator_tag;
+            using difference_type = std::ptrdiff_t;
+            using value_type = std::pair<std::string_view, NrscIndexRecord>;
+            using pointer = value_type*;
+            using reference = value_type&;
+
+            Iterator(const NrscIndex* index, size_t pos);
+
+            value_type operator*() const;
+
+            Iterator& operator++();
+            Iterator operator++(int);
+
+            bool operator==(const Iterator& other) const;
+            bool operator!=(const Iterator& other) const;
+
+        private:
+            const NrscIndex* index_;
+            size_t position_;
+            mutable std::optional<value_type> cachedValue_ = std::nullopt;
+        };
+
+        [[nodiscard]] Iterator begin() const;
+
+        [[nodiscard]] Iterator end() const;
 
 
     private:
