@@ -1,0 +1,261 @@
+//
+// Caoimheにより 2026/01/16 に作成されました。
+//
+
+#include <gtest/gtest.h>
+#include <filesystem>
+
+#include "monokakido/core/platform/fs.hpp"
+#include "monokakido/dictionary/catalog.hpp"
+#include "monokakido/resource/nrsc_index.hpp"
+
+using namespace monokakido::resource;
+
+class NrscIndexTest : public ::testing::Test
+{
+protected:
+    void SetUp() override
+    {
+        const auto containerPath = monokakido::platform::fs::getContainerPathByGroupIdentifier(monokakido::dictionary::MONOKAKIDO_GROUP_ID);
+        const auto dictionariesPath = containerPath / monokakido::dictionary::DICTIONARIES_PATH;
+
+        testDataPath_ = dictionariesPath / "KJT" / "Contents" / "KJT" / "img";
+    }
+
+    std::filesystem::path testDataPath_;
+};
+
+
+void printSeparator(const char c = '=', const size_t width = 80)
+{
+    std::cout << std::string(width, c) << '\n';
+}
+
+
+void printRecord(std::string_view id, const NrscIndexRecord& record, size_t index = 0)
+{
+    std::cout << std::format("  [{:4}] ID: {:30} | Format: {:1} | File: {:2}.nrsc | Offset: {:8} | Length: {:8}\n",
+                             index,
+                             id,
+                             record.compressionFormat() == CompressionFormat::Uncompressed ? "U" : "Z",
+                             record.fileSeq(),
+                             record.offset(),
+                             record.len());
+}
+
+
+TEST_F(NrscIndexTest, LoadValidIndexFile)
+{
+    auto result = NrscIndex::load(testDataPath_);
+    ASSERT_TRUE(result.has_value()) << "Failed to load index: " << result.error();
+
+    const auto& index = result.value();
+    const size_t recordCount = index.size();
+
+    std::cout << "\n";
+    printSeparator();
+    std::cout << std::format("NRSC Index Loaded Successfully from: {}\n", testDataPath_.string());
+    printSeparator();
+    std::cout << std::format("Total Records: {}\n", recordCount);
+    printSeparator();
+    std::cout << "\n";
+
+    EXPECT_GT(recordCount, 0) << "Index should contain at least one record";
+}
+
+
+TEST_F(NrscIndexTest, LoadNonExistentDirectory)
+{
+    auto result = NrscIndex::load("/path/that/does/not/exist");
+
+    ASSERT_FALSE(result.has_value()) << "Should fail when directory doesn't exist";
+
+    std::cout << "\n";
+    std::cout << "Expected error (non-existent directory): " << result.error() << "\n\n";
+
+    EXPECT_TRUE(result.error().find("not found") != std::string::npos);
+}
+
+
+TEST_F(NrscIndexTest, GetRecordByIndex)
+{
+    auto indexResult = NrscIndex::load(testDataPath_);
+    ASSERT_TRUE(indexResult.has_value());
+
+    const auto& index = indexResult.value();
+
+    std::cout << "\n";
+    printSeparator();
+    std::cout << "First 10 Records:\n";
+    printSeparator();
+
+    const size_t displayCount = std::min(index.size(), size_t{10});
+
+    for (size_t i = 0; i < displayCount; ++i)
+    {
+        auto recordResult = index.getByIndex(i);
+        ASSERT_TRUE(recordResult.has_value()) << "Failed to get record at index " << i;
+
+        const auto& [id, record] = recordResult.value();
+        printRecord(id, record, i);
+
+        // Validate record fields
+        EXPECT_LE(record.compressionFormat(), CompressionFormat::Zlib);
+    }
+
+    std::cout << "\n";
+}
+
+
+TEST_F(NrscIndexTest, GetOutOfBoundsIndex)
+{
+    auto indexResult = NrscIndex::load(testDataPath_);
+    ASSERT_TRUE(indexResult.has_value());
+
+    const auto& index = indexResult.value();
+    const size_t invalidIndex = index.size() + 100;
+
+    auto result = index.getByIndex(invalidIndex);
+
+    ASSERT_FALSE(result.has_value()) << "Should fail for out of bounds index";
+
+    std::cout << "\n";
+    std::cout << std::format("Expected error (index {} out of range): {}\n\n", invalidIndex, result.error());
+
+    EXPECT_TRUE(result.error().find("out of range") != std::string::npos);
+}
+
+
+TEST_F(NrscIndexTest, FindRecordById)
+{
+    auto indexResult = NrscIndex::load(testDataPath_);
+    ASSERT_TRUE(indexResult.has_value());
+
+    const auto& index = indexResult.value();
+
+    // Get the 20th record's ID to test with
+    auto firstRecordResult = index.getByIndex(20);
+    ASSERT_TRUE(firstRecordResult.has_value());
+
+    const auto& [testId, expectedRecord] = firstRecordResult.value();
+
+    std::cout << "\n";
+    printSeparator();
+    std::cout << std::format("Testing findById with ID: '{}'\n", testId);
+    printSeparator();
+
+    auto findResult = index.findById(testId);
+    ASSERT_TRUE(findResult.has_value()) << "Failed to find record by ID: " << testId;
+
+    const auto& foundRecord = findResult.value();
+
+    std::cout << "Found record:\n";
+    printRecord(testId, foundRecord);
+    std::cout << "\n";
+
+    // Verify the found record matches
+    EXPECT_EQ(foundRecord.fileSeq(), expectedRecord.fileSeq());
+    EXPECT_EQ(foundRecord.offset(), expectedRecord.offset());
+    EXPECT_EQ(foundRecord.len(), expectedRecord.len());
+    EXPECT_EQ(foundRecord.compressionFormat(), expectedRecord.compressionFormat());
+}
+
+
+TEST_F(NrscIndexTest, DisplayIndexStatistics)
+{
+    auto indexResult = NrscIndex::load(testDataPath_);
+    ASSERT_TRUE(indexResult.has_value());
+
+    const auto& index = indexResult.value();
+
+    size_t uncompressedCount = 0;
+    size_t zlibCount = 0;
+    size_t totalSize = 0;
+    size_t maxLength = 0;
+    size_t minLength = std::numeric_limits<size_t>::max();
+
+    std::map<uint16_t, size_t> fileDistribution;
+
+    for (size_t i = 0; i < index.size(); ++i)
+    {
+        auto recordResult = index.getByIndex(i);
+        ASSERT_TRUE(recordResult.has_value());
+
+        const auto& [id, record] = recordResult.value();
+
+        if (record.compressionFormat() == CompressionFormat::Uncompressed)
+            ++uncompressedCount;
+        else
+            ++zlibCount;
+
+        totalSize += record.len();
+        maxLength = std::max(maxLength, record.len());
+        minLength = std::min(minLength, record.len());
+
+        ++fileDistribution[record.fileSeq()];
+    }
+
+    std::cout << "\n";
+    printSeparator();
+    std::cout << "Index Statistics:\n";
+    printSeparator();
+    std::cout << std::format("  Total Records:        {}\n", index.size());
+    std::cout << std::format(
+        "  Uncompressed:         {} ({:.1f}%)\n",
+        uncompressedCount,
+        100.0 * static_cast<double>(uncompressedCount) / static_cast<double>(index.size())
+    );
+    std::cout << std::format(
+        "  Zlib Compressed:      {} ({:.1f}%)\n",
+        zlibCount,
+        100.0 * static_cast<double>(zlibCount) / static_cast<double>(index.size())
+    );
+    std::cout << std::format("  Total Size:           {} bytes\n", totalSize);
+    std::cout << std::format("  Average Record Size:  {} bytes\n", totalSize / index.size());
+    std::cout << std::format("  Min Record Size:      {} bytes\n", minLength);
+    std::cout << std::format("  Max Record Size:      {} bytes\n", maxLength);
+    std::cout << "\n  Distribution across .nrsc files:\n";
+
+    for (const auto& [fileSeq, count] : fileDistribution)
+    {
+        std::cout << std::format("    {}.nrsc: {} records ({:.1f}%)\n",
+                                 fileSeq,
+                                 count,
+                                 100.0 * static_cast<double>(count) / static_cast<double>(index.size())
+        );
+    }
+
+    printSeparator();
+    std::cout << "\n";
+
+    EXPECT_GT(index.size(), 0);
+    EXPECT_GT(totalSize, 0);
+}
+
+
+TEST_F(NrscIndexTest, DisplayLastRecords)
+{
+    auto indexResult = NrscIndex::load(testDataPath_);
+    ASSERT_TRUE(indexResult.has_value());
+
+    const auto& index = indexResult.value();
+
+    std::cout << "\n";
+    printSeparator();
+    std::cout << "Last 5 Records:\n";
+    printSeparator();
+
+    const size_t displayCount = std::min(index.size(), size_t{5});
+    const size_t startIndex = index.size() - displayCount;
+
+    for (size_t i = startIndex; i < index.size(); ++i)
+    {
+        auto recordResult = index.getByIndex(i);
+        ASSERT_TRUE(recordResult.has_value());
+
+        const auto& [id, record] = recordResult.value();
+        printRecord(id, record, i);
+    }
+
+    std::cout << "\n";
+}

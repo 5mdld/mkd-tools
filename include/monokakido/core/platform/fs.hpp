@@ -22,6 +22,7 @@ namespace monokakido::platform::fs
 
     [[nodiscard]] std::expected<std::string, std::error_code> readTextFile(const std::filesystem::path& path);
 
+    [[nodiscard]] std::string makeFilestreamError(const std::ifstream& file, std::string_view context);
 
     std::optional<BookmarkData> promptForDictionariesAccess();
 

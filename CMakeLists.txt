@@ -5,7 +5,12 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_MACOSX_BUNDLE TRUE)
 
+option(BUILD_TESTING "Build the testing tree" ON)
+include(CTest)
+
 include(FetchContent)
+
+# Glaze (json library)
 FetchContent_Declare(
         glaze
         GIT_REPOSITORY https://github.com/stephenberry/glaze.git
@@ -14,6 +19,15 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(glaze)
 
+# Google Test
+FetchContent_Declare(
+        googletest
+        URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
+)
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
+
+find_package(ZLIB REQUIRED)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories(${glaze_SOURCE_DIR}/include)
@@ -34,7 +48,8 @@ target_link_libraries(monokakido_core PRIVATE
         "-framework Cocoa"
 )
 
-# Dictionary library
+
+# --- Dictionary library ---
 add_library(monokakido_dictionary STATIC
         src/dictionary/catalog.cpp
         src/dictionary/metadata.cpp
@@ -43,13 +58,28 @@ add_library(monokakido_dictionary STATIC
 )
 
 
+# --- Resource library ---
+add_library(monokakido_resource STATIC
+        src/resource/nrsc.cpp
+        src/resource/nrsc_index.cpp
+)
+
+target_link_libraries(monokakido_resource PRIVATE
+        monokakido_core
+)
+
+
+# --- Executable as macOS bundle ---
 add_executable(monokakido_extractor MACOSX_BUNDLE
         src/main.cpp
 )
+
 target_link_libraries(monokakido_extractor PRIVATE
         monokakido_core
         monokakido_dictionary
+        monokakido_resource
         glaze::glaze
+        ZLIB::ZLIB
 )
 
 set_target_properties(monokakido_extractor PROPERTIES
@@ -59,3 +89,24 @@ set_target_properties(monokakido_extractor PROPERTIES
         MACOSX_BUNDLE_SHORT_VERSION_STRING "1.0"
         MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/Info.plist.in"
 )
+
+
+if (BUILD_TESTING)
+    enable_testing()
+    add_executable(monokakido_extractor_tests
+            test/nrsc/test_nrsc_index.cpp
+    )
+
+    target_link_libraries(monokakido_extractor_tests PRIVATE
+            monokakido_core
+            monokakido_resource
+            GTest::gtest_main
+    )
+
+    include(GoogleTest)
+    gtest_discover_tests(monokakido_extractor_tests
+            DISCOVERY_TIMEOUT 300
+            PROPERTIES LABELS "unit"
+    )
+
+endif ()

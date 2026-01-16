@@ -52,6 +52,32 @@ namespace monokakido::platform::fs {
     }
 
 
+    std::string makeFilestreamError(const std::ifstream& file, std::string_view context)
+    {
+        std::string error = std::format("Failed to {}: ", context);
+
+        if (file.eof())
+        {
+            error += "unexpected end of file";
+        }
+        else if (file.bad())
+        {
+            std::error_code ec(errno, std::generic_category());
+            error += std::format("system error - {}", ec.message());
+        }
+        else if (file.fail())
+        {
+            error += "format or I/O error";
+        }
+        else
+        {
+            error += "unknown error";
+        }
+
+        return error;
+    }
+
+
     std::optional<BookmarkData> promptForDictionariesAccess()
     {
         @autoreleasepool {
