@@ -2,7 +2,7 @@
 // Caoimheにより 2026/01/17 に作成されました。
 //
 
-#include "monokakido/resource/nrsc_index_record.hpp"
+#include "monokakido/resource/nrsc/nrsc_index_record.hpp"
 
 #include <bit>
 

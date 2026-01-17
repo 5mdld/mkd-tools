@@ -2,8 +2,9 @@
 // Caoimheにより 2026/01/16 に作成されました。
 //
 
-#include "monokakido/resource/nrsc.hpp"
+#include "monokakido/resource/nrsc/nrsc.hpp"
 
+#include <cassert>
 #include <format>
 
 namespace monokakido::resource
@@ -53,14 +54,25 @@ namespace monokakido::resource
     }
 
 
-    Nrsc::Iterator::Iterator(Nrsc* nrsc, const size_t index)
+    Nrsc::Iterator::Iterator(const Nrsc* nrsc, const size_t index)
         : nrsc_(nrsc), index_(index)
     {
     }
 
     Nrsc::Iterator::value_type Nrsc::Iterator::operator*() const
     {
-        return nrsc_->getByIndex(index_);
+        assert(nrsc_ != nullptr && "Dereferencing invalid iterator");
+        assert(index_ < nrsc_->size() && "Dereferencing end iterator");
+
+        auto result = nrsc_->getByIndex(index_);
+        if (!result)
+        {
+            throw std::runtime_error(
+                std::format("Nrsc iteration failed at position {}: {}",
+                    index_, result.error()));
+        }
+
+        return *result;
     }
 
     Nrsc::Iterator& Nrsc::Iterator::operator++()
@@ -72,7 +84,7 @@ namespace monokakido::resource
     Nrsc::Iterator Nrsc::Iterator::operator++(int)
     {
         const Iterator tmp = *this;
-        ++(*this);
+        ++*this;
         return tmp;
     }
 
@@ -93,13 +105,13 @@ namespace monokakido::resource
     }
 
 
-    Nrsc::Iterator Nrsc::begin()
+    Nrsc::Iterator Nrsc::begin() const
     {
         return Iterator{this, 0};
     }
 
 
-    Nrsc::Iterator Nrsc::end()
+    Nrsc::Iterator Nrsc::end() const
     {
         return Iterator{this, size()};
     }

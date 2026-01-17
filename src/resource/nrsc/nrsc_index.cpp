@@ -2,7 +2,7 @@
 // Caoimheにより 2026/01/16 に作成されました。
 //
 
-#include "monokakido/resource/nrsc_index.hpp"
+#include "monokakido/resource/nrsc/nrsc_index.hpp"
 #include "monokakido/core/platform/fs.hpp"
 
 #include <cassert>

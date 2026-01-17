@@ -14,7 +14,6 @@
 #include <string>
 #include <string_view>
 
-#include "nrsc.hpp"
 
 namespace fs = std::filesystem;
 
@@ -74,12 +73,12 @@ namespace monokakido::resource
             using iterator_category = std::forward_iterator_tag;
             using iterator_concept = std::forward_iterator_tag;
             using difference_type = std::ptrdiff_t;
-            using value_type = std::expected<ResourceItem, std::string>;
+            using value_type = ResourceItem;
             using pointer = value_type*;
-            using reference = value_type&;
+            using reference = value_type;
 
             Iterator() noexcept = default;
-            Iterator(Nrsc* nrsc, size_t index);
+            Iterator(const Nrsc* nrsc, size_t index);
 
             value_type operator*() const;
 
@@ -91,13 +90,13 @@ namespace monokakido::resource
 
 
         private:
-            Nrsc* nrsc_ = nullptr;
+            const Nrsc* nrsc_ = nullptr;
             size_t index_ = 0;
 
         };
 
-        Iterator begin();
-        Iterator end();
+        Iterator begin() const;
+        Iterator end() const;
 
         static_assert(std::forward_iterator<Iterator>);
 

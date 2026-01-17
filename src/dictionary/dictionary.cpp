@@ -7,6 +7,7 @@
 #include "monokakido/dictionary/catalog.hpp"
 
 #include <iostream>
+#include <utility>
 
 namespace monokakido::dictionary
 {
@@ -37,7 +38,7 @@ namespace monokakido::dictionary
 
 
     Dictionary::Dictionary(std::string id, DictionaryMetadata metadata, DictionaryPaths paths)
-        : id_(id), paths_(std::move(paths)), metadata_(std::move(metadata))
+        : id_(std::move(id)), paths_(std::move(paths)), metadata_(std::move(metadata))
     {
     }
 
@@ -50,5 +51,19 @@ namespace monokakido::dictionary
         std::cout << std::format("Publisher: {}", metadata_.publisher().value_or("[Missing]")) << '\n';
         std::cout << std::format("Content dir: {}",
                                  metadata_.contentDirectoryName().value_or(fs::path("[Missing]")).string()) << std::endl;
+    }
+
+
+    void Dictionary::exportAllResources() const
+    {
+        auto nrsc = resource::Nrsc::open(paths_.resolve(PathType::Graphics));
+        if (!nrsc)
+        {
+            std::cerr << nrsc.error() << std::endl;
+            return;
+        }
+
+        auto exporter = resource::ResourceExporter({.outputDirectory = fs::path(std::getenv("HOME")) / "Downloads/out"});
+        auto result = exporter.exportAll(nrsc.value());
     }
 }

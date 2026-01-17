@@ -29,12 +29,12 @@ namespace monokakido::dictionary
         switch (type)
         {
             case PathType::Contents: return contentDirectory_ / "contents";
-            case PathType::Graphics: return rootPath_ / "graphics";
-            case PathType::Audio: return rootPath_ / "audio";
-            case PathType::Headline: return rootPath_ / "headline";
-            case PathType::Keystore: return rootPath_ / "key";
-            case PathType::Appendix: return rootPath_ / "appendix";
-            default: return fs::path();
+            case PathType::Graphics: return contentDirectory_ / "graphics";
+            case PathType::Audio: return contentDirectory_ / "audio";
+            case PathType::Headline: return contentDirectory_ / "headline";
+            case PathType::Keystore: return contentDirectory_ / "key";
+            case PathType::Appendix: return contentDirectory_ / "appendix";
+            default: return rootPath_;
         }
     }
 

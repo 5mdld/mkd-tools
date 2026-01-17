@@ -58,5 +58,4 @@ namespace monokakido::dictionary
         mutable std::optional<platform::fs::ScopedSecurityAccess> securityAccess_;
 
     };
-
 }

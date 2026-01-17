@@ -7,7 +7,7 @@
 
 #include "monokakido/core/platform/fs.hpp"
 #include "monokakido/dictionary/catalog.hpp"
-#include "monokakido/resource/nrsc_index.hpp"
+#include "monokakido/resource/nrsc/nrsc_index.hpp"
 
 using namespace monokakido::resource;
 

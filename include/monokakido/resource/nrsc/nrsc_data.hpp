@@ -5,7 +5,7 @@
 #pragma once
 
 #include "nrsc_index.hpp"
-#include "zlib_decompressor.hpp"
+#include "../zlib_decompressor.hpp"
 
 #include <expected>
 #include <fstream>
@@ -26,24 +26,6 @@ namespace monokakido::resource
     * the index. Multiple numbered files (0.nrsc, 1.nrsc, 2.nrsc, ...) are used
     * to split large resource collections into chunks.
     *
-    * Virtual File Space:
-    * ┌─────────────────────────────────────────────────────────────┐
-    * │ 0.nrsc (1.2 MB)                                             │
-    * │  globalOffset: 0                                            │
-    * │  Contains: Resources at offsets 0 to 1,258,291              │
-    * ├─────────────────────────────────────────────────────────────┤
-    * │ 1.nrsc (800 KB)                                             │
-    * │  globalOffset: 1,258,292                                    │
-    * │  Contains: Resources at offsets 1,258,292 to 2,077,043      │
-    * ├─────────────────────────────────────────────────────────────┤
-    * │ 2.nrsc (1.5 MB)                                             │
-    * │  globalOffset: 2,077,044                                    │
-    * │  Contains: Resources at offsets 2,077,044 to 3,648,819      │
-    * └─────────────────────────────────────────────────────────────┘
-    *
-    * The files are treated as a single virtual concatenated file space.
-    * Index records store global offsets that span across all files.
-    *
     * Workflow
     * - Load NrscIndex to get the table of contents
     * - Load NrscData to access the numbered resource files
@@ -62,8 +44,6 @@ namespace monokakido::resource
     struct ResourceFile
     {
         uint32_t sequenceNumber;    // Which numbered .nrsc file (0.nrsc, 1.nrsc, etc.)
-        size_t fileSize;            // Size of the .nrsc file
-        size_t globalOffset;        // Offset in the virtual concatenated file space
         fs::path filePath;          // Path to .nrsc file
     };
 
@@ -93,17 +73,6 @@ namespace monokakido::resource
     private:
 
         explicit NrscData(std::vector<ResourceFile>&& files);
-
-
-        /**
-         * Finds the ResourceFile that contains the given global offset
-         *
-         * @param offset Global offset in the virtual file space
-         * @return Reference to the ResourceFile containing this offset, or nullopt if the offset
-         *         is before the first file or after the last file
-         */
-        [[nodiscard]] std::optional<std::reference_wrapper<const ResourceFile>> findFileForOffset(uint64_t offset) const;
-
 
         /**
          * Reads raw bytes from the .nrsc file into readBuffer_

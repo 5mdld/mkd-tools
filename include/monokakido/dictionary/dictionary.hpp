@@ -6,6 +6,8 @@
 
 #include "metadata.hpp"
 #include "paths.hpp"
+#include "monokakido/resource/nrsc/nrsc.hpp"
+#include "monokakido/resource/export/exporter.hpp"
 
 namespace monokakido::dictionary
 {
@@ -19,6 +21,8 @@ namespace monokakido::dictionary
         //static std::expected<Dictionary, std::string> openAtPath(const fs::path& path);
 
         void print() const;
+
+        void exportAllResources() const;
 
 
     private:
