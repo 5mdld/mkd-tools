@@ -34,13 +34,10 @@ void printSeparator(const char c = '=', const size_t width = 80)
 
 void printRecord(std::string_view id, const NrscIndexRecord& record, size_t index = 0)
 {
-    std::cout << std::format("  [{:4}] ID: {:30} | Format: {:1} | File: {:2}.nrsc | Offset: {:8} | Length: {:8}\n",
+    std::cout << std::format("  [{:4}] ID: {:20} | {}\n",
                              index,
                              id,
-                             record.compressionFormat() == CompressionFormat::Uncompressed ? "U" : "Z",
-                             record.fileSeq(),
-                             record.offset(),
-                             record.len());
+                             record);
 }
 
 
@@ -176,7 +173,7 @@ TEST_F(NrscIndexTest, DisplayIndexStatistics)
 
     std::map<uint16_t, size_t> fileDistribution;
 
-    for (const auto& [id, record] : index)
+    for (const auto record : index | std::views::values)
     {
         if (record.compressionFormat() == CompressionFormat::Uncompressed)
             ++uncompressedCount;

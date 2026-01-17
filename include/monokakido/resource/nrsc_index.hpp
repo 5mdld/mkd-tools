@@ -4,12 +4,11 @@
 
 #pragma once
 
-#include "common.hpp"
+#include "nrsc_index_record.hpp"
 
 #include <expected>
 #include <filesystem>
 #include <iterator>
-#include <optional>
 #include <ranges>
 #include <string>
 #include <string_view>
@@ -50,32 +49,6 @@ namespace monokakido::resource
      * - Record with idStringOffset=50 -> string starts at byte 50 in strings region
      */
 
-
-    /**
-     * Represents a single entry in the .nrsc index
-     *
-     * This class loads and provides access to the index that maps string IDs
-     * to resources stored across multiple numbered .nrsc files. Records are
-     * stored sorted by ID string to enable binary search lookups.
-     */
-    struct NrscIndexRecord
-    {
-        uint16_t format;            // Compression: 0=uncompressed, 1=zlib
-        uint16_t fileSequence;      // Which numbered .nrsc file (0.nrsc, 1.nrsc, etc.)
-        uint32_t idStringOffset;    // Byte offset into the ID strings region
-        uint32_t fileOffset;        // Byte offset within the target .nrsc file
-        uint32_t length;            // Decompressed size of the resource data
-
-        [[nodiscard]] CompressionFormat compressionFormat() const;
-        [[nodiscard]] size_t fileSeq() const noexcept;
-        [[nodiscard]] size_t idOffset() const noexcept;
-        [[nodiscard]] uint64_t offset() const noexcept;
-        [[nodiscard]] size_t len() const noexcept;
-
-        void toLittleEndian() noexcept;
-    };
-
-    static_assert(sizeof(NrscIndexRecord) == 16, "NrscIndexRecord should be 16 bytes long");
 
     constexpr size_t HEADER_SIZE = 8;
     constexpr size_t RECORD_SIZE = sizeof(NrscIndexRecord);
@@ -131,32 +104,45 @@ namespace monokakido::resource
         class Iterator
         {
         public:
-            using iterator_category = std::forward_iterator_tag;
-            using iterator_concept = std::forward_iterator_tag;
+            using iterator_category = std::random_access_iterator_tag;
+            using iterator_concept = std::random_access_iterator_tag;
             using difference_type = std::ptrdiff_t;
             using value_type = std::pair<std::string_view, NrscIndexRecord>;
-            using pointer = value_type*;
-            using reference = value_type&;
+            using pointer = const value_type*;
+            using reference = value_type; // not reference since we return by value
 
+            Iterator() noexcept = default;
             Iterator(const NrscIndex* index, size_t pos);
 
             value_type operator*() const;
+            value_type operator[](difference_type n) const;
 
             Iterator& operator++();
             Iterator operator++(int);
+            Iterator& operator--();
+            Iterator operator--(int);
 
-            bool operator==(const Iterator& other) const;
-            bool operator!=(const Iterator& other) const;
+            Iterator& operator+=(difference_type n);
+            Iterator& operator-=(difference_type n);
+            Iterator operator+(difference_type n) const;
+            Iterator operator-(difference_type n) const;
+
+            friend Iterator operator+(difference_type n, const Iterator& it);
+            difference_type operator-(const Iterator& other) const;
+
+            auto operator<=>(const Iterator& other) const = default;
+            bool operator==(const Iterator& other) const = default;
 
         private:
-            const NrscIndex* index_;
-            size_t position_;
-            mutable std::optional<value_type> cachedValue_ = std::nullopt;
+            const NrscIndex* index_ = nullptr;
+            size_t position_ = 0;
         };
 
         [[nodiscard]] Iterator begin() const;
 
         [[nodiscard]] Iterator end() const;
+
+        static_assert(std::random_access_iterator<Iterator>);
 
 
     private:

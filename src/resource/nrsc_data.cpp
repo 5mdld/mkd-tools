@@ -61,31 +61,16 @@ namespace monokakido::resource
 
     std::expected<std::span<const uint8_t>, std::string> NrscData::get(const NrscIndexRecord& record) const
     {
-        const auto fileOpt = findFileForOffset(record.offset());
-        if (!fileOpt)
+        const auto fileResult = findFileForOffset(record.offset());
+        if (!fileResult)
             return std::unexpected(std::format("Invalid file offset: {}", record.offset()));
 
+        // Read raw bytes into readBuffer_
+        if (auto readResult = readFromFile(*fileResult, record); !readResult)
+            return std::unexpected(readResult.error());
 
-        // calculate offset within this specific file
-        const ResourceFile& file = fileOpt->get();
-        const uint64_t fileOffset = record.offset() - file.globalOffset;
-
-        std::ifstream fileStream(file.filePath, std::ios::binary);
-        if (!fileStream)
-            return std::unexpected(std::format("Failed to open resource file '{}'", file.filePath.string()));
-
-        fileStream.seekg(static_cast<std::streamoff>(fileOffset));
-        if (!fileStream)
-            return std::unexpected(std::format("Failed to seek to offset '{}'", fileOffset));
-
-        if (readBuffer_.size() < record.len())
-            readBuffer_.resize(record.len());
-
-        fileStream.read(reinterpret_cast<char*>(readBuffer_.data()), static_cast<std::streamsize>(record.len()));
-        if (!fileStream)
-            return std::unexpected("Failed to read resource data");
-
-        return readAndDecompress(record);
+        // decompress if needed
+        return decompressData(record);
     }
 
 
@@ -100,14 +85,47 @@ namespace monokakido::resource
         auto it = std::ranges::upper_bound(files_, offset, {},
             [](const ResourceFile& file){ return file.globalOffset; });
 
+        // if upper_bound returned begin(), offset is before the first file
         if (it == files_.begin())
             return std::nullopt;
 
-        return std::ref(*(--it));
+        // move back to the file that should contain this offset
+        --it;
+
+        // verify the offset is within this file's range
+        const uint64_t fileEnd = it->globalOffset + it->fileSize;
+        if (offset >= fileEnd)
+            return std::nullopt;
+
+        return std::ref(*it);
     }
 
 
-    std::expected<std::span<const uint8_t>, std::string> NrscData::readAndDecompress(const NrscIndexRecord& record) const
+    std::expected<void, std::string> NrscData::readFromFile(const ResourceFile& file, const NrscIndexRecord& record) const
+    {
+        const uint64_t fileOffset = record.offset() - file.globalOffset;
+
+        std::ifstream stream(file.filePath, std::ios::binary);
+        if (!stream)
+            return std::unexpected(std::format("Failed to open file '{}'", file.filePath.string()));
+
+        stream.seekg(static_cast<std::streamoff>(fileOffset));
+        if (!stream)
+            return std::unexpected(std::format("Failed to seek to offset '{}'", fileOffset));
+
+        if (readBuffer_.size() < record.len())
+            readBuffer_.resize(record.len());
+
+        stream.read(reinterpret_cast<char*>(readBuffer_.data()),
+                    static_cast<std::streamsize>(record.len()));
+        if (!stream)
+            return std::unexpected(std::format("Failed to read resource data"));
+
+        return {};
+    }
+
+
+    std::expected<std::span<const uint8_t>, std::string> NrscData::decompressData(const NrscIndexRecord& record) const
     {
         const auto format = record.compressionFormat();
         const std::span<const uint8_t> compressed(readBuffer_.data(), record.len());
@@ -126,20 +144,14 @@ namespace monokakido::resource
     }
 
 
-
     std::optional<uint32_t> NrscData::parseSequenceNumber(const fs::path& filename)
     {
         if (filename.extension() != ".nrsc")
             return std::nullopt;
 
-        const auto stem = filename.stem().string();
         try
         {
-            return std::stoul(stem);
-        }
-        catch (const std::invalid_argument&)
-        {
-            return std::nullopt;
+            return std::stoul(filename.stem().string());
         }
         catch (...)
         {

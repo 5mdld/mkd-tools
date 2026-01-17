@@ -61,19 +61,32 @@ namespace monokakido::resource
     // Represents a single .nrsc data file
     struct ResourceFile
     {
-        uint32_t sequenceNumber;
-        size_t fileSize;
-        size_t globalOffset; // Offset in the virtual concatenated file space
-        fs::path filePath;
+        uint32_t sequenceNumber;    // Which numbered .nrsc file (0.nrsc, 1.nrsc, etc.)
+        size_t fileSize;            // Size of the .nrsc file
+        size_t globalOffset;        // Offset in the virtual concatenated file space
+        fs::path filePath;          // Path to .nrsc file
     };
 
 
     class NrscData
     {
     public:
-
+        /**
+         * Inits NrscData from a directory containing the .nrsc files
+         *
+         * @param directoryPath Path to directory
+         * @return NrscData class or string if failure
+         */
         static std::expected<NrscData, std::string> load(const fs::path& directoryPath);
 
+        /**
+         * Gets span view of the data for a given index record
+         * Data is decompressed automatically if needed
+         *
+         * @param record
+         * @return Span view of the data, or error string if failure
+         * @warning The returned span is only valid until the next call to get()
+         */
         [[nodiscard]] std::expected<std::span<const uint8_t>, std::string> get(const NrscIndexRecord& record) const;
 
 
@@ -81,12 +94,44 @@ namespace monokakido::resource
 
         explicit NrscData(std::vector<ResourceFile>&& files);
 
+
+        /**
+         * Finds the ResourceFile that contains the given global offset
+         *
+         * @param offset Global offset in the virtual file space
+         * @return Reference to the ResourceFile containing this offset, or nullopt if the offset
+         *         is before the first file or after the last file
+         */
         [[nodiscard]] std::optional<std::reference_wrapper<const ResourceFile>> findFileForOffset(uint64_t offset) const;
 
-        // makes sense to have a dedicated ZlibDecompressor rather than doing that here since .rsc files also can be zlib compressed.
-        // ill implement .rsc handling later
-        [[nodiscard]] std::expected<std::span<const uint8_t>, std::string> readAndDecompress(const NrscIndexRecord& record) const;
 
+        /**
+         * Reads raw bytes from the .nrsc file into readBuffer_
+         *
+         * @param file ResourceFile containing the path and global offset information
+         * @param record NrscIndexRecord specifying the global offset and length to read
+         * @return void on success, or error string if failure
+         */
+        [[nodiscard]] std::expected<void, std::string> readFromFile(const ResourceFile& file, const NrscIndexRecord& record) const;
+
+
+        /**
+         * Decompresses data from readBuffer_ based on compression format
+         *
+         * @param record rscIndexRecord specifying compression format and expected decompressed length
+         * @return Span view of the decompressed data, or error string if failure
+         * @warning The returned span is only valid until the next call to get(), as it may
+         *          reference readBuffer_ or the decompressor's internal buffer
+         */
+        [[nodiscard]] std::expected<std::span<const uint8_t>, std::string> decompressData(const NrscIndexRecord& record) const;
+
+
+        /**
+         * Gets sequence number from .nrsc filename
+         *
+         * @param filename .nrsc filename (e.g 0003.nrsc)
+         * @return The sequence number for numbered .nrsc file
+         */
         static std::optional<uint32_t> parseSequenceNumber(const fs::path& filename);
 
         std::vector<ResourceFile> files_;

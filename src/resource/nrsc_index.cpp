@@ -5,60 +5,13 @@
 #include "monokakido/resource/nrsc_index.hpp"
 #include "monokakido/core/platform/fs.hpp"
 
+#include <cassert>
 #include <bit>
 #include <format>
 #include <fstream>
 
 namespace monokakido::resource
 {
-    CompressionFormat NrscIndexRecord::compressionFormat() const
-    {
-        uint16_t fmt = format;
-        if constexpr (std::endian::native == std::endian::big)
-            fmt = std::byteswap(fmt);
-
-        switch (fmt)
-        {
-            case 0: return CompressionFormat::Uncompressed;
-            case 1: return CompressionFormat::Zlib;
-            default:
-                throw std::runtime_error(std::format("Invalid compression format: {}", fmt));
-        }
-    }
-
-    size_t NrscIndexRecord::fileSeq() const noexcept
-    {
-        return fileSequence;
-    }
-
-    size_t NrscIndexRecord::idOffset() const noexcept
-    {
-        return idStringOffset;
-    }
-
-    uint64_t NrscIndexRecord::offset() const noexcept
-    {
-        return fileOffset;
-    }
-
-    size_t NrscIndexRecord::len() const noexcept
-    {
-        return length;
-    }
-
-    void NrscIndexRecord::toLittleEndian() noexcept
-    {
-        if constexpr (std::endian::native == std::endian::big)
-        {
-            format = std::byteswap(format);
-            fileSequence = std::byteswap(fileSequence);
-            idStringOffset = std::byteswap(idStringOffset);
-            fileOffset = std::byteswap(fileOffset);
-            length = std::byteswap(length);
-        }
-    }
-
-
     std::expected<NrscIndex, std::string> NrscIndex::load(const fs::path& directoryPath)
     {
         const auto indexPath = directoryPath / "index.nidx";
@@ -157,43 +110,87 @@ namespace monokakido::resource
 
     NrscIndex::Iterator::value_type NrscIndex::Iterator::operator*() const
     {
-        if (!cachedValue_)
+        assert(index_ != nullptr && "Dereferencing invalid iterator");
+        assert(position_ < index_->size() && "Dereferencing end iterator");
+
+        auto result = index_->getByIndex(position_);
+        if (!result)
         {
-            auto result = index_->getByIndex(position_);
-            if (!result)
-            {
-                throw std::runtime_error(
-                    std::format("Index iteration failed at position {}: {}\nCorrupted index?",
-                        position_, result.error()));
-            }
-            cachedValue_ = *result;
+            throw std::runtime_error(
+                std::format("Index iteration failed at position {}: {}",
+                            position_, result.error()));
         }
 
-        return *cachedValue_;
+        return *result;
     }
+
+    NrscIndex::Iterator::value_type NrscIndex::Iterator::operator[](difference_type n) const
+    {
+        return *(*this + n);
+    }
+
 
     NrscIndex::Iterator& NrscIndex::Iterator::operator++()
     {
         ++position_;
-        cachedValue_.reset();
         return *this;
     }
 
     NrscIndex::Iterator NrscIndex::Iterator::operator++(int)
     {
         const auto temp = *this;
-        ++(*this);
+        ++*this;
         return temp;
     }
 
-    bool NrscIndex::Iterator::operator==(const Iterator& other) const
+    NrscIndex::Iterator& NrscIndex::Iterator::operator--()
     {
-        return index_ == other.index_ && position_ == other.position_;
+        --position_;
+        return *this;
     }
 
-    bool NrscIndex::Iterator::operator!=(const Iterator& other) const
+    NrscIndex::Iterator NrscIndex::Iterator::operator--(int)
     {
-        return !(*this == other);
+        const auto temp = *this;
+        --*this;
+        return temp;
+    }
+
+    // Arithmetic
+    NrscIndex::Iterator& NrscIndex::Iterator::operator+=(const difference_type n)
+    {
+        position_ += n;
+        return *this;
+    }
+
+    NrscIndex::Iterator& NrscIndex::Iterator::operator-=(const difference_type n)
+    {
+        position_ -= n;
+        return *this;
+    }
+
+    NrscIndex::Iterator NrscIndex::Iterator::operator+(const difference_type n) const
+    {
+        auto temp = *this;
+        temp += n;
+        return temp;
+    }
+
+    NrscIndex::Iterator NrscIndex::Iterator::operator-(const difference_type n) const
+    {
+        auto temp = *this;
+        temp -= n;
+        return temp;
+    }
+
+    NrscIndex::Iterator operator+(const NrscIndex::Iterator::difference_type n, const NrscIndex::Iterator& it)
+    {
+        return it + n;
+    }
+
+    NrscIndex::Iterator::difference_type NrscIndex::Iterator::operator-(const Iterator& other) const
+    {
+        return static_cast<difference_type>(position_) - static_cast<difference_type>(other.position_);
     }
 
     NrscIndex::Iterator NrscIndex::begin() const

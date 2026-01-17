@@ -78,6 +78,7 @@ namespace monokakido::resource
             using pointer = value_type*;
             using reference = value_type&;
 
+            Iterator() noexcept = default;
             Iterator(Nrsc* nrsc, size_t index);
 
             value_type operator*() const;
@@ -90,13 +91,15 @@ namespace monokakido::resource
 
 
         private:
-            Nrsc* nrsc_;
-            size_t index_;
+            Nrsc* nrsc_ = nullptr;
+            size_t index_ = 0;
 
         };
 
         Iterator begin();
         Iterator end();
+
+        static_assert(std::forward_iterator<Iterator>);
 
     private:
 
