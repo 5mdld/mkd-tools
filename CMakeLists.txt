@@ -65,6 +65,7 @@ add_library(monokakido_resource STATIC
         src/resource/nrsc/nrsc_index_record.cpp
         src/resource/nrsc/nrsc_data.cpp
         src/resource/zlib_decompressor.cpp
+        src/resource/resource_loader.cpp
 )
 
 target_link_libraries(monokakido_resource PRIVATE

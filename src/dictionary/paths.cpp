@@ -4,9 +4,26 @@
 
 #include "monokakido/dictionary/paths.hpp"
 
+using namespace std::literals::string_view_literals;
 
 namespace monokakido::dictionary
 {
+
+    namespace detail
+    {
+        std::optional<fs::path> findResourcePath(
+            const fs::path& contentDir,
+            std::span<const std::string_view> candidateNames)
+        {
+            for (const auto& name : candidateNames)
+            {
+                if (const fs::path path = contentDir / name; fs::exists(path / "index.nidx"))
+                    return path;
+            }
+            return std::nullopt;
+        }
+    }
+
     std::expected<DictionaryPaths, std::string> DictionaryPaths::create(const fs::path& rootPath,
                                                                         const DictionaryMetadata& metadata)
     {
@@ -23,13 +40,18 @@ namespace monokakido::dictionary
     {
     }
 
-
     fs::path DictionaryPaths::resolve(const PathType type) const
     {
         switch (type)
         {
             case PathType::Contents: return contentDirectory_ / "contents";
-            case PathType::Graphics: return contentDirectory_ / "graphics";
+            case PathType::Graphics:
+            {
+                static constexpr std::array candidates = {"graphics"sv, "img"sv};
+                if (auto path = detail::findResourcePath(contentDirectory_, candidates))
+                    return *path;
+                return contentDirectory_ / "graphics";
+            }
             case PathType::Audio: return contentDirectory_ / "audio";
             case PathType::Headline: return contentDirectory_ / "headline";
             case PathType::Keystore: return contentDirectory_ / "key";

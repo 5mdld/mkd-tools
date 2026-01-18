@@ -10,7 +10,6 @@
 #include <expected>
 #include <functional>
 #include <ranges>
-#include <utility>
 
 
 namespace monokakido::resource
@@ -23,14 +22,13 @@ namespace monokakido::resource
         size_t failed;
         uint64_t totalBytes;
         std::vector<std::string> errors; // List of errors encountered
-        std::function<bool(std::string_view id)> filter; // Custom filter
     };
 
 
     template<typename Collection>
     concept ResourceCollection = requires(Collection c, size_t i)
     {
-        { c.empty() } -> std::same_as<bool>;
+        { c.size() } -> std::convertible_to<size_t>;
         { c.getByIndex(i) } -> std::same_as<std::expected<ResourceItem, std::string>>;
         { c.begin() } -> std::forward_iterator;
         { c.end() } -> std::forward_iterator;
@@ -50,8 +48,9 @@ namespace monokakido::resource
         [[nodiscard]] std::expected<ExportResult, std::string> exportAll(const ExportOptions& options) const
         {
             ExportResult result{};
+            result.totalResources = collection_.size();
 
-            if (collection_.empty())
+            if (result.totalResources == 0)
                 return result;
 
             if (!fs::exists(options.outputDirectory))
@@ -89,7 +88,7 @@ namespace monokakido::resource
                     result.errors.push_back(std::format("{}: {}", id, writeResult.error()));
                 }
             }
-            return {};
+            return result;
         }
 
 
@@ -118,8 +117,11 @@ namespace monokakido::resource
         }
 
 
-        bool shouldExport(std::string_view id, const ExportOptions& options) const
+        [[nodiscard]] static bool shouldExport(std::string_view id, const ExportOptions& options)
         {
+            if (options.filter && !options.filter(id))
+                return false;
+
             return true;
         }
 

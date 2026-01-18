@@ -7,7 +7,7 @@
 #include "metadata.hpp"
 #include "paths.hpp"
 #include "monokakido/resource/nrsc/nrsc.hpp"
-#include "monokakido/resource/exporter.hpp"
+#include "monokakido/output/exporter.hpp"
 
 namespace monokakido::dictionary
 {
@@ -24,10 +24,10 @@ namespace monokakido::dictionary
         [[nodiscard]] const DictionaryMetadata& metadata() const noexcept;
 
         // returns nullptr if no nrsc resources available
-        [[nodiscard]] resource::Nrsc* mediaResources() noexcept;
-        [[nodiscard]] const resource::Nrsc* mediaResources() const noexcept;
+        [[nodiscard]] resource::Nrsc* graphics() noexcept;
+        [[nodiscard]] const resource::Nrsc* graphics() const noexcept;
 
-        [[nodiscard]] bool hasMediaResources() const noexcept;
+        [[nodiscard]] bool hasGraphics() const noexcept;
 
 
         std::expected<resource::ExportResult, std::string> exportAllResources() const;
@@ -37,17 +37,15 @@ namespace monokakido::dictionary
 
     private:
 
-        Dictionary(std::string id, DictionaryMetadata metadata, DictionaryPaths paths);
+        Dictionary(std::string id, DictionaryMetadata metadata, DictionaryPaths paths, std::optional<resource::Nrsc> graphics, std::optional<resource::Nrsc> audio);
 
         std::string id_;
         DictionaryPaths paths_;
         DictionaryMetadata metadata_;
 
-        // should separate audio & graphics later because a dictionary can have both
-        // and they are always in separate folders
-        std::optional<resource::Nrsc> mediaResources_;
+        std::optional<resource::Nrsc> graphics_;
+        std::optional<resource::Nrsc> audio_;
         // resource::Rsc entryContent_; // future
 
     };
-
 }

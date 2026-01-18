@@ -25,7 +25,7 @@ int main(int argc, char* argv[])
             std::cout << "Access granted!\n";
         }
 
-        const auto dict = dictionary::Dictionary::open("KANKENKJ2");
+        const auto dict = dictionary::Dictionary::open("KJT");
         if (!dict)
         {
             std::cerr << "Failed to open dictionary: " << dict.error() << std::endl;

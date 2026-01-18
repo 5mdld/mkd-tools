@@ -5,6 +5,7 @@
 
 #include "monokakido/dictionary/dictionary.hpp"
 #include "monokakido/dictionary/catalog.hpp"
+#include "monokakido/resource/resource_loader.hpp"
 
 #include <iostream>
 #include <utility>
@@ -37,10 +38,16 @@ namespace monokakido::dictionary
         if (!paths)
             return std::unexpected(std::format("Failed to load paths: '{}'", paths.error()));
 
+        resource::ResourceLoader loader(*paths);
+        auto graphics = loader.loadGraphics();
+        auto audio = loader.loadAudio();
+
         return Dictionary(
             std::string(dictId),
             std::move(metadata.value()),
-            std::move(paths.value())
+            std::move(paths.value()),
+            std::move(graphics),
+            std::move(audio)
         );
     }
 
@@ -57,32 +64,38 @@ namespace monokakido::dictionary
     }
 
 
-    resource::Nrsc* Dictionary::mediaResources() noexcept
+    resource::Nrsc* Dictionary::graphics() noexcept
     {
-        if (!mediaResources_ || mediaResources_->size() == 0)
+        if (!graphics_ || graphics_->empty())
             return nullptr;
 
-        return &*mediaResources_;
+        return &*graphics_;
     }
 
 
-    const resource::Nrsc* Dictionary::mediaResources() const noexcept
+    const resource::Nrsc* Dictionary::graphics() const noexcept
     {
-        if (!mediaResources_ || mediaResources_->size() == 0)
+        if (!graphics_ || graphics_->empty())
             return nullptr;
 
-        return &*mediaResources_;
+        return &*graphics_;
     }
 
 
-    bool Dictionary::hasMediaResources() const noexcept
+    bool Dictionary::hasGraphics() const noexcept
     {
-        return mediaResources_ && mediaResources_->size() > 0;
+        return graphics_ && !graphics_->empty();
     }
 
 
-    Dictionary::Dictionary(std::string id, DictionaryMetadata metadata, DictionaryPaths paths)
-        : id_(std::move(id)), paths_(std::move(paths)), metadata_(std::move(metadata))
+    Dictionary::Dictionary(std::string id,
+                           DictionaryMetadata metadata,
+                           DictionaryPaths paths,
+                           std::optional<resource::Nrsc> graphics,
+                           std::optional<resource::Nrsc> audio)
+        : id_(std::move(id)), paths_(std::move(paths)), metadata_(std::move(metadata)),
+          graphics_(std::move(graphics)),
+          audio_(std::move(audio))
     {
     }
 
@@ -101,13 +114,21 @@ namespace monokakido::dictionary
 
     std::expected<resource::ExportResult, std::string> Dictionary::exportAllResources() const
     {
-        auto nrscResult = resource::Nrsc::open(paths_.resolve(PathType::Graphics));
-        if (!nrscResult)
+        if (graphics_)
         {
-            return std::unexpected(nrscResult.error());
+            const auto exporter = resource::ResourceExporter(*graphics_);
+            auto result = exporter.exportAll({
+                .outputDirectory = fs::path(std::getenv("HOME")) / "Downloads"
+            });
         }
 
-        const auto exporter = resource::ResourceExporter(*nrscResult);
-        return exporter.exportAll({.outputDirectory = fs::path(std::getenv("HOME")) / "Downloads"});
+        if (audio_)
+        {
+            const auto exporter = resource::ResourceExporter(*audio_);
+            auto result = exporter.exportAll({
+                .outputDirectory = fs::path(std::getenv("HOME")) / "Downloads"
+            });
+        }
+        return {};
     }
 }
