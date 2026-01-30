@@ -137,7 +137,7 @@ namespace monokakido::resource
         else
         {
             // version is the length in the old format
-            data.reserve(version);
+            data.resize(version);
             if (auto result = reader.readBytes(data); !result)
                 return std::unexpected(result.error());
         }

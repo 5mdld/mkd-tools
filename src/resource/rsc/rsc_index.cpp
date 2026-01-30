@@ -40,7 +40,7 @@ namespace monokakido::resource
     {
         // If no idx records, use direct indexing
         // Seems to only be the case for fonts
-        if (idxRecords_.empty())
+        if (!idxRecords_.has_value())
         {
             if (itemId >= mapRecords_.size())
                 return std::unexpected(std::format("Item ID {} not found (out of range)", itemId));
@@ -48,11 +48,13 @@ namespace monokakido::resource
             return mapRecords_[itemId];
         }
 
+        const auto& idxRecords = *idxRecords_;
+
         // Try fast guesses first (IDs are often sequential)
-        const size_t guessIdx = std::min(static_cast<size_t>(itemId), idxRecords_.size() - 1);
-        if (idxRecords_[guessIdx].id() == itemId)
+        const size_t guessIdx = std::min(static_cast<size_t>(itemId), idxRecords.size() - 1);
+        if (idxRecords[guessIdx].id() == itemId)
         {
-            const size_t mapIdx = idxRecords_[guessIdx].mapIndex();
+            const size_t mapIdx = idxRecords[guessIdx].mapIndex();
             if (mapIdx >= mapRecords_.size())
                 return std::unexpected(std::format("Index mismatch for item ID {}", itemId));
             return mapRecords_[mapIdx];
@@ -61,10 +63,10 @@ namespace monokakido::resource
         // Try itemId-1 as another common pattern
         if (itemId > 0)
         {
-            const size_t guessIdx2 = std::min(static_cast<size_t>(itemId - 1), idxRecords_.size() - 1);
-            if (idxRecords_[guessIdx2].id() == itemId)
+            const size_t guessIdx2 = std::min(static_cast<size_t>(itemId - 1), idxRecords.size() - 1);
+            if (idxRecords[guessIdx2].id() == itemId)
             {
-                const size_t mapIdx = idxRecords_[guessIdx2].mapIndex();
+                const size_t mapIdx = idxRecords[guessIdx2].mapIndex();
                 if (mapIdx >= mapRecords_.size())
                     return std::unexpected(std::format("Index mismatch for item ID {}", itemId));
                 return mapRecords_[mapIdx];
@@ -73,13 +75,13 @@ namespace monokakido::resource
 
         // Fall back to binary search
         const auto it = std::lower_bound(
-            idxRecords_.begin(),
-            idxRecords_.end(),
+            idxRecords.begin(),
+            idxRecords.end(),
             itemId,
             [](const IdxRecord& record, const uint32_t id) { return record.id() < id; }
         );
 
-        if (it == idxRecords_.end() || it->id() != itemId)
+        if (it == idxRecords.end() || it->id() != itemId)
             return std::unexpected(std::format("Item ID {} not found", itemId));
 
         const size_t mapIdx = it->mapIndex();
@@ -97,13 +99,15 @@ namespace monokakido::resource
 
         uint32_t itemId;
 
-        if (!idxRecords_.empty())
+        if (idxRecords_.has_value())
         {
+            const auto& idxRecords = *idxRecords_;
+
             // Validate that idx record exists and points to correct map index
-            if (index >= idxRecords_.size())
+            if (index >= idxRecords.size())
                 return std::unexpected(std::format("Index {} out of range in idx records", index));
 
-            const auto& idxRecord = idxRecords_[index];
+            const auto& idxRecord = idxRecords[index];
 
             if (idxRecord.mapIndex() != index)
                 return std::unexpected(std::format("Invalid index: idx record {} points to map index {}",
@@ -139,7 +143,7 @@ namespace monokakido::resource
     }
 
 
-    RscIndex::RscIndex(std::vector<IdxRecord>&& idxRecords, std::vector<MapRecord>&& mapRecords)
+    RscIndex::RscIndex(std::optional<std::vector<IdxRecord>>&& idxRecords, std::vector<MapRecord>&& mapRecords)
         : idxRecords_(std::move(idxRecords)), mapRecords_(std::move(mapRecords))
     {
     }
@@ -260,11 +264,12 @@ namespace monokakido::resource
     }
 
 
-    std::expected<std::vector<IdxRecord>, std::string> RscIndex::loadIdxFile(const fs::path& directoryPath)
+    std::expected<std::optional<std::vector<IdxRecord>>, std::string> RscIndex::loadIdxFile(const fs::path& directoryPath)
     {
+        // index file is optional so no error is returned if it simply isn't found
         auto filePathResult = platform::fs::getValidatedFilePath(directoryPath, "contents.idx");
         if (!filePathResult)
-            return std::unexpected(filePathResult.error());
+            return std::nullopt;
 
         auto reader = platform::fs::BinaryFileReader::open(*filePathResult);
         if (!reader)

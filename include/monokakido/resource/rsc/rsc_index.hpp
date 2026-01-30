@@ -147,13 +147,13 @@ namespace monokakido::resource
         static_assert(std::random_access_iterator<Iterator>);
 
     private:
-        RscIndex(std::vector<IdxRecord>&& idxRecords, std::vector<MapRecord>&& mapRecords);
+        RscIndex(std::optional<std::vector<IdxRecord>>&& idxRecords, std::vector<MapRecord>&& mapRecords);
 
         static std::expected<std::vector<MapRecord>, std::string> loadMapFile(const fs::path& directoryPath);
 
-        static std::expected<std::vector<IdxRecord>, std::string> loadIdxFile(const fs::path& directoryPath);
+        static std::expected<std::optional<std::vector<IdxRecord>>, std::string> loadIdxFile(const fs::path& directoryPath);
 
-        std::vector<IdxRecord> idxRecords_;
+        std::optional<std::vector<IdxRecord>> idxRecords_;
         std::vector<MapRecord> mapRecords_;
     };
 }
