@@ -27,11 +27,6 @@ namespace monokakido::resource
                                                                         const std::array<uint8_t, 32>& key);
 
     private:
-        /**
-         * Calculate the initial table index
-         */
-        static uint32_t calculateTableIndex(uint32_t value);
-
         // XOR constant for checksum
         static constexpr uint32_t CHECKSUM_XOR = 0xFBD9A2B4;
 

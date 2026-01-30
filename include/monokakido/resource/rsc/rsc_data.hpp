@@ -34,7 +34,7 @@ namespace monokakido::resource
     * │  ├─ contents.idx: Maps item IDs to map indices                  │
     * │  └─ contents.map: Maps indices to chunk locations               │
     * ├─────────────────────────────────────────────────────────────────┤
-    * │ Data Layer (0.rsc, 1.rsc, 2.rsc, ...)                          │
+    * │ Data Layer (0.rsc, 1.rsc, 2.rsc, ...)                           │
     * │  ├─ Multiple numbered files for size management                 │
     * │  ├─ Each file contains multiple compressed "chunks"             │
     * │  └─ Each chunk contains multiple dictionary entries             │

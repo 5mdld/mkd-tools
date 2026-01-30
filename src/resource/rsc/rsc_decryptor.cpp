@@ -36,7 +36,7 @@ namespace monokakido::resource
         if (dataLength > 0)
         {
             // calculate starting index
-            uint32_t tableIndex = calculateTableIndex(checksum ^ CHECKSUM_XOR);
+            uint32_t tableIndex = (checksum ^ CHECKSUM_XOR) % 31;
 
             const uint8_t* src = encryptedData.data();
             const uint8_t* srcEnd = src + dataLength;
@@ -90,22 +90,5 @@ namespace monokakido::resource
 
         output.resize(outputLength);
         return output;
-    }
-
-
-    uint32_t RscDecryptor::calculateTableIndex(const uint32_t value)
-    {
-        // Original assembly logic:
-        // edx * 0x8421085 >> 32, then some shifts and additions
-        const uint64_t mul = static_cast<uint64_t>(value) * 0x8421085ULL;
-        const uint32_t esi = static_cast<uint32_t>(mul >> 32);
-
-        uint32_t edx = value - esi;
-        edx = edx >> 1;
-        edx = edx + esi;
-        edx = edx >> 4;
-        uint32_t result = edx * 31;
-        result = value - result;
-        return result % 31;
     }
 }
