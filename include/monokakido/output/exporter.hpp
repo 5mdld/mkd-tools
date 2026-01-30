@@ -27,7 +27,7 @@ namespace monokakido::resource
     concept ResourceCollection = requires(Collection c, size_t i)
     {
         { c.size() } -> std::convertible_to<size_t>;
-        { c.getByIndex(i) } -> std::same_as<std::expected<ResourceItem, std::string>>;
+        { c.getByIndex(i) } -> std::same_as<std::expected<NrscItem, std::string>>;
         { c.begin() } -> std::forward_iterator;
         { c.end() } -> std::forward_iterator;
     };

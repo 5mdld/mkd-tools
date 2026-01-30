@@ -43,13 +43,6 @@ namespace monokakido::resource
         { t.toLittleEndian() } -> std::same_as<void>;
     };
 
-    // Resource item that can be returned to users
-    struct ResourceItem
-    {
-        std::string_view id;
-        std::span<const uint8_t> data;
-    };
-
     namespace detail
     {
         std::optional<uint32_t> parseSequenceNumber(const fs::path& filename, std::string_view extension);

@@ -33,7 +33,7 @@ namespace monokakido::resource
     }
 
 
-    std::expected<ResourceItem, std::string> Nrsc::getByIndex(const size_t index) const
+    std::expected<NrscItem, std::string> Nrsc::getByIndex(const size_t index) const
     {
         auto result = index_.getByIndex(index);
         if (!result)
@@ -44,7 +44,7 @@ namespace monokakido::resource
         if (!dataResult)
             return std::unexpected(dataResult.error());
 
-        return ResourceItem{id, *dataResult};
+        return NrscItem{id, *dataResult};
     }
 
 

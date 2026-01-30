@@ -18,8 +18,13 @@ namespace fs = std::filesystem;
 
 namespace monokakido::resource
 {
-    class NrscData;
 
+    // Resource item that can be returned to users
+    struct NrscItem
+    {
+        std::string_view id;
+        std::span<const uint8_t> data;
+    };
 
     class Nrsc
     {
@@ -49,7 +54,7 @@ namespace monokakido::resource
          * @param index
          * @return
          */
-        [[nodiscard]] std::expected<ResourceItem, std::string> getByIndex(size_t index) const;
+        [[nodiscard]] std::expected<NrscItem, std::string> getByIndex(size_t index) const;
 
 
         /**
@@ -71,7 +76,7 @@ namespace monokakido::resource
             using iterator_category = std::forward_iterator_tag;
             using iterator_concept = std::forward_iterator_tag;
             using difference_type = std::ptrdiff_t;
-            using value_type = ResourceItem;
+            using value_type = NrscItem;
             using pointer = value_type*;
             using reference = value_type;
 
