@@ -13,11 +13,11 @@ namespace monokakido::resource
     {
         auto indexResult = NrscIndex::load(directoryPath);
         if (!indexResult)
-            return std::unexpected(std::format("Failed to load index: {}", indexResult.error()));
+            return std::unexpected(std::format("Failed to load nrsc index: {}", indexResult.error()));
 
         auto dataResult = NrscData::load(directoryPath);
         if (!dataResult)
-            return std::unexpected(std::format("Failed to load data: {}", dataResult.error()));
+            return std::unexpected(std::format("Failed to load nrsc data: {}", dataResult.error()));
 
         return Nrsc{std::move(*indexResult), std::move(*dataResult)};
     }

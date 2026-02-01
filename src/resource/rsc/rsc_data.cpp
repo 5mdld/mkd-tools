@@ -36,7 +36,7 @@ namespace monokakido::resource
     }
 
 
-    std::expected<std::span<const uint8_t>, std::string> RscData::get(const MapRecord& record)
+    std::expected<std::span<const uint8_t>, std::string> RscData::get(const MapRecord& record) const
     {
         // Special case: intraBlock offset of 0xFFFFFFFF means direct data access (no chunk decompression is used)
         if (record.ioffset == 0xFFFFFFFF)
@@ -94,7 +94,7 @@ namespace monokakido::resource
     }
 
 
-    std::expected<void, std::string> RscData::loadChunk(size_t globalOffset)
+    std::expected<void, std::string> RscData::loadChunk(size_t globalOffset) const
     {
         // Find which file contains this offset
         auto fileAndOffset = findFileByOffset(globalOffset);
@@ -177,7 +177,7 @@ namespace monokakido::resource
     }
 
 
-    std::expected<std::span<const uint8_t>, std::string> RscData::readDirectData(size_t globalOffset)
+    std::expected<std::span<const uint8_t>, std::string> RscData::readDirectData(size_t globalOffset) const
     {
         auto fileAndOffset = findFileByOffset(globalOffset);
         if (!fileAndOffset)
@@ -245,7 +245,8 @@ namespace monokakido::resource
     }
 
 
-    std::expected<std::pair<RscResourceFile&, size_t>, std::string> RscData::findFileByOffset(const size_t globalOffset)
+    std::expected<std::pair<const RscResourceFile&, size_t>, std::string> RscData::findFileByOffset(
+        const size_t globalOffset) const
     {
         // Binary search to find which file contains this offset
         auto it = std::ranges::upper_bound(

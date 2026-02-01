@@ -74,6 +74,7 @@ add_library(monokakido_resource STATIC
         src/resource/xml_view.cpp
         src/resource/rsc/rsc_keystore.cpp
         src/resource/rsc/rsc_decryptor.cpp
+        src/resource/rsc/rsc.cpp
 )
 
 target_link_libraries(monokakido_resource PRIVATE

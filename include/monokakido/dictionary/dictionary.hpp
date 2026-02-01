@@ -45,7 +45,8 @@ namespace monokakido::dictionary
 
         std::optional<resource::Nrsc> graphics_;
         std::optional<resource::Nrsc> audio_;
-        // resource::Rsc entryContent_; // future
+        // resource::Rsc entryContent_; // xml
+        // std::optional<std::vector<resource::Rsc>> fonts_;
 
     };
 }

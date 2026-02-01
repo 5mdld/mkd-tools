@@ -116,7 +116,7 @@ namespace monokakido::resource
          *
          * @warning The returned span is only valid until the next call to get()
          */
-        [[nodiscard]] std::expected<std::span<const uint8_t>, std::string> get(const MapRecord& record);
+        [[nodiscard]] std::expected<std::span<const uint8_t>, std::string> get(const MapRecord& record) const;
 
     private:
         /**
@@ -138,7 +138,7 @@ namespace monokakido::resource
          * @param globalOffset Global offset to the start of the chunk
          * @return void on success, error string on failure
          */
-        std::expected<void, std::string> loadChunk(size_t globalOffset);
+        std::expected<void, std::string> loadChunk(size_t globalOffset) const;
 
         /**
          * Reads and processes the data chunk using the provided BinaryFile reader
@@ -164,7 +164,7 @@ namespace monokakido::resource
          * @param globalOffset Offset in global address space
          * @return Span view to the data
          */
-        std::expected<std::span<const uint8_t>, std::string> readDirectData(size_t globalOffset);
+        std::expected<std::span<const uint8_t>, std::string> readDirectData(size_t globalOffset) const;
 
         /**
          * Discover all .rsc files in a directory
@@ -180,7 +180,7 @@ namespace monokakido::resource
          * @param globalOffset Offset in global address space
          * @return (file reference, local offset) pair or error string
          */
-        std::expected<std::pair<RscResourceFile&, size_t>, std::string> findFileByOffset(size_t globalOffset);
+        std::expected<std::pair<const RscResourceFile&, size_t>, std::string> findFileByOffset(size_t globalOffset) const;
 
         std::vector<RscResourceFile> files_;
         std::optional<std::array<uint8_t, 32>> decryptionKey_;

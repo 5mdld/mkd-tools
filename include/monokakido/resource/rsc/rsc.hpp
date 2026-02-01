@@ -9,6 +9,7 @@
 
 #include <expected>
 #include <iterator>
+#include <optional>
 #include <string>
 
 namespace fs = std::filesystem;
@@ -37,7 +38,7 @@ namespace monokakido::resource
          * map record, it will use that to retrieve the data from the .rsc
          * this works well for dictionary entries where you want to get the xml data for a given itemId
          */
-        [[nodiscard]] std::expected<std::span<const uint8_t>, std::string> get(uint32_t itemId);
+        [[nodiscard]] std::expected<std::span<const uint8_t>, std::string> get(uint32_t itemId) const;
 
         /**
          * Get complete sequential data (fonts)
@@ -56,9 +57,9 @@ namespace monokakido::resource
         /**
          * Detect font file type from sequential data header
          *
-         * @return "otf", "ttf", or empty string if unrecognised
+         * @return "otf", "ttf", or nullopt if unrecognised
          */
-        [[nodiscard]] std::string detectFontType();
+        [[nodiscard]] std::optional<std::string> detectFontType() const;
 
         /**
          * Get total number of records
@@ -106,6 +107,8 @@ namespace monokakido::resource
     private:
 
         explicit Rsc(RscIndex&& index, RscData&& data);
+
+        static std::optional<std::string> getDictId(const fs::path& directoryPath);
 
         RscIndex index_;
         RscData data_;

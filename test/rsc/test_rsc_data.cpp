@@ -8,8 +8,7 @@
 
 #include "monokakido/core/platform/fs.hpp"
 #include "monokakido/dictionary/catalog.hpp"
-#include "monokakido/resource/rsc/rsc_index.hpp"
-#include "monokakido/resource/rsc/rsc_data.hpp"
+#include "monokakido/resource/rsc/rsc.hpp"
 #include "monokakido/resource/xml_view.hpp"
 #include "../common.hpp"
 
@@ -105,30 +104,21 @@ TEST_F(RscDataTest, GetRecordData)
 
 TEST_F(RscDataTest, GetFontData)
 {
-    auto dataResult = RscData::load(testFontDataPath_, dictId_);
-    ASSERT_TRUE(dataResult.has_value());
+    auto rscResult = Rsc::open(testFontDataPath_);
+    ASSERT_TRUE(rscResult.has_value()) << "Failed to open RSC: " << rscResult.error();
 
-    auto indexResult = RscIndex::load(testFontDataPath_);
-    ASSERT_TRUE(indexResult.has_value());
-
-    auto& rscData = dataResult.value();
-    const auto& index = indexResult.value();
+    auto& rsc = rscResult.value();
 
     std::cout << "\n";
     printSeparator();
-    std::cout << "Testing Record Data Retrieval:\n";
+    std::cout << "Testing Sequential Data Retrieval:\n";
     printSeparator();
 
     // Get first record
-    auto recordResult = index.getByIndex(0);
-    ASSERT_TRUE(recordResult.has_value()) << "Failed to record: " << recordResult.error();
+    auto sequentialResult = rsc.getSequential();
+    ASSERT_TRUE(sequentialResult.has_value()) << "Failed to get sequential data: " << sequentialResult.error();
 
-    const auto& [itemId, mapRecord] = recordResult.value();
-
-    auto dataSpan = rscData.get(mapRecord);
-    ASSERT_TRUE(dataSpan.has_value()) << "Failed to get data: " << dataSpan.error();
-
-    const auto& data = dataSpan.value();
-    std::cout << std::format("  Item ID:     {}\n", itemId);
+    auto fontType = rsc.detectFontType();
+    ASSERT_TRUE(fontType.has_value()) << "Failed to get RSC font type";
 }
 
