@@ -45,7 +45,7 @@ namespace monokakido
         }
 
         // Load the chunk if we haven't loaded it yet or if it's a different chunk
-        if (chunkBuffer_.empty() && record.zOffset != currentChunkOffset_)
+        if (chunkBuffer_.empty() || record.zOffset != currentChunkOffset_)
         {
             if (auto result = loadChunk(record.zOffset); !result)
                 return std::unexpected(result.error());

@@ -40,26 +40,6 @@ namespace monokakido
          */
         [[nodiscard]] std::expected<std::span<const uint8_t>, std::string> get(uint32_t itemId) const;
 
-        /**
-         * Get complete sequential data (fonts)
-         *
-         * This reads all map records sequentially and concatenates their data.
-         * Useful for resources like fonts (.otf/.ttf) that are split across
-         * multiple chunks in the .rsc files but form a single logical file.
-         *
-         * The data is assembled into an internal buffer and returned as a span.
-         *
-         * @return Span view of the complete sequential data, or error string if failure
-         * @warning Returned span is only valid until next call to get() or getSequential()
-         */
-        [[nodiscard]] std::expected<std::span<const uint8_t>, std::string> getSequential() const;
-
-        /**
-         * Detect font file type from sequential data header
-         *
-         * @return "otf", "ttf", or nullopt if unrecognised
-         */
-        [[nodiscard]] std::optional<std::string> detectFontType() const;
 
         /**
          * Get total number of records
@@ -112,9 +92,6 @@ namespace monokakido
 
         RscIndex index_;
         RscData data_;
-
-        // buffer for sequential data assembly
-        mutable std::vector<uint8_t> sequentialBuffer_;
     };
 
 

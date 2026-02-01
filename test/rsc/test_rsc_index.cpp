@@ -11,7 +11,6 @@
 #include "monokakido/resource/rsc/rsc_data.hpp"
 #include "../common.hpp"
 
-using namespace monokakido::resource;
 using namespace monokakido::test;
 
 class RscIndexTest : public ::testing::Test
@@ -20,8 +19,8 @@ protected:
     void SetUp() override
     {
         const auto containerPath = monokakido::platform::fs::getContainerPathByGroupIdentifier(
-            monokakido::dictionary::MONOKAKIDO_GROUP_ID);
-        const auto dictionariesPath = containerPath / monokakido::dictionary::DICTIONARIES_PATH;
+            monokakido::MONOKAKIDO_GROUP_ID);
+        const auto dictionariesPath = containerPath / monokakido::DICTIONARIES_PATH;
 
         testDataPath_ = dictionariesPath / "YDP" / "Contents" / "YDP" / "contents";
     }
@@ -30,7 +29,7 @@ protected:
 };
 
 
-void printMapRecord(uint32_t itemId, const MapRecord& record, size_t index = 0)
+void printMapRecord(uint32_t itemId, const monokakido::MapRecord& record, size_t index = 0)
 {
     std::cout << std::format("  [{:4}] ID: {:8} | zOffset: {:10} | ioffset: {:6}\n",
                              index,
@@ -43,7 +42,7 @@ void printMapRecord(uint32_t itemId, const MapRecord& record, size_t index = 0)
 
 TEST_F(RscIndexTest, LoadValidIndexFile)
 {
-    auto result = RscIndex::load(testDataPath_);
+    auto result = monokakido::RscIndex::load(testDataPath_);
     ASSERT_TRUE(result.has_value()) << "Failed to load index: " << result.error();
     const auto& index = result.value();
     const size_t recordCount = index.size();
@@ -62,7 +61,7 @@ TEST_F(RscIndexTest, LoadValidIndexFile)
 
 TEST_F(RscIndexTest, GetRecordByIndex)
 {
-    const auto indexResult = RscIndex::load(testDataPath_);
+    const auto indexResult = monokakido::RscIndex::load(testDataPath_);
     ASSERT_TRUE(indexResult.has_value());
 
     const auto& index = indexResult.value();
@@ -92,7 +91,7 @@ TEST_F(RscIndexTest, GetRecordByIndex)
 
 TEST_F(RscIndexTest, GetOutOfBoundsIndex)
 {
-    const auto indexResult = RscIndex::load(testDataPath_);
+    const auto indexResult = monokakido::RscIndex::load(testDataPath_);
     ASSERT_TRUE(indexResult.has_value());
 
     const auto& index = indexResult.value();
@@ -111,7 +110,7 @@ TEST_F(RscIndexTest, GetOutOfBoundsIndex)
 
 TEST_F(RscIndexTest, FindRecordById)
 {
-    auto indexResult = RscIndex::load(testDataPath_);
+    auto indexResult = monokakido::RscIndex::load(testDataPath_);
     ASSERT_TRUE(indexResult.has_value());
 
     const auto& index = indexResult.value();

@@ -7,6 +7,7 @@
 #include "metadata.hpp"
 #include "paths.hpp"
 #include "monokakido/resource/nrsc/nrsc.hpp"
+#include "monokakido/resource/rsc/rsc.hpp"
 #include "monokakido/output/exporter.hpp"
 #include "monokakido/resource/font.hpp"
 
@@ -33,9 +34,9 @@ namespace monokakido
         [[nodiscard]] bool hasGraphics() const noexcept;
         [[nodiscard]] bool hasFonts() const noexcept;
 
-
         std::expected<ExportResult, std::string> exportAllResources(const ExportOptions& options) const;
 
+        std::expected<ExportResult, std::string> exportEntries(const ExportOptions& options) const;
         std::expected<ExportResult, std::string> exportGraphics(const ExportOptions& options) const;
         std::expected<ExportResult, std::string> exportFonts(const ExportOptions& options) const;
 
@@ -48,6 +49,7 @@ namespace monokakido
             std::string id,
             DictionaryMetadata metadata,
             DictionaryPaths paths,
+            std::optional<Rsc> entries,
             std::optional<Nrsc> graphics,
             std::optional<Nrsc> audio,
             std::vector<Font> fonts);
@@ -55,11 +57,9 @@ namespace monokakido
         std::string id_;
         DictionaryPaths paths_;
         DictionaryMetadata metadata_;
-
+        std::optional<Rsc> entries_;
         std::optional<Nrsc> graphics_;
         std::optional<Nrsc> audio_;
-        // Rsc entryContent_; // xml
         std::vector<Font> fonts_;
-
     };
 }

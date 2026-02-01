@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <iostream>
 #include <ranges>
 
 namespace monokakido
@@ -35,41 +36,6 @@ namespace monokakido
             return std::unexpected(std::format("Failed to get record from rsc index: {}", itemId));
 
         return data_.get(*record);
-    }
-
-
-    std::expected<std::span<const uint8_t>, std::string> Rsc::getSequential() const
-    {
-        sequentialBuffer_.clear();
-
-        for (const auto& mapRecord : index_ | std::views::values)
-        {
-            auto dataResult = data_.get(mapRecord);
-            if (!dataResult)
-                return std::unexpected(std::format("Failed to read sequential data: {}", dataResult.error()));
-
-            const auto& chunk = *dataResult;
-            sequentialBuffer_.insert(sequentialBuffer_.end(), chunk.begin(), chunk.end());
-        }
-
-        return std::span<const uint8_t>(sequentialBuffer_);
-    }
-
-
-    std::optional<std::string> Rsc::detectFontType() const
-    {
-        if (sequentialBuffer_.empty() || sequentialBuffer_.size() < 8)
-            return std::nullopt;
-
-        const uint32_t magic = (sequentialBuffer_[0] << 24 |
-                                sequentialBuffer_[1] << 16 |
-                                sequentialBuffer_[2] << 8 |
-                                sequentialBuffer_[3]);
-
-        if (magic == 0x4F54544F) // "OTTO"
-            return "otf"; // OpenType
-
-        return std::nullopt;
     }
 
 

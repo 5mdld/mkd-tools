@@ -12,17 +12,14 @@
 #include "monokakido/resource/xml_view.hpp"
 #include "../common.hpp"
 
-using namespace monokakido::resource;
-using namespace monokakido::test;
-
 class RscDataTest : public ::testing::Test
 {
 protected:
     void SetUp() override
     {
         const auto containerPath = monokakido::platform::fs::getContainerPathByGroupIdentifier(
-            monokakido::dictionary::MONOKAKIDO_GROUP_ID);
-        const auto dictionariesPath = containerPath / monokakido::dictionary::DICTIONARIES_PATH;
+            monokakido::MONOKAKIDO_GROUP_ID);
+        const auto dictionariesPath = containerPath / monokakido::DICTIONARIES_PATH;
 
         testDataPath_ = dictionariesPath / "KJT" / "Contents" / "KJT" / "contents";
         testFontDataPath_ = dictionariesPath / "KOGO3" / "Contents" / "ozk5" / "fonts" / "YuMinPr6N-R";
@@ -35,7 +32,7 @@ protected:
 };
 
 
-void printResourceFileInfo(const RscResourceFile& file, size_t index)
+void printResourceFileInfo(const monokakido::RscResourceFile& file, size_t index)
 {
     std::cout << std::format("  [{:2}] File: {}.rsc | Offset: {:10} | Length: {:10} | Path: {}\n",
                              index,
@@ -47,33 +44,33 @@ void printResourceFileInfo(const RscResourceFile& file, size_t index)
 
 TEST_F(RscDataTest, LoadValidRscData)
 {
-    auto result = RscData::load(testDataPath_, dictId_);
+    auto result = monokakido::RscData::load(testDataPath_, dictId_);
     ASSERT_TRUE(result.has_value()) << "Failed to load RSC data: " << result.error();
 
     std::cout << "\n";
-    printSeparator();
+    monokakido::test::printSeparator();
     std::cout << std::format("RSC Data Loaded Successfully from: {}\n", testDataPath_.string());
     std::cout << std::format("Dictionary ID: {}\n", dictId_);
-    printSeparator();
+    monokakido::test::printSeparator();
     std::cout << "\n";
 }
 
 
 TEST_F(RscDataTest, GetRecordData)
 {
-    auto dataResult = RscData::load(testDataPath_, dictId_);
+    auto dataResult = monokakido::RscData::load(testDataPath_, dictId_);
     ASSERT_TRUE(dataResult.has_value());
 
-    auto indexResult = RscIndex::load(testDataPath_);
+    auto indexResult = monokakido::RscIndex::load(testDataPath_);
     ASSERT_TRUE(indexResult.has_value());
 
     auto& rscData = dataResult.value();
     const auto& index = indexResult.value();
 
     std::cout << "\n";
-    printSeparator();
+    monokakido::test::printSeparator();
     std::cout << "Testing Record Data Retrieval:\n";
-    printSeparator();
+    monokakido::test::printSeparator();
 
     // Get first record
     auto recordResult = index.getByIndex(0);
@@ -86,7 +83,7 @@ TEST_F(RscDataTest, GetRecordData)
 
     const auto& data = dataSpan.value();
 
-    const auto xmlResult = XmlView{data}.asStringView();
+    const auto xmlResult = monokakido::XmlView{data}.asStringView();
     ASSERT_TRUE(xmlResult.has_value()) << "Data contains invalid UTF-8 sequence: " << xmlResult.error();
 
     const auto& xmlView = xmlResult.value();
@@ -95,30 +92,10 @@ TEST_F(RscDataTest, GetRecordData)
     std::cout << std::format("  Data Size:   {} bytes\n", data.size());
     std::cout << std::format("  First 100 chars: {}\n", xmlView.substr(0, 100));
 
-    printSeparator();
+    monokakido::test::printSeparator();
     std::cout << "\n";
 
     EXPECT_GT(data.size(), 0) << "Retrieved data should not be empty";
 }
 
-
-TEST_F(RscDataTest, GetFontData)
-{
-    auto rscResult = Rsc::open(testFontDataPath_);
-    ASSERT_TRUE(rscResult.has_value()) << "Failed to open RSC: " << rscResult.error();
-
-    auto& rsc = rscResult.value();
-
-    std::cout << "\n";
-    printSeparator();
-    std::cout << "Testing Sequential Data Retrieval:\n";
-    printSeparator();
-
-    // Get first record
-    auto sequentialResult = rsc.getSequential();
-    ASSERT_TRUE(sequentialResult.has_value()) << "Failed to get sequential data: " << sequentialResult.error();
-
-    auto fontType = rsc.detectFontType();
-    ASSERT_TRUE(fontType.has_value()) << "Failed to get RSC font type";
-}
 

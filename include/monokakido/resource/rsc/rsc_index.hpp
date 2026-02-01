@@ -108,31 +108,24 @@ namespace monokakido
             Iterator(const RscIndex* index, size_t pos);
 
             value_type operator*() const;
-
             value_type operator[](difference_type n) const;
 
             Iterator& operator++();
-
             Iterator operator++(int);
 
             Iterator& operator--();
-
             Iterator operator--(int);
 
             Iterator& operator+=(difference_type n);
-
             Iterator& operator-=(difference_type n);
 
             Iterator operator+(difference_type n) const;
-
             Iterator operator-(difference_type n) const;
 
             friend Iterator operator+(difference_type n, const Iterator& it);
-
             difference_type operator-(const Iterator& other) const;
 
             auto operator<=>(const Iterator& other) const = default;
-
             bool operator==(const Iterator& other) const = default;
 
         private:

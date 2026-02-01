@@ -31,7 +31,17 @@ int main(int argc, char* argv[])
         }
 
         dict->print();
-        if (auto result = dict->exportFonts({.outputDirectory = fs::path(std::getenv("HOME")) / "Downloads"}); !result)
+        if (auto result = dict->exportFonts({.outputDirectory = fs::path(std::getenv("HOME")) / "Documents" / "test"}); !result)
+        {
+            std::cerr << "Failed to export resources: " << result.error() << std::endl;
+        }
+
+        if (auto result = dict->exportGraphics({.outputDirectory = fs::path(std::getenv("HOME")) / "Documents" / "test"}); !result)
+        {
+            std::cerr << "Failed to export resources: " << result.error() << std::endl;
+        }
+
+        if (auto result = dict->exportEntries({.outputDirectory = fs::path(std::getenv("HOME")) / "Documents" / "test"}); !result)
         {
             std::cerr << "Failed to export resources: " << result.error() << std::endl;
         }

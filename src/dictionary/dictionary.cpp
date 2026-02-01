@@ -39,14 +39,17 @@ namespace monokakido
             return std::unexpected(std::format("Failed to load paths: '{}'", paths.error()));
 
         ResourceLoader loader(*paths);
-        auto graphics = loader.loadGraphics();
+
+        auto entries = loader.loadEntries();
         auto audio = loader.loadAudio();
+        auto graphics = loader.loadGraphics();
         auto fonts = loader.loadFonts();
 
         return Dictionary(
             std::string(dictId),
             std::move(metadata.value()),
             std::move(paths.value()),
+            std::move(entries),
             std::move(graphics),
             std::move(audio),
             std::move(fonts)
@@ -90,13 +93,21 @@ namespace monokakido
     }
 
 
+    bool Dictionary::hasFonts() const noexcept
+    {
+        return !fonts_.empty();
+    }
+
+
     Dictionary::Dictionary(std::string id,
                            DictionaryMetadata metadata,
                            DictionaryPaths paths,
+                           std::optional<Rsc> entries,
                            std::optional<Nrsc> graphics,
                            std::optional<Nrsc> audio,
                            std::vector<Font> fonts)
         : id_(std::move(id)), paths_(std::move(paths)), metadata_(std::move(metadata)),
+          entries_(std::move(entries)),
           graphics_(std::move(graphics)),
           audio_(std::move(audio)),
           fonts_(std::move(fonts))
@@ -116,10 +127,19 @@ namespace monokakido
     }
 
 
+    std::expected<ExportResult, std::string> Dictionary::exportEntries(const ExportOptions& options) const
+    {
+        if (!entries_)
+            return ExportResult{};
+
+        return RscExporter::exportAll(*entries_, options);
+    }
+
+
     std::expected<ExportResult, std::string> Dictionary::exportGraphics(
         const ExportOptions& options) const
     {
-        return NrscExporter::exportAll(*graphics_, options);
+        return hasGraphics() ? NrscExporter::exportAll(*graphics_, options) : ExportResult{};
     }
 
 

@@ -14,6 +14,12 @@ namespace monokakido
     }
 
 
+    std::optional<Rsc> ResourceLoader::loadEntries()
+    {
+        return tryLoad<Rsc>(PathType::Contents, "contents");
+    }
+
+
     std::optional<Nrsc> ResourceLoader::loadGraphics()
     {
         return tryLoad<Nrsc>(PathType::Graphics, "graphics");

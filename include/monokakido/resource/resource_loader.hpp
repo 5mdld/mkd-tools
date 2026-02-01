@@ -6,6 +6,7 @@
 
 #include "monokakido/dictionary/paths.hpp"
 #include "monokakido/resource/nrsc/nrsc.hpp"
+#include "monokakido/resource/rsc/rsc.hpp"
 #include "monokakido/resource/font.hpp"
 
 
@@ -24,11 +25,10 @@ namespace monokakido
 
         explicit ResourceLoader(const DictionaryPaths& paths);
 
+        [[nodiscard]] std::optional<Rsc> loadEntries();
         [[nodiscard]] std::optional<Nrsc> loadGraphics();
         [[nodiscard]] std::optional<Nrsc> loadAudio();
         [[nodiscard]] std::vector<Font> loadFonts() const;
-
-        // [[nodiscard]] std::optional<resource::Rsc> loadEntries();
 
     private:
 

@@ -32,7 +32,7 @@ find_package(ZLIB REQUIRED)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories(${glaze_SOURCE_DIR}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/utfcpp)
-#include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/pugixml)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/pugixml)
 
 
 # Core library
@@ -60,7 +60,8 @@ add_library(monokakido_dictionary STATIC
 
 # --- Output library ---
 add_library(monokakido_output STATIC
-    src/output/base_exporter.cpp
+        third_party/pugixml/pugixml.cpp
+        src/output/base_exporter.cpp
         src/output/font_exporter.cpp
         src/output/nrsc_exporter.cpp
         src/output/rsc_exporter.cpp
@@ -84,6 +85,7 @@ add_library(monokakido_resource STATIC
         src/resource/rsc/rsc_keystore.cpp
         src/resource/rsc/rsc_decryptor.cpp
         src/resource/rsc/rsc.cpp
+        src/resource/font.cpp
 )
 
 target_link_libraries(monokakido_resource PRIVATE

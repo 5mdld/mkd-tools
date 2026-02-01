@@ -10,7 +10,6 @@
 #include "monokakido/resource/nrsc/nrsc_index.hpp"
 #include "../common.hpp"
 
-using namespace monokakido::resource;
 using namespace monokakido::test;
 
 class NrscIndexTest : public ::testing::Test
@@ -18,8 +17,8 @@ class NrscIndexTest : public ::testing::Test
 protected:
     void SetUp() override
     {
-        const auto containerPath = monokakido::platform::fs::getContainerPathByGroupIdentifier(monokakido::dictionary::MONOKAKIDO_GROUP_ID);
-        const auto dictionariesPath = containerPath / monokakido::dictionary::DICTIONARIES_PATH;
+        const auto containerPath = monokakido::platform::fs::getContainerPathByGroupIdentifier(monokakido::MONOKAKIDO_GROUP_ID);
+        const auto dictionariesPath = containerPath / monokakido::DICTIONARIES_PATH;
 
         testDataPath_ = dictionariesPath / "KJT" / "Contents" / "KJT" / "img";
     }
@@ -28,7 +27,7 @@ protected:
 };
 
 
-void printRecord(std::string_view id, const NrscIndexRecord& record, size_t index = 0)
+void printRecord(std::string_view id, const monokakido::NrscIndexRecord& record, size_t index = 0)
 {
     std::cout << std::format("  [{:4}] ID: {:20} | {}\n",
                              index,
@@ -39,7 +38,7 @@ void printRecord(std::string_view id, const NrscIndexRecord& record, size_t inde
 
 TEST_F(NrscIndexTest, LoadValidIndexFile)
 {
-    auto result = NrscIndex::load(testDataPath_);
+    auto result = monokakido::NrscIndex::load(testDataPath_);
     ASSERT_TRUE(result.has_value()) << "Failed to load index: " << result.error();
 
     const auto& index = result.value();
@@ -59,7 +58,7 @@ TEST_F(NrscIndexTest, LoadValidIndexFile)
 
 TEST_F(NrscIndexTest, LoadNonExistentDirectory)
 {
-    auto result = NrscIndex::load("/path/that/does/not/exist");
+    auto result = monokakido::NrscIndex::load("/path/that/does/not/exist");
 
     ASSERT_FALSE(result.has_value()) << "Should fail when directory doesn't exist";
 
@@ -72,7 +71,7 @@ TEST_F(NrscIndexTest, LoadNonExistentDirectory)
 
 TEST_F(NrscIndexTest, GetRecordByIndex)
 {
-    auto indexResult = NrscIndex::load(testDataPath_);
+    auto indexResult = monokakido::NrscIndex::load(testDataPath_);
     ASSERT_TRUE(indexResult.has_value());
 
     const auto& index = indexResult.value();
@@ -93,7 +92,7 @@ TEST_F(NrscIndexTest, GetRecordByIndex)
         printRecord(id, record, i);
 
         // Validate record fields
-        EXPECT_LE(record.compressionFormat(), CompressionFormat::Zlib);
+        EXPECT_LE(record.compressionFormat(), monokakido::CompressionFormat::Zlib);
     }
 
     std::cout << "\n";
@@ -102,7 +101,7 @@ TEST_F(NrscIndexTest, GetRecordByIndex)
 
 TEST_F(NrscIndexTest, GetOutOfBoundsIndex)
 {
-    auto indexResult = NrscIndex::load(testDataPath_);
+    auto indexResult = monokakido::NrscIndex::load(testDataPath_);
     ASSERT_TRUE(indexResult.has_value());
 
     const auto& index = indexResult.value();
@@ -121,7 +120,7 @@ TEST_F(NrscIndexTest, GetOutOfBoundsIndex)
 
 TEST_F(NrscIndexTest, FindRecordById)
 {
-    auto indexResult = NrscIndex::load(testDataPath_);
+    auto indexResult = monokakido::NrscIndex::load(testDataPath_);
     ASSERT_TRUE(indexResult.has_value());
 
     const auto& index = indexResult.value();
@@ -156,7 +155,7 @@ TEST_F(NrscIndexTest, FindRecordById)
 
 TEST_F(NrscIndexTest, DisplayIndexStatistics)
 {
-    const auto indexResult = NrscIndex::load(testDataPath_);
+    const auto indexResult = monokakido::NrscIndex::load(testDataPath_);
     ASSERT_TRUE(indexResult.has_value());
 
     const auto& index = indexResult.value();
@@ -171,7 +170,7 @@ TEST_F(NrscIndexTest, DisplayIndexStatistics)
 
     for (const auto record : index | std::views::values)
     {
-        if (record.compressionFormat() == CompressionFormat::Uncompressed)
+        if (record.compressionFormat() == monokakido::CompressionFormat::Uncompressed)
             ++uncompressedCount;
         else
             ++zlibCount;
@@ -223,7 +222,7 @@ TEST_F(NrscIndexTest, DisplayIndexStatistics)
 
 TEST_F(NrscIndexTest, DisplayLastRecords)
 {
-    auto indexResult = NrscIndex::load(testDataPath_);
+    auto indexResult = monokakido::NrscIndex::load(testDataPath_);
     ASSERT_TRUE(indexResult.has_value());
 
     const auto& index = indexResult.value();

@@ -4,6 +4,9 @@
 
 #include "monokakido/output/rsc_exporter.hpp"
 
+#include <sstream>
+
+#include <pugixml.h>
 
 namespace monokakido
 {
@@ -30,7 +33,7 @@ namespace monokakido
 
         for (const auto& [itemId, data] : rsc)
         {
-            fs::path outputPath = outputDir / std::format("{:10}.xml", itemId);
+            fs::path outputPath = outputDir / std::format("{0:010}.xml", itemId);
 
             if (shouldSkipExisting(outputPath, options.overwriteExisting))
             {
@@ -39,12 +42,19 @@ namespace monokakido
             }
 
             std::span<const uint8_t> dataToWrite = data;
-            // std::vector<uint8_t> prettyData;
 
             if (options.prettyPrintXml)
             {
-                // TODO: Implement XML pretty-printing if needed
-                // For now, just write as-is
+                if (pugi::xml_document doc; doc.load_buffer(dataToWrite.data(), dataToWrite.size()))
+                {
+                    std::ostringstream oss;
+                    doc.save(oss);
+                    std::string prettyXml = oss.str();
+                    dataToWrite = std::span(
+                        reinterpret_cast<const uint8_t*>(prettyXml.data()),
+                        prettyXml.size()
+                    );
+                }
             }
 
             if (auto writeResult = writeData(dataToWrite, outputPath))
