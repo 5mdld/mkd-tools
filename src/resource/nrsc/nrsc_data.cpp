@@ -8,7 +8,7 @@
 #include <algorithm>
 #include <format>
 
-namespace monokakido::resource
+namespace monokakido
 {
     std::expected<NrscData, std::string> NrscData::load(const fs::path& directoryPath)
     {

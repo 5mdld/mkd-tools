@@ -6,7 +6,7 @@
 
 using namespace std::literals::string_view_literals;
 
-namespace monokakido::dictionary
+namespace monokakido
 {
 
     namespace detail
@@ -31,7 +31,7 @@ namespace monokakido::dictionary
         if (!contentDirectoryName)
             return std::unexpected(std::format("Failed to get content directory for '{}'", rootPath.stem().string()));
 
-        return DictionaryPaths(std::move(rootPath), std::move(rootPath / "Contents" / contentDirectoryName.value()));
+        return DictionaryPaths(rootPath, std::move(rootPath / "Contents" / contentDirectoryName.value()));
     }
 
 
@@ -44,6 +44,8 @@ namespace monokakido::dictionary
     {
         switch (type)
         {
+            case PathType::Audio: return contentDirectory_ / "audio";
+            case PathType::Appendix: return contentDirectory_ / "appendix";
             case PathType::Contents: return contentDirectory_ / "contents";
             case PathType::Graphics:
             {
@@ -52,10 +54,9 @@ namespace monokakido::dictionary
                     return *path;
                 return contentDirectory_ / "graphics";
             }
-            case PathType::Audio: return contentDirectory_ / "audio";
+            case PathType::Fonts: return contentDirectory_ / "fonts";
             case PathType::Headline: return contentDirectory_ / "headline";
             case PathType::Keystore: return contentDirectory_ / "key";
-            case PathType::Appendix: return contentDirectory_ / "appendix";
             default: return rootPath_;
         }
     }

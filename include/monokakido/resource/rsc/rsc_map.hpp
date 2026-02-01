@@ -6,7 +6,7 @@
 
 #include "monokakido/resource/common.hpp"
 
-namespace monokakido::resource
+namespace monokakido
 {
     /**
      * MapHeader - contents.map File Header

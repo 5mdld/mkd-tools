@@ -12,7 +12,7 @@
 
 namespace fs = std::filesystem;
 
-namespace monokakido::resource
+namespace monokakido
 {
     enum class CompressionFormat : uint16_t
     {

@@ -13,17 +13,18 @@
 
 namespace fs = std::filesystem;
 
-namespace monokakido::dictionary
+namespace monokakido
 {
 
     enum class PathType
     {
-        Contents,
-        Graphics,
         Audio,
+        Appendix,
+        Contents,
+        Fonts,
+        Graphics,
         Headline,
-        Keystore,
-        Appendix
+        Keystore
     };
 
     class DictionaryPaths

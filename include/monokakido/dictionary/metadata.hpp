@@ -11,7 +11,7 @@
 
 namespace fs = std::filesystem;
 
-namespace monokakido::dictionary
+namespace monokakido
 {
 
     class DictionaryMetadata

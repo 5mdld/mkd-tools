@@ -7,7 +7,7 @@
 #include <format>
 #include <utf8.h>
 
-namespace monokakido::resource
+namespace monokakido
 {
 
     XmlView::XmlView(const std::span<const uint8_t> data)

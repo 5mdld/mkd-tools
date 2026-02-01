@@ -5,7 +5,7 @@
 #include "monokakido/resource/common.hpp"
 
 
-namespace monokakido::resource::detail
+namespace monokakido::detail
 {
     std::optional<uint32_t> parseSequenceNumber(const fs::path& filename, std::string_view extension)
     {

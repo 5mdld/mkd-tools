@@ -11,7 +11,7 @@
 #include <optional>
 #include <vector>
 
-namespace monokakido::dictionary
+namespace monokakido
 {
     static constexpr auto MONOKAKIDO_GROUP_ID = "group.jp.monokakido.Dictionaries";
     static constexpr auto DICTIONARIES_PATH = "Library/Application Support/com.dictionarystore/dictionaries";

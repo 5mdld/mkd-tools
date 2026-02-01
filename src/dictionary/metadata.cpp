@@ -5,7 +5,7 @@
 #include "monokakido/core/platform/fs.hpp"
 #include "monokakido/dictionary/metadata.hpp"
 
-namespace monokakido::dictionary
+namespace monokakido
 {
     std::expected<DictionaryMetadata, std::string> DictionaryMetadata::loadFromPath(const fs::path& path)
     {

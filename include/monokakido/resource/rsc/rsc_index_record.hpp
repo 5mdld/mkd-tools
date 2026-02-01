@@ -7,7 +7,7 @@
 #include "monokakido/resource/common.hpp"
 
 
-namespace monokakido::resource
+namespace monokakido
 {
     /**
      * IdxRecord - ID to Index Mapping (contents.idx)

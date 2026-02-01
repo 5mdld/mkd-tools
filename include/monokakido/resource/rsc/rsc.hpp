@@ -14,7 +14,7 @@
 
 namespace fs = std::filesystem;
 
-namespace monokakido::resource
+namespace monokakido
 {
     struct RscItem
     {
@@ -52,7 +52,7 @@ namespace monokakido::resource
          * @return Span view of the complete sequential data, or error string if failure
          * @warning Returned span is only valid until next call to get() or getSequential()
          */
-        [[nodiscard]] std::expected<std::span<const uint8_t>, std::string> getSequential();
+        [[nodiscard]] std::expected<std::span<const uint8_t>, std::string> getSequential() const;
 
         /**
          * Detect font file type from sequential data header

@@ -15,7 +15,7 @@
 
 namespace fs = std::filesystem;
 
-namespace monokakido::resource
+namespace monokakido
 {
     /**
     * NRSC Resource File Format (.nrsc)

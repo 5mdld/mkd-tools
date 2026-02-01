@@ -6,7 +6,7 @@
 
 #include <bit>
 
-namespace monokakido::resource
+namespace monokakido
 {
     CompressionFormat NrscIndexRecord::compressionFormat() const
     {

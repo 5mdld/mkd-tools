@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <format>
 
-namespace monokakido::resource
+namespace monokakido
 {
     std::expected<RscData, std::string> RscData::load(const fs::path& directoryPath, std::string_view dictId)
     {

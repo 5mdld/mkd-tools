@@ -10,7 +10,7 @@
 #include <iostream>
 #include <utility>
 
-namespace monokakido::dictionary
+namespace monokakido
 {
     std::expected<Dictionary, std::string> Dictionary::open(std::string_view dictId)
     {
@@ -38,16 +38,18 @@ namespace monokakido::dictionary
         if (!paths)
             return std::unexpected(std::format("Failed to load paths: '{}'", paths.error()));
 
-        resource::ResourceLoader loader(*paths);
+        ResourceLoader loader(*paths);
         auto graphics = loader.loadGraphics();
         auto audio = loader.loadAudio();
+        auto fonts = loader.loadFonts();
 
         return Dictionary(
             std::string(dictId),
             std::move(metadata.value()),
             std::move(paths.value()),
             std::move(graphics),
-            std::move(audio)
+            std::move(audio),
+            std::move(fonts)
         );
     }
 
@@ -64,7 +66,7 @@ namespace monokakido::dictionary
     }
 
 
-    resource::Nrsc* Dictionary::graphics() noexcept
+    Nrsc* Dictionary::graphics() noexcept
     {
         if (!graphics_ || graphics_->empty())
             return nullptr;
@@ -73,7 +75,7 @@ namespace monokakido::dictionary
     }
 
 
-    const resource::Nrsc* Dictionary::graphics() const noexcept
+    const Nrsc* Dictionary::graphics() const noexcept
     {
         if (!graphics_ || graphics_->empty())
             return nullptr;
@@ -91,11 +93,13 @@ namespace monokakido::dictionary
     Dictionary::Dictionary(std::string id,
                            DictionaryMetadata metadata,
                            DictionaryPaths paths,
-                           std::optional<resource::Nrsc> graphics,
-                           std::optional<resource::Nrsc> audio)
+                           std::optional<Nrsc> graphics,
+                           std::optional<Nrsc> audio,
+                           std::vector<Font> fonts)
         : id_(std::move(id)), paths_(std::move(paths)), metadata_(std::move(metadata)),
           graphics_(std::move(graphics)),
-          audio_(std::move(audio))
+          audio_(std::move(audio)),
+          fonts_(std::move(fonts))
     {
     }
 
@@ -112,23 +116,30 @@ namespace monokakido::dictionary
     }
 
 
-    std::expected<resource::ExportResult, std::string> Dictionary::exportAllResources() const
+    std::expected<ExportResult, std::string> Dictionary::exportGraphics(
+        const ExportOptions& options) const
     {
-        if (graphics_)
-        {
-            const auto exporter = resource::ResourceExporter(*graphics_);
-            auto result = exporter.exportAll({
-                .outputDirectory = fs::path(std::getenv("HOME")) / "Downloads"
-            });
-        }
+        return NrscExporter::exportAll(*graphics_, options);
+    }
 
-        if (audio_)
+
+    std::expected<ExportResult, std::string> Dictionary::exportFonts(
+        const ExportOptions& options) const
+    {
+        ExportResult combinedResult;
+        for (auto& font : fonts_)
         {
-            const auto exporter = resource::ResourceExporter(*audio_);
-            auto result = exporter.exportAll({
-                .outputDirectory = fs::path(std::getenv("HOME")) / "Downloads"
-            });
+            auto result = FontExporter::exportFont(font, options);
+            if (!result)
+                return result;
+
+            combinedResult.totalResources += result->totalResources;
+            combinedResult.exported += result->exported;
+            combinedResult.skipped += result->skipped;
+            combinedResult.failed += result->failed;
+            combinedResult.totalBytes += result->totalBytes;
+            combinedResult.errors.insert(combinedResult.errors.end(), result->errors.begin(), result->errors.end());
         }
-        return {};
+        return combinedResult;
     }
 }

@@ -10,7 +10,7 @@
 #include <string_view>
 
 
-namespace monokakido::resource
+namespace monokakido
 {
     class XmlView
     {

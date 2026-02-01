@@ -16,7 +16,7 @@
 
 namespace fs = std::filesystem;
 
-namespace monokakido::resource
+namespace monokakido
 {
 
     // Resource item that can be returned to users

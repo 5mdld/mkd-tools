@@ -36,7 +36,7 @@ namespace monokakido::platform::fs
         template<typename T>
         [[nodiscard]] std::expected<T, std::string> readStruct()
         {
-            static_assert(resource::SwappableEndianness<T>,
+            static_assert(SwappableEndianness<T>,
                           "Type must inherit from BinaryStruct and implement swapEndianness()");
 
             T data{};
@@ -74,7 +74,7 @@ namespace monokakido::platform::fs
         template<typename T>
         [[nodiscard]] std::expected<std::vector<T>, std::string> readStructArray(size_t count)
         {
-            static_assert(resource::SwappableEndianness<T>,
+            static_assert(SwappableEndianness<T>,
                           "Type must inherit from BinaryStruct and implement swapEndianness()");
 
             std::vector<T> data(count);

@@ -5,7 +5,7 @@
 #include "monokakido/resource/rsc/rsc_index_record.hpp"
 
 
-namespace monokakido::resource
+namespace monokakido
 {
     uint32_t IdxRecord::id() const noexcept
     {

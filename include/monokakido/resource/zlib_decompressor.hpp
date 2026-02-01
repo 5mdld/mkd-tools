@@ -9,7 +9,7 @@
 #include <vector>
 
 
-namespace monokakido::resource
+namespace monokakido
 {
     class ZlibDecompressor
     {

@@ -58,6 +58,15 @@ add_library(monokakido_dictionary STATIC
 )
 
 
+# --- Output library ---
+add_library(monokakido_output STATIC
+    src/output/base_exporter.cpp
+        src/output/font_exporter.cpp
+        src/output/nrsc_exporter.cpp
+        src/output/rsc_exporter.cpp
+)
+
+
 # --- Resource library ---
 add_library(monokakido_resource STATIC
         src/resource/nrsc/nrsc.cpp
@@ -91,6 +100,7 @@ target_link_libraries(monokakido_extractor PRIVATE
         monokakido_core
         monokakido_dictionary
         monokakido_resource
+        monokakido_output
         glaze::glaze
         ZLIB::ZLIB
 )
@@ -115,6 +125,7 @@ if (BUILD_TESTING)
     target_link_libraries(monokakido_extractor_tests PRIVATE
             monokakido_core
             monokakido_resource
+            monokakido_output
             GTest::gtest_main
             ZLIB::ZLIB
     )

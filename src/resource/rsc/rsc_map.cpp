@@ -5,7 +5,7 @@
 #include "monokakido/resource/rsc/rsc_map.hpp"
 
 
-namespace monokakido::resource
+namespace monokakido
 {
     void MapHeader::swapEndianness() noexcept
     {

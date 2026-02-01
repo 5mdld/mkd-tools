@@ -8,7 +8,7 @@
 #include <cassert>
 #include <ranges>
 
-namespace monokakido::resource
+namespace monokakido
 {
     std::expected<Rsc, std::string> Rsc::open(const fs::path& directoryPath)
     {
@@ -38,7 +38,7 @@ namespace monokakido::resource
     }
 
 
-    std::expected<std::span<const uint8_t>, std::string> Rsc::getSequential()
+    std::expected<std::span<const uint8_t>, std::string> Rsc::getSequential() const
     {
         sequentialBuffer_.clear();
 

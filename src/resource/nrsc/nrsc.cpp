@@ -7,7 +7,7 @@
 #include <cassert>
 #include <format>
 
-namespace monokakido::resource
+namespace monokakido
 {
     std::expected<Nrsc, std::string> Nrsc::open(const fs::path& directoryPath)
     {

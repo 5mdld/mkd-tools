@@ -6,9 +6,10 @@
 
 #include "monokakido/dictionary/paths.hpp"
 #include "monokakido/resource/nrsc/nrsc.hpp"
+#include "monokakido/resource/font.hpp"
 
 
-namespace monokakido::resource
+namespace monokakido
 {
 
     template<typename T>
@@ -21,19 +22,20 @@ namespace monokakido::resource
     {
     public:
 
-        explicit ResourceLoader(const dictionary::DictionaryPaths& paths);
+        explicit ResourceLoader(const DictionaryPaths& paths);
 
         [[nodiscard]] std::optional<Nrsc> loadGraphics();
         [[nodiscard]] std::optional<Nrsc> loadAudio();
+        [[nodiscard]] std::vector<Font> loadFonts() const;
 
         // [[nodiscard]] std::optional<resource::Rsc> loadEntries();
 
     private:
 
-        const dictionary::DictionaryPaths& paths_;
+        const DictionaryPaths& paths_;
 
         template<Openable T>
-        std::optional<T> tryLoad(dictionary::PathType pathType, std::string_view resourceName);
+        std::optional<T> tryLoad(PathType pathType, std::string_view resourceName);
     };
 
 

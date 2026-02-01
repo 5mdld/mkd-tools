@@ -19,7 +19,7 @@
 
 namespace fs = std::filesystem;
 
-namespace monokakido::resource
+namespace monokakido
 {
     /**
     * RSC Resource File Format (.rsc)

@@ -10,7 +10,7 @@
 #include <format>
 #include <fstream>
 
-namespace monokakido::resource
+namespace monokakido
 {
     void IdxHeader::swapEndianness() noexcept
     {

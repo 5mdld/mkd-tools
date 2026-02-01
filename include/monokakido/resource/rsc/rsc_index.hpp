@@ -16,7 +16,7 @@
 
 namespace fs = std::filesystem;
 
-namespace monokakido::resource
+namespace monokakido
 {
     /**
      * RSC Index File Format (contents.idx + contents.map)

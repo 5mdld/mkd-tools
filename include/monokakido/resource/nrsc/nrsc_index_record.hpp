@@ -9,7 +9,7 @@
 #include <format>
 
 
-namespace monokakido::resource
+namespace monokakido
 {
     /**
      * Represents a single entry in the .nrsc index
@@ -42,7 +42,7 @@ namespace monokakido::resource
 
 
 template<>
-struct std::formatter<monokakido::resource::NrscIndexRecord>
+struct std::formatter<monokakido::NrscIndexRecord>
 {
     enum class Style { compact, detailed, hex };
 
@@ -80,9 +80,9 @@ struct std::formatter<monokakido::resource::NrscIndexRecord>
         return ctx.begin();
     }
 
-    auto format(const monokakido::resource::NrscIndexRecord& record, std::format_context& ctx) const
+    auto format(const monokakido::NrscIndexRecord& record, std::format_context& ctx) const
     {
-        const char compression = record.compressionFormat() == monokakido::resource::CompressionFormat::Uncompressed ? 'U' : 'Z';
+        const char compression = record.compressionFormat() == monokakido::CompressionFormat::Uncompressed ? 'U' : 'Z';
 
         switch (style_)
         {

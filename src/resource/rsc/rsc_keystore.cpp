@@ -5,7 +5,7 @@
 #include "monokakido/resource/rsc/rsc_keystore.hpp"
 
 
-namespace monokakido::resource
+namespace monokakido
 {
     const std::unordered_map<std::string_view, std::array<uint8_t, 32>>
     RscKeyStore::KNOWN_KEYS = {

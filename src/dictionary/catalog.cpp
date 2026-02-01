@@ -8,7 +8,7 @@
 #include <iostream>
 
 
-namespace monokakido::dictionary
+namespace monokakido
 {
     DictionaryCatalog& DictionaryCatalog::instance()
     {

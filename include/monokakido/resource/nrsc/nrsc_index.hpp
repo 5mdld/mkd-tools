@@ -17,7 +17,7 @@
 
 namespace fs = std::filesystem;
 
-namespace monokakido::resource
+namespace monokakido
 {
     /**
      * NRSC Index File Format (.nidx)

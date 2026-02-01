@@ -5,7 +5,7 @@
 #include "monokakido/resource/rsc/rsc_decryptor.hpp"
 
 
-namespace monokakido::resource
+namespace monokakido
 {
     std::expected<std::vector<uint8_t>, std::string> RscDecryptor::decrypt(
         const std::span<const uint8_t> encryptedData, const std::array<uint8_t, 32>& key)
