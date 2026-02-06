@@ -12,6 +12,12 @@
 
 namespace monokakido
 {
+    /**
+     * Decrypts .rsc file chunks from dictionaries
+     * - This is a custom cipher, not a standard cryptographic algorithm
+     * - The DATA1 and DATA2 tables are embedded in the app binary
+     * - Each dictionary product uses a unique 32-byte key
+     */
     class RscDecryptor
     {
     public:
@@ -21,12 +27,41 @@ namespace monokakido
          *
          * @param encryptedData Input data (includes 4-byte checksum at end)
          * @param key 32-byte decryption key
-         * @return Decrypted data or error message
+         * @return Decrypted data on success, or error message on failure
+         *
+         * @note The key must match the one used during encryption, otherwise
+         *       the output will be garbage data.
          */
         static std::expected<std::vector<uint8_t>, std::string> decrypt(std::span<const uint8_t> encryptedData,
                                                                         const std::array<uint8_t, 32>& key);
 
     private:
+
+        /**
+         * Reverse the block permutation applied during encryption
+         *
+         * Processes data in 16-byte blocks, reordering bytes within each block
+         * according to permutation patterns in DATA2. The pattern rotates
+         * every block based on the checksum value.
+         *
+         * @param src Source encrypted data (without checksum)
+         * @param dst Destination buffer (same size as src)
+         * @param checksum Checksum value from encrypted data
+         */
+        static void permuteData(std::span<const uint8_t> src, std::span<uint8_t> dst, uint32_t checksum);
+
+        /**
+         * Apply XOR cipher using dictionary key and static table
+         *
+         * Each byte is XORed with corresponding positions from both the
+         * dictionary-specific key and the static DATA1 table.
+         *
+         * @param data Data to decrypt
+         * @param key 32-byte dictionary-specific key
+         * @param checksum Checksum value (determines starting position)
+         */
+        static void applyXorCipher(std::span<uint8_t> data, const std::array<uint8_t, 32>& key, uint32_t checksum);
+
         // XOR constant for checksum
         static constexpr uint32_t CHECKSUM_XOR = 0xFBD9A2B4;
 

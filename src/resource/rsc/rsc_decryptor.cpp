@@ -35,60 +35,62 @@ namespace monokakido
         // Permute data using DATA2 lookup table
         if (dataLength > 0)
         {
-            // calculate starting index
-            uint32_t tableIndex = (checksum ^ CHECKSUM_XOR) % 31;
-
-            const uint8_t* src = encryptedData.data();
-            const uint8_t* srcEnd = src + dataLength;
-            uint8_t* dst = output.data();
-
-            // process in 16 byte blocks
-            while (src < srcEnd)
-            {
-                const size_t blockSize = std::min<size_t>(16, srcEnd - src);
-                const auto& permutation = DATA2[tableIndex];
-
-                // apply permutation
-                for (size_t i = 0; i < blockSize; ++i)
-                {
-                    dst[permutation[i]] = src[i];
-                }
-
-                // move to next block
-                src += blockSize;
-                dst += blockSize;
-
-                // wrap table index
-                tableIndex = (tableIndex + 1) % 31;
-            }
+            permuteData(encryptedData.first(dataLength), output, checksum);
         }
 
         // XOR with key and DATA1
         if (dataLength > 0)
         {
-            const uint32_t data1Start = (checksum ^ CHECKSUM_XOR) & 0x1F;
-
-            size_t data1Pos = data1Start;
-            size_t keyPos = 0;
-
-            for (size_t i = 0; i < dataLength; ++i)
-            {
-                // XOR with key and DATA1
-                output[i] ^= key[keyPos] ^ DATA1[data1Pos];
-
-                // advance positions
-                data1Pos = (data1Pos + 1) % 32;
-                keyPos = (keyPos + 1) % 32;
-
-                // reset both when data1 wraps
-                if (data1Pos == 0)
-                {
-                    keyPos = 0;
-                }
-            }
+            applyXorCipher(output, key, checksum);
         }
 
         output.resize(outputLength);
         return output;
+    }
+
+
+    void RscDecryptor::permuteData(const std::span<const uint8_t> src, std::span<uint8_t> dst, const uint32_t checksum)
+    {
+        constexpr size_t BLOCK_SIZE = 16;
+        constexpr size_t TABLE_SIZE = 31;
+
+        uint32_t tableIndex = (checksum ^ CHECKSUM_XOR) % TABLE_SIZE;
+
+        for (size_t offset = 0; offset < src.size(); offset += BLOCK_SIZE)
+        {
+            const size_t blockSize = std::min(BLOCK_SIZE, src.size() - offset);
+            const auto& permutation = DATA2[tableIndex];
+
+            // Apply permutation to this block
+            for (size_t i = 0; i < blockSize; ++i)
+            {
+                dst[offset + permutation[i]] = src[offset + i];
+            }
+
+            tableIndex = (tableIndex + 1) % TABLE_SIZE;
+        }
+    }
+
+
+    void RscDecryptor::applyXorCipher(std::span<uint8_t> data, const std::array<uint8_t, 32>& key, const uint32_t checksum)
+    {
+        size_t data1Pos = (checksum ^ CHECKSUM_XOR) & 0x1F;
+        size_t keyPos = 0;
+
+        for (auto& byte : data)
+        {
+            constexpr size_t CIPHER_PERIOD = 32;
+
+            byte ^= key[keyPos] ^ DATA1[data1Pos];
+
+            data1Pos = (data1Pos + 1) % CIPHER_PERIOD;
+            keyPos = (keyPos + 1) % CIPHER_PERIOD;
+
+            // Reset both when data1 wraps
+            if (data1Pos == 0)
+            {
+                keyPos = 0;
+            }
+        }
     }
 }

@@ -12,6 +12,8 @@
 #include "monokakido/resource/xml_view.hpp"
 #include "../common.hpp"
 
+#include <pugixml.h>
+
 class RscDataTest : public ::testing::Test
 {
 protected:
@@ -23,7 +25,7 @@ protected:
 
         testDataPath_ = dictionariesPath / "KJT" / "Contents" / "KJT" / "contents";
         testFontDataPath_ = dictionariesPath / "KOGO3" / "Contents" / "ozk5" / "fonts" / "YuMinPr6N-R";
-        dictId_ = "KOGO3";
+        dictId_ = "KJT";
     }
 
     std::filesystem::path testDataPath_;
@@ -67,11 +69,6 @@ TEST_F(RscDataTest, GetRecordData)
     auto& rscData = dataResult.value();
     const auto& index = indexResult.value();
 
-    std::cout << "\n";
-    monokakido::test::printSeparator();
-    std::cout << "Testing Record Data Retrieval:\n";
-    monokakido::test::printSeparator();
-
     // Get first record
     auto recordResult = index.getByIndex(0);
     ASSERT_TRUE(recordResult.has_value());
@@ -82,20 +79,14 @@ TEST_F(RscDataTest, GetRecordData)
     ASSERT_TRUE(dataSpan.has_value()) << "Failed to get data: " << dataSpan.error();
 
     const auto& data = dataSpan.value();
+    EXPECT_GT(data.size(), 0) << "Retrieved data should not be empty";
 
     const auto xmlResult = monokakido::XmlView{data}.asStringView();
     ASSERT_TRUE(xmlResult.has_value()) << "Data contains invalid UTF-8 sequence: " << xmlResult.error();
 
-    const auto& xmlView = xmlResult.value();
-
-    std::cout << std::format("  Item ID:     {}\n", itemId);
-    std::cout << std::format("  Data Size:   {} bytes\n", data.size());
-    std::cout << std::format("  First 100 chars: {}\n", xmlView.substr(0, 100));
-
-    monokakido::test::printSeparator();
-    std::cout << "\n";
-
-    EXPECT_GT(data.size(), 0) << "Retrieved data should not be empty";
+    pugi::xml_document xmlDoc;
+    auto parseResult = xmlDoc.load_buffer(xmlResult.value().data(), xmlResult.value().size());
+    ASSERT_TRUE(parseResult.status == pugi::status_ok) << std::format("Data contains invalid XML: {}", parseResult.description());
 }
 
 
