@@ -54,7 +54,7 @@ namespace monokakido
     constexpr size_t HEADER_SIZE = 8;
     constexpr size_t RECORD_SIZE = sizeof(NrscIndexRecord);
 
-    struct IndexHeader : BinaryStruct<IndexHeader>
+    struct NrscIndexHeader : BinaryStruct<NrscIndexHeader>
     {
         uint32_t zeroField;
         uint32_t recordCount;

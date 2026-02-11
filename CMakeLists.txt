@@ -84,7 +84,8 @@ add_library(monokakido_resource STATIC
         src/resource/rsc/rsc_crypto.cpp
         src/resource/rsc/rsc.cpp
         src/resource/font.cpp
-        src/utils/kana_convert.cpp
+        src/resource/keystore/keystore.cpp
+        src/resource/keystore/page_reference.cpp
 )
 
 target_link_libraries(monokakido_resource PRIVATE

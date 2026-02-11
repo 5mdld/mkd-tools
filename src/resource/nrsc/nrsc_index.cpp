@@ -12,7 +12,7 @@
 
 namespace monokakido
 {
-    void IndexHeader::swapEndianness() noexcept
+    void NrscIndexHeader::swapEndianness() noexcept
     {
         zeroField = std::byteswap(zeroField);
         recordCount = std::byteswap(recordCount);
@@ -29,7 +29,7 @@ namespace monokakido
         if (!reader)
             return std::unexpected(reader.error());
 
-        auto header = reader->readStruct<IndexHeader>();
+        auto header = reader->readStruct<NrscIndexHeader>();
         if (!header)
             return std::unexpected(header.error());
 
