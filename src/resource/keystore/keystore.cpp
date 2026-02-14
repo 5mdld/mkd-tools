@@ -43,7 +43,8 @@ namespace monokakido
         std::vector<uint32_t>&& indexD,
         const size_t wordsOffset,
         const std::span<const ConversionEntry> conversionTable,
-        std::string dictId)
+        std::string dictId,
+        std::string filename)
         : fileData_(std::move(fileData))
           , indexLength_(std::move(indexLength))
           , indexPrefix_(std::move(indexPrefix))
@@ -52,6 +53,7 @@ namespace monokakido
           , wordsOffset_(wordsOffset)
           , conversionTable_(conversionTable)
           , dictId_(std::move(dictId))
+          , filename_(std::move(filename))
     {
     }
 
@@ -124,12 +126,14 @@ namespace monokakido
             std::move(indices->other),
             header.wordsOffset,
             conversionTable,
-            dictId
+            dictId,
+            path.filename().string()
         );
     }
 
 
-    std::expected<KeystoreLookupResult, std::string> Keystore::getByIndex(const KeystoreIndex indexType, const size_t index) const
+    std::expected<KeystoreLookupResult, std::string> Keystore::getByIndex(
+        const KeystoreIndex indexType, const size_t index) const
     {
         const auto* arr = getIndexArray(indexType);
         if (!arr)
@@ -145,7 +149,6 @@ namespace monokakido
         if (!entry)
             return std::unexpected(entry.error());
 
-        // Decode all page references eagerly
         auto pages = decodePages(entry->pagesOffset);
         if (!pages)
             return std::unexpected(pages.error());
@@ -169,8 +172,13 @@ namespace monokakido
     }
 
 
-    const std::vector<uint32_t>*
-    Keystore::getIndexArray(const KeystoreIndex type) const noexcept
+    std::string_view Keystore::filename() const
+    {
+        return filename_;
+    }
+
+
+    const std::vector<uint32_t>* Keystore::getIndexArray(const KeystoreIndex type) const noexcept
     {
         switch (type)
         {
@@ -179,7 +187,7 @@ namespace monokakido
             case KeystoreIndex::Suffix: return &indexSuffix_;
             case KeystoreIndex::Other: return &indexOther_;
         }
-        return nullptr; // unreachable with valid enum, but keeps compilers happy
+        std::unreachable();
     }
 
 
@@ -191,7 +199,6 @@ namespace monokakido
         if (absOffset + sizeof(uint32_t) + 1 >= fileData_.size())
             return std::unexpected("Word offset out of bounds");
 
-        // Read pages offset (little-endian uint32)
         uint32_t pagesOffset;
         std::memcpy(&pagesOffset, &fileData_[absOffset], sizeof(uint32_t));
         if constexpr (std::endian::native == std::endian::big)
@@ -202,7 +209,8 @@ namespace monokakido
 
         // Find null terminator
         const auto* nullPos = static_cast<const uint8_t*>(
-            std::memchr(&fileData_[stringStart], 0, fileData_.size() - stringStart));
+            std::memchr(&fileData_[stringStart], 0, fileData_.size() - stringStart)
+        );
         if (!nullPos)
             return std::unexpected("Unterminated word string");
 
@@ -230,7 +238,7 @@ namespace monokakido
     // this should actually be determined by a var 'searchOption' but I don't know its origins
     bool Keystore::needsConversion() const noexcept
     {
-        return !conversionTable_.empty() && (dictId_ == "KNEJ" || dictId_ == "KNJE");
+        return !conversionTable_.empty() && (dictId_ == "KNEJ.EJ" || dictId_ == "KNJE.JE");
     }
 
 
@@ -268,7 +276,6 @@ namespace monokakido
             std::memcpy(&header.nextOffset, &ext->version, 16);
         }
 
-        // ── Validate ─────────────────────────────────────────────
         if (header.magic1 != 0)
             return std::unexpected("Invalid magic1 field");
 
@@ -303,8 +310,8 @@ namespace monokakido
             return std::unexpected(std::format(
                 "Invalid index magic: expected 0x04, got 0x{:x}", header.magic));
 
-        // Validate that offsets are monotonically ordered (allowing 0 = absent)
-        auto inOrder = [maxSize](uint32_t a, uint32_t b) {
+        // Validate that offsets are monotonically ordered
+        auto inOrder = [maxSize](const uint32_t a, const uint32_t b) {
             return b == 0 || a < b || b == maxSize;
         };
 

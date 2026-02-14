@@ -36,6 +36,13 @@ namespace monokakido
         }
     };
 
+    enum class KeystoreExportMode : uint8_t
+    {
+        Forward = 1 << 0, // key → page references
+        Inverse = 1 << 1, // page reference → keys
+        Both = Forward | Inverse,
+    };
+
     struct ExportOptions
     {
         fs::path outputDirectory;
@@ -44,5 +51,6 @@ namespace monokakido
 
         // For entry content export
         bool prettyPrintXml = false;
+        KeystoreExportMode keystoreExportMode = KeystoreExportMode::Inverse;
     };
 }

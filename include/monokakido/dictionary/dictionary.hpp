@@ -8,8 +8,12 @@
 #include "paths.hpp"
 #include "monokakido/resource/nrsc/nrsc.hpp"
 #include "monokakido/resource/rsc/rsc.hpp"
-#include "monokakido/output/resource_exporter.hpp"
 #include "monokakido/resource/font.hpp"
+#include "monokakido/resource/keystore/keystore.hpp"
+#include "monokakido/resource/headline/headline_store.hpp"
+#include "monokakido/output/resource_exporter.hpp"
+#include "monokakido/output/keystore_exporter.hpp"
+#include "monokakido/output/headline_exporter.hpp"
 
 #include <variant>
 
@@ -36,12 +40,16 @@ namespace monokakido
         [[nodiscard]] bool hasAudio() const noexcept;
         [[nodiscard]] bool hasGraphics() const noexcept;
         [[nodiscard]] bool hasFonts() const noexcept;
+        [[nodiscard]] bool hasKeystores() const noexcept;
+        [[nodiscard]] bool hasHeadlines() const noexcept;
 
         ExportResult exportAll(const ExportOptions& options) const;
         std::expected<ExportResult, std::string> exportAudio(const ExportOptions& options) const;
         std::expected<ExportResult, std::string> exportEntries(const ExportOptions& options) const;
         std::expected<ExportResult, std::string> exportGraphics(const ExportOptions& options) const;
         std::expected<ExportResult, std::string> exportFonts(const ExportOptions& options) const;
+        std::expected<ExportResult, std::string> exportKeystores(const ExportOptions& options) const;
+        std::expected<ExportResult, std::string> exportHeadlines(const ExportOptions& options) const;
 
 
     private:
@@ -53,7 +61,9 @@ namespace monokakido
             std::optional<Rsc> entries,
             std::optional<Nrsc> graphics,
             std::optional<std::variant<Rsc, Nrsc>> audio,
-            std::vector<Font> fonts);
+            std::vector<Font> fonts,
+            std::vector<Keystore> keystores,
+            std::vector<HeadlineStore> headlines);
 
         std::string id_;
         DictionaryPaths paths_;
@@ -62,5 +72,7 @@ namespace monokakido
         std::optional<Nrsc> graphics_;
         std::optional<std::variant<Rsc, Nrsc>> audio_;
         std::vector<Font> fonts_;
+        std::vector<Keystore> keystores_;
+        std::vector<HeadlineStore> headlines_;
     };
 }

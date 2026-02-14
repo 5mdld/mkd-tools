@@ -53,6 +53,46 @@ namespace monokakido
     }
 
 
+    std::vector<Keystore> ResourceLoader::loadKeystores(std::string_view dictId) const
+    {
+        const auto path = paths_.tryResolve(PathType::Keystore);
+        if (!path)
+            return {};
+
+        std::vector<Keystore> stores;
+        for (const auto& entry : fs::directory_iterator(*path))
+        {
+            if (entry.path().extension() != ".keystore")
+                continue;
+
+            if (auto result = Keystore::load(entry.path(), std::string(dictId)))
+                stores.push_back(std::move(*result));
+        }
+
+        return stores;
+    }
+
+
+    std::vector<HeadlineStore> ResourceLoader::loadHeadlines() const
+    {
+        const auto path = paths_.tryResolve(PathType::Headline);
+        if (!path)
+            return {};
+
+        std::vector<HeadlineStore> stores;
+        for (const auto& entry : fs::directory_iterator(*path))
+        {
+            if (entry.path().extension() != ".headlinestore")
+                continue;
+
+            if (auto result = HeadlineStore::load(entry.path()))
+                stores.push_back(std::move(*result));
+        }
+
+        return stores;
+    }
+
+
     template<Openable T>
     std::optional<T> ResourceLoader::tryLoad(const PathType pathType, std::string_view dictId) const
     {

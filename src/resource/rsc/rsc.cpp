@@ -17,7 +17,7 @@ namespace monokakido
         if (!indexResult)
             return std::unexpected(std::format("Failed to load rsc index: {}", indexResult.error()));
 
-        auto dataResult = RscData::load(directoryPath, dictId);
+        auto dataResult = RscData::load(directoryPath, dictId, indexResult->mapVersion());
         if (!dataResult)
             return std::unexpected(std::format("Failed to load rsc data: {}", dataResult.error()));
 

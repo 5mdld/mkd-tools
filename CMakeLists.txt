@@ -64,6 +64,8 @@ add_library(monokakido_output STATIC
         third_party/pugixml/pugixml.cpp
         src/output/base_exporter.cpp
         src/output/resource_exporter.cpp
+        src/output/keystore_exporter.cpp
+        src/output/headline_exporter.cpp
 )
 
 
@@ -86,6 +88,7 @@ add_library(monokakido_resource STATIC
         src/resource/font.cpp
         src/resource/keystore/keystore.cpp
         src/resource/keystore/page_reference.cpp
+        src/resource/headlines/headline_store.cpp
 )
 
 target_link_libraries(monokakido_resource PRIVATE
@@ -126,6 +129,8 @@ if (BUILD_TESTING)
             test/rsc/test_rsc_index.cpp
             test/main.cpp
             test/keystore/test_keystore.cpp
+            test/headline/headline_test.cpp
+            test/headline/headline_index_test.cpp
     )
 
     add_executable(monokakido_extractor_tests

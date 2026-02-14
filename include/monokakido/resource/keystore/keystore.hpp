@@ -27,7 +27,7 @@ namespace monokakido
      * File Structure:
      * ┌─────────────────────────────────────────────────────────┐
      * │ File Header (16 or 32 bytes)                            │
-     * │  - Version (4 bytes) — 0x10000 (v1) or 0x20000 (v2)    │
+     * │  - Version (4 bytes) — 0x10000 (v1) or 0x20000 (v2)     │
      * │  - Magic fields (must be 0)                             │
      * │  - Words offset                                         │
      * │  - Index offset                                         │
@@ -136,6 +136,9 @@ namespace monokakido
          */
         [[nodiscard]] size_t indexSize(KeystoreIndex indexType) const noexcept;
 
+
+        [[nodiscard]] std::string_view filename() const;
+
     private:
         Keystore(
             std::vector<uint8_t>&& fileData,
@@ -145,7 +148,8 @@ namespace monokakido
             std::vector<uint32_t>&& indexD,
             size_t wordsOffset,
             std::span<const ConversionEntry> conversionTable,
-            std::string dictId
+            std::string dictId,
+            std::string filename
         );
 
         [[nodiscard]] const std::vector<uint32_t>* getIndexArray(KeystoreIndex type) const noexcept;
@@ -213,5 +217,6 @@ namespace monokakido
 
         std::span<const ConversionEntry> conversionTable_;
         std::string dictId_;
+        std::string filename_;
     };
 }

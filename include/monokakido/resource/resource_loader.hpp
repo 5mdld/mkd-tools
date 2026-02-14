@@ -8,6 +8,8 @@
 #include "monokakido/resource/nrsc/nrsc.hpp"
 #include "monokakido/resource/rsc/rsc.hpp"
 #include "monokakido/resource/font.hpp"
+#include "monokakido/resource/keystore/keystore.hpp"
+#include "monokakido/resource/headline/headline_store.hpp"
 
 #include <variant>
 
@@ -31,6 +33,8 @@ namespace monokakido
         [[nodiscard]] std::optional<Nrsc> loadGraphics(std::string_view dictId) const;
         [[nodiscard]] std::optional<std::variant<Rsc, Nrsc>> loadAudio(std::string_view dictId) const;
         [[nodiscard]] std::vector<Font> loadFonts() const;
+        [[nodiscard]] std::vector<Keystore> loadKeystores(std::string_view dictId) const;
+        [[nodiscard]] std::vector<HeadlineStore> loadHeadlines() const;
 
     private:
 
