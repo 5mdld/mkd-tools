@@ -2,12 +2,12 @@
 // kiwakiwaaにより 2026/01/22 に作成されました。
 //
 
-#include "monokakido/resource/rsc/rsc_data.hpp"
+#include "MKD/resource/rsc/rsc_data.hpp"
 
 #include <algorithm>
 #include <format>
 
-namespace monokakido
+namespace MKD
 {
     std::expected<RscData, std::string> RscData::load(const fs::path& directoryPath, std::string_view dictId, const uint32_t mapVersion)
     {

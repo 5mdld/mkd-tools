@@ -3,12 +3,12 @@
 //
 
 
-#include "monokakido/dictionary/dictionary.hpp"
-#include "monokakido/resource/resource_loader.hpp"
+#include "MKD/dictionary/dictionary.hpp"
+#include "MKD/resource/resource_loader.hpp"
 
 #include <utility>
 
-namespace monokakido
+namespace MKD
 {
     std::expected<Dictionary, std::string> Dictionary::open(std::string_view dictId, const DictionarySource& source)
     {

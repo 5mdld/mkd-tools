@@ -2,14 +2,14 @@
 // kiwakiwaaにより 2026/02/11 に作成されました。
 //
 
-#include "monokakido/resource/keystore/keystore.hpp"
+#include "MKD/resource/keystore/keystore.hpp"
 
 #include <bit>
 #include <format>
 #include <utility>
 
 
-namespace monokakido
+namespace MKD
 {
     void KeystoreHeader::swapEndianness() noexcept
     {

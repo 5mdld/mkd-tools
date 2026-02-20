@@ -2,12 +2,12 @@
 // kiwakiwaaにより 2026/02/19 に作成されました。
 //
 
-#include "monokakido/platform/macos/macos_dictionary_source.hpp"
-#include "monokakido/platform/macos/fs.hpp"
+#include "MKD/platform/macos/macos_dictionary_source.hpp"
+#include "MKD/platform/macos/fs.hpp"
 
 #include <format>
 
-namespace monokakido
+namespace MKD
 {
     std::expected<std::vector<DictionaryInfo>, std::string> MacOSDictionarySource::findAllAvailable() const
     {
@@ -18,7 +18,7 @@ namespace monokakido
             return std::unexpected("No authorized path available");
 
         std::vector<DictionaryInfo> result;
-        const auto containerPath = macos::getContainerPathByGroupIdentifier(MONOKAKIDO_GROUP_ID);
+        const auto containerPath = macOS::getContainerPathByGroupIdentifier(MONOKAKIDO_GROUP_ID);
         if (containerPath.empty())
             return result;
 
@@ -70,9 +70,9 @@ namespace monokakido
             return AccessStatus::Granted;
 
         // Attempt to restore access from saved bookmark
-        if (const auto bookmark = macos::loadSavedBookmark())
+        if (const auto bookmark = macOS::loadSavedBookmark())
         {
-            if (auto access = macos::restoreAccessFromBookmark(*bookmark))
+            if (auto access = macOS::restoreAccessFromBookmark(*bookmark))
             {
                 authorizedPath_ = access->path;
                 securityAccess_ = std::move(access->access);
@@ -86,14 +86,14 @@ namespace monokakido
 
     bool MacOSDictionarySource::requestAccess() const
     {
-        auto bookmarkData = macos::promptForDictionariesAccess();
+        auto bookmarkData = macOS::promptForDictionariesAccess();
         if (!bookmarkData)
             return false;
 
-        macos::saveBookmark(bookmarkData->data);
+        macOS::saveBookmark(bookmarkData->data);
 
         authorizedPath_ = bookmarkData->resolvedPath;
-        securityAccess_ = macos::ScopedSecurityAccess(bookmarkData->resolvedPath);
+        securityAccess_ = macOS::ScopedSecurityAccess(bookmarkData->resolvedPath);
 
         if (!securityAccess_.isValid())
         {

@@ -6,18 +6,18 @@
 #include <filesystem>
 
 #include "../test_listener.hpp"
-#include "monokakido/platform/macos/fs.hpp"
-#include "monokakido/platform/macos/macos_dictionary_source.hpp"
-#include "monokakido/resource/headline/headline_store.hpp"
+#include "MKD/platform/macos/fs.hpp"
+#include "MKD/platform/macos/macos_dictionary_source.hpp"
+#include "MKD/resource/headline/headline_store.hpp"
 
-using namespace monokakido;
+using namespace MKD;
 
 class HeadlineTest : public ::testing::Test
 {
 protected:
     void SetUp() override
     {
-        const auto containerPath = macos::getContainerPathByGroupIdentifier(MONOKAKIDO_GROUP_ID);
+        const auto containerPath = macOS::getContainerPathByGroupIdentifier(MONOKAKIDO_GROUP_ID);
         const auto dictionariesPath = containerPath / DICTIONARIES_PATH;
 
         testHeadline_ = dictionariesPath / "KankenKJ2" / "Contents" / "KankenKJ2Data" / "headline" / "headline.headlinestore";

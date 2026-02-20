@@ -2,8 +2,8 @@
 // kiwakiwaaにより 2026/01/16 に作成されました。
 //
 
-#include "monokakido/resource/nrsc/nrsc_index.hpp"
-#include "monokakido/platform/fs.hpp"
+#include "MKD/resource/nrsc/nrsc_index.hpp"
+#include "MKD/platform/fs.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -11,7 +11,7 @@
 #include <format>
 #include <fstream>
 
-namespace monokakido
+namespace MKD
 {
     void NrscIndexHeader::swapEndianness() noexcept
     {

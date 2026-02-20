@@ -1,15 +1,15 @@
 #include <iostream>
 #include <indicators.h>
 
-#include "monokakido/dictionary/dictionary.hpp"
-#include "monokakido/platform/directory_dictionary_source.hpp"
+#include "MKD/dictionary/dictionary.hpp"
+#include "MKD/platform/directory_dictionary_source.hpp"
 
 #ifdef __APPLE__
-#include "monokakido/platform/macos/macos_dictionary_source.hpp"
+#include "MKD/platform/macos/macos_dictionary_source.hpp"
 #endif
 
 
-static void printUsage(const char* program, const monokakido::DictionarySource& source)
+static void printUsage(const char* program, const MKD::DictionarySource& source)
 {
     std::cerr << "Available dictionaries:\n";
     if (auto available = source.findAllAvailable())
@@ -35,20 +35,20 @@ static void printUsage(const char* program, const monokakido::DictionarySource& 
 
 int main(int argc, char* argv[])
 {
-    std::unique_ptr<monokakido::DictionarySource> source;
+    std::unique_ptr<MKD::DictionarySource> source;
     const char* dictName = nullptr;
 
 #ifdef __APPLE__
     if (argc >= 3 && std::string(argv[1]) == "--dir")
     {
-        source = std::make_unique<monokakido::DirectoryDictionarySource>(argv[2]);
+        source = std::make_unique<MKD::DirectoryDictionarySource>(argv[2]);
         if (argc >= 4)
             dictName = argv[3];
     }
     else
     {
-        auto macSource = std::make_unique<monokakido::MacOSDictionarySource>();
-        if (macSource->checkAccess() == monokakido::MacOSDictionarySource::AccessStatus::NeedsPermission)
+        auto macSource = std::make_unique<MKD::MacOSDictionarySource>();
+        if (macSource->checkAccess() == MKD::MacOSDictionarySource::AccessStatus::NeedsPermission)
         {
             std::cout << "Need permission to access dictionaries folder.\n";
             if (!macSource->requestAccess())
@@ -68,7 +68,7 @@ int main(int argc, char* argv[])
         std::cerr << "Usage: " << argv[0] << " <dictionaries_path> [dictionary_name]\n";
         return 1;
     }
-    source = std::make_unique<monokakido::DirectoryDictionarySource>(argv[1]);
+    source = std::make_unique<MKD::DirectoryDictionarySource>(argv[1]);
     if (argc >= 3)
         dictName = argv[2];
 #endif
@@ -79,7 +79,7 @@ int main(int argc, char* argv[])
         return 0;
     }
 
-    const auto dict = monokakido::Dictionary::open(dictName, *source);
+    const auto dict = MKD::Dictionary::open(dictName, *source);
     if (!dict)
     {
         std::cerr << "Failed to open dictionary: " << dict.error() << std::endl;

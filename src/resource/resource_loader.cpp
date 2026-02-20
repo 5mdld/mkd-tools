@@ -2,11 +2,11 @@
 // kiwakiwaaにより 2026/01/18 に作成されました。
 //
 
-#include "monokakido/resource/resource_loader.hpp"
+#include "MKD/resource/resource_loader.hpp"
 
 #include <iostream>
 
-namespace monokakido
+namespace MKD
 {
     ResourceLoader::ResourceLoader(const DictionaryPaths& paths)
         : paths_(paths)

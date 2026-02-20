@@ -1,9 +1,9 @@
-#include "monokakido/platform/fs.hpp"
+#include "MKD/platform/fs.hpp"
 
 #include <fstream>
 #include <sstream>
 
-namespace monokakido {
+namespace MKD {
 
 
     std::expected<BinaryFileReader, std::string> BinaryFileReader::open(const std::filesystem::path& filePath)
@@ -16,7 +16,7 @@ namespace monokakido {
     }
 
 
-    std::expected<void, std::string> BinaryFileReader::seek(const size_t offset)
+    std::expected<void, std::string> BinaryFileReader::seek(const size_t offset) const
     {
         file_.seekg(static_cast<std::streamoff>(offset));
         if (!file_)
@@ -28,7 +28,7 @@ namespace monokakido {
     }
 
 
-    std::expected<void, std::string> BinaryFileReader::readBytes(std::span<uint8_t> buffer)
+    std::expected<void, std::string> BinaryFileReader::readBytes(std::span<uint8_t> buffer) const
     {
         file_.read(reinterpret_cast<char*>(buffer.data()), static_cast<std::streamsize>(buffer.size()));
 
@@ -39,7 +39,7 @@ namespace monokakido {
     }
 
 
-    std::expected<std::vector<uint8_t>, std::string> BinaryFileReader::readBytes(const size_t count)
+    std::expected<std::vector<uint8_t>, std::string> BinaryFileReader::readBytes(const size_t count) const
     {
         std::vector<uint8_t> data(count);
         file_.read(reinterpret_cast<char*>(data.data()), static_cast<std::streamsize>(count));
@@ -51,7 +51,7 @@ namespace monokakido {
     }
 
 
-    std::expected<std::string, std::string> BinaryFileReader::readBytesIntoString(const size_t size)
+    std::expected<std::string, std::string> BinaryFileReader::readBytesIntoString(const size_t size) const
     {
         std::string data;
         data.resize(size);
@@ -78,7 +78,7 @@ namespace monokakido {
         file_.seekg(0, std::ios::end);
         const auto end = file_.tellg();
         file_.seekg(current);
-        return static_cast<size_t>(end - current);
+        return end - current;
     }
 
 
@@ -141,7 +141,7 @@ namespace monokakido {
         }
         else if (file.bad())
         {
-            std::error_code ec(errno, std::generic_category());
+            const std::error_code ec(errno, std::generic_category());
             error += std::format("system error - {}", ec.message());
         }
         else if (file.fail())

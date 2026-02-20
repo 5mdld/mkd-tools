@@ -2,11 +2,11 @@
 // kiwakiwaaにより 2026/02/19 に作成されました。
 //
 
-#include "monokakido/platform/directory_dictionary_source.hpp"
+#include "MKD/platform/directory_dictionary_source.hpp"
 
 #include <format>
 
-namespace monokakido
+namespace MKD
 {
     DirectoryDictionarySource::DirectoryDictionarySource(fs::path root)
         : root_(std::move(root))

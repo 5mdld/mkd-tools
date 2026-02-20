@@ -2,14 +2,14 @@
 // kiwakiwaaにより 2026/01/16 に作成されました。
 //
 
-#include "monokakido/resource/zlib_decompressor.hpp"
+#include "MKD/resource/zlib_decompressor.hpp"
 
 #include <iostream>
 #include <format>
 #include <zlib.h>
 
 
-namespace monokakido
+namespace MKD
 {
 
     std::expected<std::span<const uint8_t>, std::string> ZlibDecompressor::decompress(std::span<const uint8_t> compressed, const size_t expectedSize) const

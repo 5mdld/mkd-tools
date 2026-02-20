@@ -2,7 +2,7 @@
 // kiwakiwaaにより 2026/01/30 に作成されました。
 //
 
-#include "monokakido/resource/rsc/rsc_crypto.hpp"
+#include "MKD/resource/rsc/rsc_crypto.hpp"
 
 #if defined(__APPLE__)
     #include <CommonCrypto/CommonDigest.h>
@@ -14,7 +14,7 @@
 
 #include <cstring>
 
-namespace monokakido
+namespace MKD
 {
     namespace
     {

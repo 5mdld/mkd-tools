@@ -2,12 +2,12 @@
 // kiwakiwaaにより 2026/01/29 に作成されました。
 //
 
-#include "monokakido/resource/xml_view.hpp"
+#include "MKD/resource/xml_view.hpp"
 
 #include <format>
 #include <utf8.h>
 
-namespace monokakido
+namespace MKD
 {
 
     XmlView::XmlView(const std::span<const uint8_t> data)

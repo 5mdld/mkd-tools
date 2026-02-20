@@ -2,12 +2,12 @@
 // kiwakiwaaにより 2026/02/01 に作成されました。
 //
 
-#include "monokakido/output/base_exporter.hpp"
+#include "MKD/output/base_exporter.hpp"
 
 #include <format>
 #include <fstream>
 
-namespace monokakido
+namespace MKD
 {
     std::expected<void, std::string> BaseExporter::writeData(const std::span<const uint8_t> data, const fs::path& path)
     {

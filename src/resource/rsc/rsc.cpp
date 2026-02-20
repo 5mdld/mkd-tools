@@ -2,14 +2,14 @@
 // kiwakiwaaにより 2026/02/01 に作成されました。
 //
 
-#include "monokakido/resource/rsc/rsc.hpp"
+#include "MKD/resource/rsc/rsc.hpp"
 
 #include <algorithm>
 #include <cassert>
 #include <iostream>
 #include <ranges>
 
-namespace monokakido
+namespace MKD
 {
     std::expected<Rsc, std::string> Rsc::open(const fs::path& directoryPath, std::string_view dictId)
     {

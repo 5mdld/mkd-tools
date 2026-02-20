@@ -2,12 +2,12 @@
 // kiwakiwaaにより 2026/02/07 に作成されました。
 //
 
-#include "monokakido/output/resource_exporter.hpp"
+#include "MKD/output/resource_exporter.hpp"
 
 #include <pugixml.h>
 #include <sstream>
 
-namespace monokakido
+namespace MKD
 {
     std::expected<ExportResult, std::string> ResourceExporter::exportAll(const Rsc& rsc, const ExportOptions& options)
     {

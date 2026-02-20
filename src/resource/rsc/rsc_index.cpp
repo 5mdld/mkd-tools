@@ -2,8 +2,8 @@
 // kiwakiwaaにより 2026/01/19 に作成されました。
 //
 
-#include "monokakido/resource/rsc/rsc_index.hpp"
-#include "monokakido/platform/fs.hpp"
+#include "MKD/resource/rsc/rsc_index.hpp"
+#include "MKD/platform/fs.hpp"
 
 #include <algorithm>
 #include <bit>
@@ -11,7 +11,7 @@
 #include <format>
 #include <fstream>
 
-namespace monokakido
+namespace MKD
 {
     void IdxHeader::swapEndianness() noexcept
     {

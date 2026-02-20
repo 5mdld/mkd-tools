@@ -2,10 +2,10 @@
 // kiwakiwaaにより 2026/01/14 に作成されました。
 //
 
-#include "monokakido/platform/fs.hpp"
-#include "monokakido/dictionary/metadata.hpp"
+#include "MKD/platform/fs.hpp"
+#include "MKD/dictionary/metadata.hpp"
 
-namespace monokakido
+namespace MKD
 {
     std::expected<DictionaryMetadata, std::string> DictionaryMetadata::loadFromPath(const fs::path& path)
     {

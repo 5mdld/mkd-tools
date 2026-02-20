@@ -7,21 +7,21 @@
 #include <algorithm>
 
 #include "../test_listener.hpp"
-#include "monokakido/platform/macos/fs.hpp"
-#include "monokakido/platform/macos/macos_dictionary_source.hpp"
-#include "monokakido/resource/rsc/rsc.hpp"
-#include "monokakido/resource/xml_view.hpp"
+#include "MKD/platform/macos/fs.hpp"
+#include "MKD/platform/macos/macos_dictionary_source.hpp"
+#include "MKD/resource/rsc/rsc.hpp"
+#include "MKD/resource/xml_view.hpp"
 
 #include <pugixml.h>
 
-using namespace monokakido;
+using namespace MKD;
 
 class RscDataTest : public ::testing::Test
 {
 protected:
     void SetUp() override
     {
-        const auto containerPath = macos::getContainerPathByGroupIdentifier(MONOKAKIDO_GROUP_ID);
+        const auto containerPath = macOS::getContainerPathByGroupIdentifier(MONOKAKIDO_GROUP_ID);
         const auto dictionariesPath = containerPath / DICTIONARIES_PATH;
 
         dictId_ = "KJT.J";

@@ -1,11 +1,11 @@
-#include "monokakido/platform/macos/scoped_security_access.hpp"
+#include "MKD/platform/macos/scoped_security_access.hpp"
 
 #import <Cocoa/Cocoa.h>
 #import <Foundation/Foundation.h>
 
 #include <format>
 
-namespace monokakido::macos
+namespace MKD::macOS
 {
     ScopedSecurityAccess::ScopedSecurityAccess(const std::filesystem::path& path)
     {
@@ -164,7 +164,7 @@ namespace monokakido::macos
         @autoreleasepool
         {
             NSData* data = [[NSUserDefaults standardUserDefaults]
-                dataForKey:@"MonokakidoDictionariesBookmark"];
+                dataForKey:@"MKDBookmark"];
 
             if (!data)
                 return std::nullopt;
@@ -186,7 +186,7 @@ namespace monokakido::macos
             NSData* data = [NSData dataWithBytes:bookmarkData.data()
                                           length:bookmarkData.size()];
             [[NSUserDefaults standardUserDefaults]
-                setObject:data forKey:@"MonokakidoDictionariesBookmark"];
+                setObject:data forKey:@"MKDBookmark"];
         }
     }
 
@@ -195,7 +195,7 @@ namespace monokakido::macos
     {
         @autoreleasepool
         {
-            [[NSUserDefaults standardUserDefaults] removeObjectForKey:@"MonokakidoDictionariesBookmark"];
+            [[NSUserDefaults standardUserDefaults] removeObjectForKey:@"MKDBookmark"];
         }
     }
 }

@@ -2,10 +2,10 @@
 // kiwakiwaaにより 2026/01/29 に作成されました。
 //
 
-#include "monokakido/resource/rsc/rsc_index_record.hpp"
+#include "MKD/resource/rsc/rsc_index_record.hpp"
 
 
-namespace monokakido
+namespace MKD
 {
     uint32_t IdxRecord::id() const noexcept
     {

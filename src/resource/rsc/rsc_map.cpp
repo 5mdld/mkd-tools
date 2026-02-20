@@ -2,10 +2,10 @@
 // kiwakiwaaにより 2026/01/29 に作成されました。
 //
 
-#include "monokakido/resource/rsc/rsc_map.hpp"
+#include "MKD/resource/rsc/rsc_map.hpp"
 
 
-namespace monokakido
+namespace MKD
 {
     void MapHeader::swapEndianness() noexcept
     {

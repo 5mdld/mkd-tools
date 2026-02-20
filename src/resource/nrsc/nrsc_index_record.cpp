@@ -2,11 +2,11 @@
 // kiwakiwaaにより 2026/01/17 に作成されました。
 //
 
-#include "monokakido/resource/nrsc/nrsc_index_record.hpp"
+#include "MKD/resource/nrsc/nrsc_index_record.hpp"
 
 #include <bit>
 
-namespace monokakido
+namespace MKD
 {
     CompressionFormat NrscIndexRecord::compressionFormat() const
     {

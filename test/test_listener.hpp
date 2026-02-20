@@ -7,7 +7,7 @@
 #include <gtest/gtest.h>
 #include <iostream>
 
-namespace monokakido::test
+namespace MKD::test
 {
     class VerboseTestListener final : public ::testing::EmptyTestEventListener
     {

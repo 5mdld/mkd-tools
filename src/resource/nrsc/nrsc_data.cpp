@@ -2,13 +2,13 @@
 // kiwakiwaaにより 2026/01/16 に作成されました。
 //
 
-#include "monokakido/resource/nrsc/nrsc_data.hpp"
-#include "monokakido/resource/common.hpp"
+#include "MKD/resource/nrsc/nrsc_data.hpp"
+#include "MKD/resource/common.hpp"
 
 #include <algorithm>
 #include <format>
 
-namespace monokakido
+namespace MKD
 {
     std::expected<NrscData, std::string> NrscData::load(const fs::path& directoryPath)
     {

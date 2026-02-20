@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.26)
-project(monokakido_extractor)
+project(mkd-tools)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -48,18 +48,18 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/pugixml)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/indicators)
 
 # --- Platform library ---
-add_library(monokakido_platform STATIC
+add_library(mkd_platform STATIC
         src/platform/fs.cpp
         src/platform/directory_dictionary_source.cpp
 )
 
 if (APPLE)
-    target_sources(monokakido_platform PRIVATE
+    target_sources(mkd_platform PRIVATE
             src/platform/macos/fs.mm
             src/platform/macos/macos_dictionary_source.cpp
             src/platform/macos/scoped_security_access.mm
     )
-    target_link_libraries(monokakido_platform PRIVATE
+    target_link_libraries(mkd_platform PRIVATE
             "-framework Foundation"
             "-framework Security"
             "-framework CoreServices"
@@ -68,14 +68,14 @@ if (APPLE)
 endif ()
 
 # --- Dictionary library ---
-add_library(monokakido_dictionary STATIC
+add_library(mkd_dictionary STATIC
         src/dictionary/metadata.cpp
         src/dictionary/paths.cpp
         src/dictionary/dictionary.cpp
 )
 
 # --- Output library ---
-add_library(monokakido_output STATIC
+add_library(mkd_output STATIC
         third_party/pugixml/pugixml.cpp
         src/output/base_exporter.cpp
         src/output/resource_exporter.cpp
@@ -84,7 +84,7 @@ add_library(monokakido_output STATIC
 )
 
 # --- Resource library ---
-add_library(monokakido_resource STATIC
+add_library(mkd_resource STATIC
         src/resource/nrsc/nrsc.cpp
         src/resource/nrsc/nrsc_index.cpp
         src/resource/nrsc/nrsc_index_record.cpp
@@ -105,37 +105,37 @@ add_library(monokakido_resource STATIC
         src/resource/xml_view.cpp
 )
 
-target_link_libraries(monokakido_resource PRIVATE
-        monokakido_platform
+target_link_libraries(mkd_resource PRIVATE
+        mkd_platform
 )
 
 if (APPLE)
     # CommonCrypto is part of the system
 elseif (WIN32)
-    target_link_libraries(monokakido_resource PRIVATE bcrypt)
+    target_link_libraries(mkd_resource PRIVATE bcrypt)
 else ()
     find_package(OpenSSL REQUIRED)
-    target_link_libraries(monokakido_resource PRIVATE OpenSSL::Crypto)
+    target_link_libraries(mkd_resource PRIVATE OpenSSL::Crypto)
 endif ()
 
 
 # --- Executable ---
-add_executable(monokakido_extractor src/main.cpp)
+add_executable(mkd-tools src/main.cpp)
 
-target_link_libraries(monokakido_extractor PRIVATE
-        monokakido_platform
-        monokakido_dictionary
-        monokakido_resource
-        monokakido_output
+target_link_libraries(mkd-tools PRIVATE
+        mkd_platform
+        mkd_dictionary
+        mkd_resource
+        mkd_output
         glaze::glaze
         ZLIB::ZLIB
 )
 
 if (APPLE)
-    set_target_properties(monokakido_extractor PROPERTIES
+    set_target_properties(mkd-tools PROPERTIES
             MACOSX_BUNDLE TRUE
-            MACOSX_BUNDLE_BUNDLE_NAME "Monokakido Extractor"
-            MACOSX_BUNDLE_GUI_IDENTIFIER "com.kiwaa.monokakido-extractor"
+            MACOSX_BUNDLE_BUNDLE_NAME "mkd-tools"
+            MACOSX_BUNDLE_GUI_IDENTIFIER "com.kiwaa.mkd-tools"
             MACOSX_BUNDLE_BUNDLE_VERSION "1.0.0"
             MACOSX_BUNDLE_SHORT_VERSION_STRING "1.0"
             MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/Info.plist.in"
@@ -154,20 +154,20 @@ if (BUILD_TESTING)
             test/headline/headline_test.cpp
     )
 
-    add_executable(monokakido_extractor_tests
+    add_executable(mkd_tools_tests
             ${TEST_SOURCES}
     )
 
-    target_link_libraries(monokakido_extractor_tests PRIVATE
-            monokakido_platform
-            monokakido_resource
-            monokakido_output
+    target_link_libraries(mkd_tools_tests PRIVATE
+            mkd_platform
+            mkd_resource
+            mkd_output
             GTest::gtest
             ZLIB::ZLIB
     )
 
     include(GoogleTest)
-    gtest_discover_tests(monokakido_extractor_tests
+    gtest_discover_tests(mkd_tools_tests
             DISCOVERY_TIMEOUT 300
             PROPERTIES LABELS "unit"
     )

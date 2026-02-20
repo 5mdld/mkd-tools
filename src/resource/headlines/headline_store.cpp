@@ -2,8 +2,8 @@
 // kiwakiwaaにより 2026/02/12 に作成されました。
 //
 
-#include "monokakido/resource/headline/headline_store.hpp"
-#include "monokakido/platform/fs.hpp"
+#include "MKD/resource/headline/headline_store.hpp"
+#include "MKD/platform/fs.hpp"
 
 #include <utf8.h>
 
@@ -11,7 +11,7 @@
 #include <format>
 #include <ranges>
 
-namespace monokakido
+namespace MKD
 {
     void HeadlineHeader::swapEndianness() noexcept
     {

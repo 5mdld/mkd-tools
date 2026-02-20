@@ -2,10 +2,10 @@
 // kiwakiwaaにより 2026/02/01 に作成されました。
 //
 
-#include "monokakido/resource/font.hpp"
+#include "MKD/resource/font.hpp"
 
 
-namespace monokakido
+namespace MKD
 {
     Font::Font(std::string name, Rsc data)
         : name_(std::move(name)), rsc_(std::move(data))

@@ -2,12 +2,12 @@
 // kiwakiwaaにより 2026/02/14 に作成されました。
 //
 
-#include "monokakido/output/headline_exporter.hpp"
+#include "MKD/output/headline_exporter.hpp"
 
 #include <format>
 #include <fstream>
 
-namespace monokakido
+namespace MKD
 {
     std::expected<ExportResult, std::string> HeadlineExporter::exportHeadlines(
         const HeadlineStore& store,

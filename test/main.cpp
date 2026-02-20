@@ -14,12 +14,12 @@ int main(int argc, char **argv)
     {
         if (std::string(argv[i]) == "--verbose" || std::string(argv[i]) == "-v")
         {
-            monokakido::test::VerboseTestListener::setVerbose(true);
+            MKD::test::VerboseTestListener::setVerbose(true);
         }
     }
 
     auto& listeners = ::testing::UnitTest::GetInstance()->listeners();
-    listeners.Append(new monokakido::test::VerboseTestListener);
+    listeners.Append(new MKD::test::VerboseTestListener);
 
     return RUN_ALL_TESTS();
 }

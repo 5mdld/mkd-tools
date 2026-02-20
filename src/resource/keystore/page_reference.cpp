@@ -2,13 +2,13 @@
 // kiwakiwaaにより 2026/02/11 に作成されました。
 //
 
-#include "monokakido/resource/keystore/page_reference.hpp"
+#include "MKD/resource/keystore/page_reference.hpp"
 
 #include <cstring>
 #include <bit>
 #include <format>
 
-namespace monokakido
+namespace MKD
 {
     std::expected<DecodedEntry, std::string> decodeKeystoreEntry(
         const std::span<const uint8_t> data)

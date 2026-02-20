@@ -1,8 +1,8 @@
-#include "monokakido/platform/macos/fs.hpp"
+#include "MKD/platform/macos/fs.hpp"
 
 #import <Foundation/Foundation.h>
 
-namespace monokakido::macos
+namespace MKD::macOS
 {
     std::filesystem::path getContainerPathByGroupIdentifier(const std::string& groupIdentifier)
     {

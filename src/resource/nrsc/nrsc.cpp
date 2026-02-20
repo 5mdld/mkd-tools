@@ -2,12 +2,12 @@
 // kiwakiwaaにより 2026/01/16 に作成されました。
 //
 
-#include "monokakido/resource/nrsc/nrsc.hpp"
+#include "MKD/resource/nrsc/nrsc.hpp"
 
 #include <cassert>
 #include <format>
 
-namespace monokakido
+namespace MKD
 {
     std::expected<Nrsc, std::string> Nrsc::open(const fs::path& directoryPath)
     {

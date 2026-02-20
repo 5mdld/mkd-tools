@@ -2,10 +2,10 @@
 // kiwakiwaaにより 2026/01/22 に作成されました。
 //
 
-#include "monokakido/resource/common.hpp"
+#include "MKD/resource/common.hpp"
 
 
-namespace monokakido::detail
+namespace MKD::detail
 {
     std::optional<uint32_t> parseSequenceNumber(const fs::path& filename, std::string_view extension)
     {

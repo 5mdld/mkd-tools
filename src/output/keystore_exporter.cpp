@@ -2,14 +2,14 @@
 // kiwakiwaaにより 2026/02/14 に作成されました。
 //
 
-#include "monokakido/output/keystore_exporter.hpp"
+#include "MKD/output/keystore_exporter.hpp"
 
 #include <algorithm>
 #include <format>
 #include <fstream>
 #include <unordered_map>
 
-namespace monokakido
+namespace MKD
 {
     std::expected<ExportResult, std::string> KeystoreExporter::exportKeystore(
         const Keystore& keystore, const ExportOptions& options)
