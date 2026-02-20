@@ -106,6 +106,14 @@ namespace MKD::macOS
     {
         @autoreleasepool
         {
+            // when run from a CLI process, the panel opens but the process needs a proper NSApplication activation, so that macOS brings it to the front.
+            // TODO: this should only be done for the cli
+            // TODO: move this logic somewhere else
+            [NSApplication sharedApplication];
+
+            [NSApp setActivationPolicy:NSApplicationActivationPolicyAccessory];
+            [NSApp activateIgnoringOtherApps:YES];
+
             NSOpenPanel* panel = [NSOpenPanel openPanel];
             panel.message = @"Please select the Monokakido Dictionaries folder to grant access";
             panel.prompt = @"Grant Access";
@@ -113,7 +121,7 @@ namespace MKD::macOS
             panel.canChooseDirectories = YES;
             panel.allowsMultipleSelection = NO;
 
-            // Optional: try to navigate to expected location
+            // try to navigate to expected location TODO: remove this unecessary part
             NSString* groupId = @"group.jp.monokakido.Dictionaries";
             NSURL* containerURL = [[NSFileManager defaultManager]
                 containerURLForSecurityApplicationGroupIdentifier:groupId];

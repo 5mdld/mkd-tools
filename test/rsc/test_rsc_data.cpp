@@ -14,15 +14,13 @@
 
 #include <pugixml.h>
 
-using namespace MKD;
-
 class RscDataTest : public ::testing::Test
 {
 protected:
     void SetUp() override
     {
-        const auto containerPath = macOS::getContainerPathByGroupIdentifier(MONOKAKIDO_GROUP_ID);
-        const auto dictionariesPath = containerPath / DICTIONARIES_PATH;
+        const auto containerPath = MKD::macOS::getContainerPathByGroupIdentifier(MKD::MONOKAKIDO_GROUP_ID);
+        const auto dictionariesPath = containerPath / MKD::DICTIONARIES_PATH;
 
         dictId_ = "KJT.J";
         testDataPath_ = dictionariesPath / "KJT" / "Contents" / "KJT" / "contents";
@@ -40,20 +38,20 @@ protected:
 
 TEST_F(RscDataTest, LoadValidRscData)
 {
-    auto result = RscData::load(testDataPath_, dictId_);
+    auto result = MKD::RscData::load(testDataPath_, dictId_);
     ASSERT_TRUE(result.has_value()) << "Failed to load RSC data: " << result.error();
 
-    test::verbosePrint("RSC Data Loaded Successfully from: {}\n", testDataPath_.string());
-    test::verbosePrint("Dictionary ID: {}\n", dictId_);
+    MKD::test::verbosePrint("RSC Data Loaded Successfully from: {}\n", testDataPath_.string());
+    MKD::test::verbosePrint("Dictionary ID: {}\n", dictId_);
 }
 
 
 TEST_F(RscDataTest, GetRecordData)
 {
-    auto indexResult = RscIndex::load(testDataPath_);
+    auto indexResult = MKD::RscIndex::load(testDataPath_);
     ASSERT_TRUE(indexResult.has_value());
 
-    auto dataResult = RscData::load(testDataPath_, dictId_, indexResult->mapVersion());
+    auto dataResult = MKD::RscData::load(testDataPath_, dictId_, indexResult->mapVersion());
     ASSERT_TRUE(dataResult.has_value());
 
     auto& rscData = dataResult.value();
@@ -71,10 +69,10 @@ TEST_F(RscDataTest, GetRecordData)
     const auto& data = dataSpan.value();
     EXPECT_GT(data.size(), 0) << "Retrieved data should not be empty";
 
-    const auto xmlResult = XmlView{data}.asStringView();
+    const auto xmlResult = MKD::XmlView{data}.asStringView();
     ASSERT_TRUE(xmlResult.has_value()) << "Data contains invalid UTF-8 sequence: " << xmlResult.error();
 
-    test::verbosePrint("Beginning of xml: {}\n", xmlResult.value().substr(0, 50));
+    MKD::test::verbosePrint("Beginning of xml: {}\n", xmlResult.value().substr(0, 50));
 
     pugi::xml_document xmlDoc;
     auto parseResult = xmlDoc.load_buffer(xmlResult.value().data(), xmlResult.value().size());
@@ -84,12 +82,12 @@ TEST_F(RscDataTest, GetRecordData)
 
 TEST_F(RscDataTest, GetAudioData)
 {
-    auto indexResult = RscIndex::load(testAudioDataPath_);
+    auto indexResult = MKD::RscIndex::load(testAudioDataPath_);
     ASSERT_TRUE(indexResult.has_value());
 
-    test::verbosePrint("Amount of audio records: {}\n", indexResult->size());
+    MKD::test::verbosePrint("Amount of audio records: {}\n", indexResult->size());
 
-    auto dataResult = RscData::load(testAudioDataPath_);
+    auto dataResult = MKD::RscData::load(testAudioDataPath_);
     ASSERT_TRUE(dataResult.has_value());
 
     auto& rscData = dataResult.value();
@@ -99,7 +97,7 @@ TEST_F(RscDataTest, GetAudioData)
     ASSERT_TRUE(recordResult.has_value());
 
     const auto& [itemId, mapRecord] = recordResult.value();
-    test::verbosePrint("  [0] ID: {:8} | {}\n", itemId, mapRecord);
+    MKD::test::verbosePrint("  [0] ID: {:8} | {}\n", itemId, mapRecord);
 
     auto dataSpan = rscData.get(mapRecord);
     ASSERT_TRUE(dataSpan.has_value()) << "Failed to get data: " << dataSpan.error();

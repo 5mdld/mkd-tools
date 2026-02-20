@@ -1,174 +1,98 @@
-cmake_minimum_required(VERSION 3.26)
-project(mkd-tools)
+cmake_minimum_required(VERSION 3.25)
+project(mkd-tools LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-option(BUILD_TESTING "Build the testing tree" OFF)
-include(CTest)
+option(MKD_BUILD_TESTS "Build tests" ON)
+option(MKD_BUILD_CLI "Build command-line interface" ON)
 
 include(FetchContent)
 
-# Glaze (json library)
-FetchContent_Declare(
-        glaze
+FetchContent_Declare(glaze
         GIT_REPOSITORY https://github.com/stephenberry/glaze.git
         GIT_TAG main
         GIT_SHALLOW TRUE
 )
-FetchContent_MakeAvailable(glaze)
 
-# Google Test
-FetchContent_Declare(
-        googletest
-        URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
-)
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(googletest)
-
-# Zlib
-FetchContent_Declare(
-        zlib
+FetchContent_Declare(zlib
         GIT_REPOSITORY https://github.com/madler/zlib.git
         GIT_TAG v1.3.1
         GIT_SHALLOW TRUE
 )
-FetchContent_MakeAvailable(zlib)
+
+FetchContent_MakeAvailable(glaze zlib)
 
 if (NOT TARGET ZLIB::ZLIB)
     add_library(ZLIB::ZLIB ALIAS zlibstatic)
-endif ()
+    # Expose zlib headers
+    target_include_directories(zlibstatic INTERFACE
+            ${zlib_SOURCE_DIR}
+            ${zlib_BINARY_DIR}
+    )
+endif()
 
-include_directories(${zlib_BINARY_DIR})
-include_directories(${zlib_SOURCE_DIR})
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
-include_directories(${glaze_SOURCE_DIR}/include)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/utfcpp)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/pugixml)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/indicators)
+file(GLOB_RECURSE MKD_SOURCES src/*.cpp)
 
-# --- Platform library ---
-add_library(mkd_platform STATIC
-        src/platform/fs.cpp
-        src/platform/directory_dictionary_source.cpp
+if(APPLE)
+    file(GLOB_RECURSE MKD_OBJCXX_SOURCES src/*.mm)
+    list(APPEND MKD_SOURCES ${MKD_OBJCXX_SOURCES})
+    set_source_files_properties(${MKD_OBJCXX_SOURCES} PROPERTIES COMPILE_FLAGS "-fno-objc-arc")
+else()
+    list(FILTER MKD_SOURCES EXCLUDE REGEX "macos/")
+endif()
+
+add_library(mkd ${MKD_SOURCES}
+        third_party/pugixml/pugixml.cpp
 )
 
+target_include_directories(mkd PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_include_directories(mkd PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/third_party/utfcpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/third_party/pugixml
+        ${CMAKE_CURRENT_SOURCE_DIR}/third_party/indicators
+)
+
+target_link_libraries(mkd PUBLIC glaze::glaze ZLIB::ZLIB)
+
 if (APPLE)
-    target_sources(mkd_platform PRIVATE
-            src/platform/macos/fs.mm
-            src/platform/macos/macos_dictionary_source.cpp
-            src/platform/macos/scoped_security_access.mm
-    )
-    target_link_libraries(mkd_platform PRIVATE
+    target_link_libraries(mkd PRIVATE
             "-framework Foundation"
             "-framework Security"
             "-framework CoreServices"
             "-framework Cocoa"
     )
-endif ()
-
-# --- Dictionary library ---
-add_library(mkd_dictionary STATIC
-        src/dictionary/metadata.cpp
-        src/dictionary/paths.cpp
-        src/dictionary/dictionary.cpp
-)
-
-# --- Output library ---
-add_library(mkd_output STATIC
-        third_party/pugixml/pugixml.cpp
-        src/output/base_exporter.cpp
-        src/output/resource_exporter.cpp
-        src/output/keystore_exporter.cpp
-        src/output/headline_exporter.cpp
-)
-
-# --- Resource library ---
-add_library(mkd_resource STATIC
-        src/resource/nrsc/nrsc.cpp
-        src/resource/nrsc/nrsc_index.cpp
-        src/resource/nrsc/nrsc_index_record.cpp
-        src/resource/nrsc/nrsc_data.cpp
-        src/resource/rsc/rsc.cpp
-        src/resource/rsc/rsc_crypto.cpp
-        src/resource/rsc/rsc_index.cpp
-        src/resource/rsc/rsc_index_record.cpp
-        src/resource/rsc/rsc_data.cpp
-        src/resource/rsc/rsc_map.cpp
-        src/resource/keystore/keystore.cpp
-        src/resource/keystore/page_reference.cpp
-        src/resource/headlines/headline_store.cpp
-        src/resource/font.cpp
-        src/resource/zlib_decompressor.cpp
-        src/resource/resource_loader.cpp
-        src/resource/common.cpp
-        src/resource/xml_view.cpp
-)
-
-target_link_libraries(mkd_resource PRIVATE
-        mkd_platform
-)
-
-if (APPLE)
-    # CommonCrypto is part of the system
 elseif (WIN32)
-    target_link_libraries(mkd_resource PRIVATE bcrypt)
-else ()
+    target_link_libraries(mkd PRIVATE bcrypt)
+else()
     find_package(OpenSSL REQUIRED)
-    target_link_libraries(mkd_resource PRIVATE OpenSSL::Crypto)
-endif ()
+    target_link_libraries(mkd PRIVATE OpenSSL::Crypto)
+endif()
 
 
-# --- Executable ---
-add_executable(mkd-tools src/main.cpp)
+# CLI
+if (MKD_BUILD_CLI)
+    add_subdirectory(cli)
+endif()
 
-target_link_libraries(mkd-tools PRIVATE
-        mkd_platform
-        mkd_dictionary
-        mkd_resource
-        mkd_output
-        glaze::glaze
-        ZLIB::ZLIB
-)
 
-if (APPLE)
-    set_target_properties(mkd-tools PROPERTIES
-            MACOSX_BUNDLE TRUE
-            MACOSX_BUNDLE_BUNDLE_NAME "mkd-tools"
-            MACOSX_BUNDLE_GUI_IDENTIFIER "com.kiwaa.mkd-tools"
-            MACOSX_BUNDLE_BUNDLE_VERSION "1.0.0"
-            MACOSX_BUNDLE_SHORT_VERSION_STRING "1.0"
-            MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/Info.plist.in"
+# Tests
+if (MKD_BUILD_TESTS)
+    FetchContent_Declare(googletest
+            URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
     )
-endif ()
+    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(googletest)
 
-if (BUILD_TESTING)
     enable_testing()
-    set(TEST_SOURCES
-            test/test_listener.hpp
-            test/nrsc/test_nrsc_index.cpp
-            test/rsc/test_rsc_data.cpp
-            test/rsc/test_rsc_index.cpp
-            test/main.cpp
-            test/keystore/test_keystore.cpp
-            test/headline/headline_test.cpp
-    )
 
-    add_executable(mkd_tools_tests
-            ${TEST_SOURCES}
-    )
-
-    target_link_libraries(mkd_tools_tests PRIVATE
-            mkd_platform
-            mkd_resource
-            mkd_output
-            GTest::gtest
-            ZLIB::ZLIB
-    )
+    file(GLOB_RECURSE TEST_SOURCES test/*.cpp)
+    add_executable(mkd-tests ${TEST_SOURCES})
+    target_include_directories(mkd-tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/third_party/pugixml)
+    target_link_libraries(mkd-tests PRIVATE mkd GTest::gtest)
 
     include(GoogleTest)
-    gtest_discover_tests(mkd_tools_tests
-            DISCOVERY_TIMEOUT 300
-            PROPERTIES LABELS "unit"
-    )
-endif ()
+    gtest_discover_tests(mkd-tests DISCOVERY_TIMEOUT 300)
+endif()

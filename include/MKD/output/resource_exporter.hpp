@@ -33,7 +33,5 @@ namespace MKD
             std::vector<uint8_t>& buffer);
 
         static bool isAudioData(std::span<const uint8_t> data);
-
     };
-
 }

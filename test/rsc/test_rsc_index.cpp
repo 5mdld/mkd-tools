@@ -11,15 +11,13 @@
 #include "MKD/resource/rsc/rsc_index.hpp"
 #include "MKD/resource/rsc/rsc_data.hpp"
 
-using namespace MKD;
-
 class RscIndexTest : public ::testing::Test
 {
 protected:
     void SetUp() override
     {
-        const auto containerPath = macOS::getContainerPathByGroupIdentifier(MONOKAKIDO_GROUP_ID);
-        const auto dictionariesPath = containerPath / DICTIONARIES_PATH;
+        const auto containerPath = MKD::macOS::getContainerPathByGroupIdentifier(MKD::MONOKAKIDO_GROUP_ID);
+        const auto dictionariesPath = containerPath / MKD::DICTIONARIES_PATH;
 
         testDataPath_ = dictionariesPath / "YDP" / "Contents" / "YDP" / "contents";
     }
@@ -30,13 +28,13 @@ protected:
 
 TEST_F(RscIndexTest, LoadValidIndexFile)
 {
-    auto result = RscIndex::load(testDataPath_);
+    auto result = MKD::RscIndex::load(testDataPath_);
     ASSERT_TRUE(result.has_value()) << "Failed to load index: " << result.error();
     const auto& index = result.value();
     const size_t recordCount = index.size();
 
-    test::verbosePrint("RSC Index Loaded Successfully from: {}\n", testDataPath_.string());
-    test::verbosePrint("Total Records: {}\n", recordCount);
+    MKD::test::verbosePrint("RSC Index Loaded Successfully from: {}\n", testDataPath_.string());
+    MKD::test::verbosePrint("Total Records: {}\n", recordCount);
 
     EXPECT_GT(recordCount, 0) << "Index should contain at least one record";
     EXPECT_FALSE(index.empty()) << "Index should not be empty";
@@ -44,12 +42,12 @@ TEST_F(RscIndexTest, LoadValidIndexFile)
 
 TEST_F(RscIndexTest, GetRecordByIndex)
 {
-    const auto indexResult = RscIndex::load(testDataPath_);
+    const auto indexResult = MKD::RscIndex::load(testDataPath_);
     ASSERT_TRUE(indexResult.has_value());
 
     const auto& index = indexResult.value();
 
-    test::verbosePrint("First 10 Records:\n");
+    MKD::test::verbosePrint("First 10 Records:\n");
 
     const size_t displayCount = std::min(index.size(), size_t{10});
 
@@ -59,7 +57,7 @@ TEST_F(RscIndexTest, GetRecordByIndex)
         ASSERT_TRUE(recordResult.has_value()) << "Failed to get record at index " << i;
 
         const auto& [itemId, mapRecord] = recordResult.value();
-        test::verbosePrint("  [{:4}] ID: {:8} | {}\n", i, itemId, mapRecord);
+        MKD::test::verbosePrint("  [{:4}] ID: {:8} | {}\n", i, itemId, mapRecord);
 
         // Validate record fields are reasonable
         EXPECT_GE(mapRecord.zOffset, 0u) << "zOffset should be non-negative";
@@ -69,7 +67,7 @@ TEST_F(RscIndexTest, GetRecordByIndex)
 
 TEST_F(RscIndexTest, GetOutOfBoundsIndex)
 {
-    const auto indexResult = RscIndex::load(testDataPath_);
+    const auto indexResult = MKD::RscIndex::load(testDataPath_);
     ASSERT_TRUE(indexResult.has_value());
 
     const auto& index = indexResult.value();
@@ -79,7 +77,7 @@ TEST_F(RscIndexTest, GetOutOfBoundsIndex)
 
     ASSERT_FALSE(result.has_value()) << "Should fail for out of bounds index";
 
-    test::verbosePrint("Expected error (index {} out of range): {}\n", invalidIndex, result.error());
+    MKD::test::verbosePrint("Expected error (index {} out of range): {}\n", invalidIndex, result.error());
 
     EXPECT_TRUE(result.error().find("out of range") != std::string::npos ||
         result.error().find("invalid index") != std::string::npos);
@@ -87,7 +85,7 @@ TEST_F(RscIndexTest, GetOutOfBoundsIndex)
 
 TEST_F(RscIndexTest, FindRecordById)
 {
-    auto indexResult = RscIndex::load(testDataPath_);
+    auto indexResult = MKD::RscIndex::load(testDataPath_);
     ASSERT_TRUE(indexResult.has_value());
 
     const auto& index = indexResult.value();
@@ -98,15 +96,15 @@ TEST_F(RscIndexTest, FindRecordById)
 
     const auto& [testItemId, expectedRecord] = recordResult.value();
 
-    test::verbosePrint("Testing findById with itemId: {}\n", testItemId);
+    MKD::test::verbosePrint("Testing findById with itemId: {}\n", testItemId);
 
     auto findResult = index.findById(testItemId);
     ASSERT_TRUE(findResult.has_value()) << "Failed to find record by ID: " << testItemId;
 
     const auto& foundRecord = findResult.value();
 
-    test::verbosePrint("Found record:\n");
-    test::verbosePrint("  [9] ID: {:8} | {}\n", testItemId, foundRecord);
+    MKD::test::verbosePrint("Found record:\n");
+    MKD::test::verbosePrint("  [9] ID: {:8} | {}\n", testItemId, foundRecord);
 
     // Verify the found record matches
     EXPECT_EQ(foundRecord.zOffset, expectedRecord.zOffset);

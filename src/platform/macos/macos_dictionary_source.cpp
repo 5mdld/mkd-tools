@@ -11,7 +11,7 @@ namespace MKD
 {
     std::expected<std::vector<DictionaryInfo>, std::string> MacOSDictionarySource::findAllAvailable() const
     {
-        if (const auto status = checkAccess(); status == AccessStatus::NeedsPermission)
+        if (!checkAccess())
             return std::unexpected("Access to dictionaries folder not granted. Please call requestAccess().");
 
         if (!authorizedPath_)
@@ -45,7 +45,7 @@ namespace MKD
 
     std::expected<DictionaryInfo, std::string> MacOSDictionarySource::findById(std::string_view dictId) const
     {
-        if (const auto status = checkAccess(); status == AccessStatus::NeedsPermission)
+        if (!checkAccess())
             return std::unexpected("Access to dictionaries folder not granted. Please call requestAccess().");
 
         if (!authorizedPath_)
@@ -64,10 +64,10 @@ namespace MKD
     }
 
 
-    MacOSDictionarySource::AccessStatus MacOSDictionarySource::checkAccess() const
+    bool MacOSDictionarySource::checkAccess() const
     {
         if (securityAccess_.isValid())
-            return AccessStatus::Granted;
+            return true;
 
         // Attempt to restore access from saved bookmark
         if (const auto bookmark = macOS::loadSavedBookmark())
@@ -76,11 +76,11 @@ namespace MKD
             {
                 authorizedPath_ = access->path;
                 securityAccess_ = std::move(access->access);
-                return AccessStatus::Granted;
+                return true;
             }
         }
 
-        return AccessStatus::NeedsPermission;
+        return false;
     }
 
 

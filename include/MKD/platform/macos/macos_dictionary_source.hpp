@@ -19,17 +19,9 @@ namespace MKD
     public:
 
         std::expected<std::vector<DictionaryInfo>, std::string> findAllAvailable() const override;
-
         [[nodiscard]] std::expected<DictionaryInfo, std::string> findById(std::string_view dictId) const override;
 
-        enum class AccessStatus
-        {
-            Granted,
-            NeedsPermission,
-            PermissionDenied
-        };
-
-        AccessStatus checkAccess() const;
+        bool checkAccess() const;
         bool requestAccess() const;
 
     private:

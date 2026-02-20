@@ -10,15 +10,13 @@
 #include "MKD/platform/macos/macos_dictionary_source.hpp"
 #include "MKD/resource/keystore/keystore.hpp"
 
-using namespace MKD;
-
 class KeystoreTest : public ::testing::Test
 {
 protected:
     void SetUp() override
     {
-        const auto containerPath = macOS::getContainerPathByGroupIdentifier(MONOKAKIDO_GROUP_ID);
-        const auto dictionariesPath = containerPath / DICTIONARIES_PATH;
+        const auto containerPath = MKD::macOS::getContainerPathByGroupIdentifier(MKD::MONOKAKIDO_GROUP_ID);
+        const auto dictionariesPath = containerPath / MKD::DICTIONARIES_PATH;
 
         testHeadwords_ = dictionariesPath / "KNEJ" / "Contents" / "KNEJ" / "key" / "headword.keystore";
     }
@@ -29,14 +27,14 @@ protected:
 
 TEST_F(KeystoreTest, LoadValidKeystoreFile)
 {
-    auto result2 = Keystore::load(testHeadwords_, "KNEJ");
+    auto result2 = MKD::Keystore::load(testHeadwords_, "KNEJ");
     ASSERT_TRUE(result2.has_value()) << "Failed to load keystore: " << result2.error();
 
     auto& keystore = result2.value();
 
-    for (auto i = 0; i < keystore.indexSize(KeystoreIndex::Prefix); ++i)
+    for (auto i = 0; i < keystore.indexSize(MKD::KeystoreIndex::Prefix); ++i)
     {
-        auto lookupResult = keystore.getByIndex(KeystoreIndex::Prefix, i);
+        auto lookupResult = keystore.getByIndex(MKD::KeystoreIndex::Prefix, i);
         ASSERT_TRUE(lookupResult.has_value()) << "Failed to get lookup: " << lookupResult.error();
     }
 }
