@@ -9,7 +9,15 @@
 
 namespace MKD
 {
-    std::expected<ExportResult, std::string> ResourceExporter::exportAll(const Rsc& rsc, const ExportOptions& options)
+    namespace
+    {
+        const auto notify = [](const ExportEvent& event, const ExportCallback& callback) {
+            if (callback)
+                callback(event);
+        };
+    }
+
+    std::expected<ExportResult, std::string> ResourceExporter::exportAll(const Rsc& rsc, const ExportOptions& options, const ResourceType type)
     {
         ExportResult result;
         result.totalResources = rsc.size();
@@ -21,21 +29,17 @@ namespace MKD
 
         for (const auto& [itemId, data] : rsc)
         {
-            // Detect if this is audio or XML
             auto [subdir, filename, finalData] = prepareRscItem(itemId, data, options, buffer);
             fs::path outputDir = options.createSubdirectories
                 ? options.outputDirectory / subdir
                 : options.outputDirectory;
 
             fs::path outputPath = outputDir / filename;
-
             if (shouldSkipExisting(outputPath, options.overwriteExisting))
             {
                 result.skipped++;
-                continue;
             }
-
-            if (auto writeResult = writeData(finalData, outputPath))
+            else if (auto writeResult = writeData(finalData, outputPath))
             {
                 result.exported++;
                 result.totalBytes += finalData.size();
@@ -45,13 +49,20 @@ namespace MKD
                 result.failed++;
                 result.errors.push_back(std::format("Entry {}: {}", itemId, writeResult.error()));
             }
+
+            notify(ProgressEvent{
+                .type = type,
+                .completedItems = result.exported + result.skipped + result.failed,
+                .totalItems = result.totalResources,
+                .bytesWritten = result.totalBytes
+            }, options.progressCallback);
         }
 
         return result;
     }
 
 
-    std::expected<ExportResult, std::string> ResourceExporter::exportAll(const Nrsc& nrsc, const ExportOptions& options)
+    std::expected<ExportResult, std::string> ResourceExporter::exportAll(const Nrsc& nrsc, const ExportOptions& options, const ResourceType type)
     {
         ExportResult result;
         result.totalResources = nrsc.size();
@@ -72,10 +83,8 @@ namespace MKD
             if (shouldSkipExisting(outputPath, options.overwriteExisting))
             {
                 result.skipped++;
-                continue;
             }
-
-            if (auto writeResult = writeData(data, outputPath))
+            else if (auto writeResult = writeData(data, outputPath))
             {
                 result.exported++;
                 result.totalBytes += data.size();
@@ -85,11 +94,17 @@ namespace MKD
                 result.failed++;
                 result.errors.push_back(std::format("{}: {}", id, writeResult.error()));
             }
+
+            notify(ProgressEvent{
+                .type = type,
+                .completedItems = result.exported + result.skipped + result.failed,
+                .totalItems = result.totalResources,
+                .bytesWritten = result.totalBytes
+            }, options.progressCallback);
         }
 
         return result;
     }
-
 
 
     std::expected<ExportResult, std::string> ResourceExporter::exportFont(const Font& font, const ExportOptions& options)
@@ -117,14 +132,11 @@ namespace MKD
                                        : options.outputDirectory;
 
         const fs::path outputPath = outputDir / std::format("{}.{}", font.name(), extension.value());
-
         if (shouldSkipExisting(outputPath, options.overwriteExisting))
         {
             result.skipped = 1;
-            return result;
         }
-
-        if (auto writeResult = writeData(fontData, outputPath))
+        else if (auto writeResult = writeData(fontData, outputPath))
         {
             result.exported = 1;
             result.totalBytes = fontData.size();
@@ -136,9 +148,15 @@ namespace MKD
                 std::format("Font export failed: {}", writeResult.error()));
         }
 
+        notify(ProgressEvent{
+            .type = ResourceType::Fonts,
+            .completedItems = 1,
+            .totalItems = 1,
+            .bytesWritten = result.totalBytes
+        }, options.progressCallback);
+
         return result;
     }
-
 
 
     std::tuple<std::string, std::string, std::span<const uint8_t>> ResourceExporter::prepareRscItem(

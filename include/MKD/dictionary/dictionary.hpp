@@ -12,6 +12,7 @@
 #include "MKD/resource/font.hpp"
 #include "MKD/resource/keystore/keystore.hpp"
 #include "MKD/resource/headline/headline_store.hpp"
+#include "MKD/output/export_options.hpp"
 #include "MKD/output/resource_exporter.hpp"
 #include "MKD/output/keystore_exporter.hpp"
 #include "MKD/output/headline_exporter.hpp"
@@ -36,16 +37,10 @@ namespace MKD
         [[nodiscard]] std::vector<Font>& fonts() noexcept;
         [[nodiscard]] const std::vector<Font>& fonts() const noexcept;
 
-        [[nodiscard]] bool hasAudio() const noexcept;
-        [[nodiscard]] bool hasGraphics() const noexcept;
-        [[nodiscard]] bool hasFonts() const noexcept;
-        [[nodiscard]] bool hasKeystores() const noexcept;
-        [[nodiscard]] bool hasHeadlines() const noexcept;
+         [[nodiscard]] size_t resourceCount(ResourceType type) const noexcept;
 
-        ExportResult exportAll(const ExportOptions& options) const;
+        ExportResult exportWithOptions(const ExportOptions& options) const;
         std::expected<ExportResult, std::string> exportAudio(const ExportOptions& options) const;
-        std::expected<ExportResult, std::string> exportEntries(const ExportOptions& options) const;
-        std::expected<ExportResult, std::string> exportGraphics(const ExportOptions& options) const;
         std::expected<ExportResult, std::string> exportFonts(const ExportOptions& options) const;
         std::expected<ExportResult, std::string> exportKeystores(const ExportOptions& options) const;
         std::expected<ExportResult, std::string> exportHeadlines(const ExportOptions& options) const;

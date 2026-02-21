@@ -6,6 +6,7 @@ add_executable(mkd-cli
         src/cli.cpp
         src/commands.cpp
         src/format.cpp
+        src/progress.cpp
 )
 
 target_include_directories(mkd-cli PRIVATE

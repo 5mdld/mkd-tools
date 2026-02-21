@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "MKD/dictionary/common.hpp"
+#include "MKD/dictionary/dictionary_info.hpp"
 
 #include <expected>
 #include <vector>

@@ -5,7 +5,6 @@
 #pragma once
 
 #include <filesystem>
-#include <functional>
 #include <vector>
 
 namespace fs = std::filesystem;
@@ -34,23 +33,5 @@ namespace MKD
             errors.insert(errors.end(), other.errors.begin(), other.errors.end());
             return *this;
         }
-    };
-
-    enum class KeystoreExportMode : uint8_t
-    {
-        Forward = 1 << 0, // key → page references
-        Inverse = 1 << 1, // page reference → keys
-        Both = Forward | Inverse,
-    };
-
-    struct ExportOptions
-    {
-        fs::path outputDirectory;
-        bool overwriteExisting = false;
-        bool createSubdirectories = true;
-
-        // For entry content export
-        bool prettyPrintXml = false;
-        KeystoreExportMode keystoreExportMode = KeystoreExportMode::Inverse;
     };
 }

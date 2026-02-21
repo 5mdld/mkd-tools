@@ -5,6 +5,7 @@
 #pragma once
 
 #include "metadata.hpp"
+#include "MKD/resource/resource_type.hpp"
 
 #include <expected>
 #include <filesystem>
@@ -15,27 +16,15 @@ namespace fs = std::filesystem;
 
 namespace MKD
 {
-
-    enum class PathType
-    {
-        Audio,
-        Appendix,
-        Contents,
-        Fonts,
-        Graphics,
-        Headline,
-        Keystore
-    };
-
     class DictionaryPaths
     {
     public:
 
         static std::expected<DictionaryPaths, std::string> create(const fs::path& rootPath, const DictionaryMetadata& metadata);
 
-        [[nodiscard]] fs::path resolve(PathType type) const;
-        [[nodiscard]] std::optional<fs::path> tryResolve(PathType type) const;
-        [[nodiscard]] std::expected<fs::path, std::string> validate(PathType type) const;
+        [[nodiscard]] fs::path resolve(ResourceType type) const;
+        [[nodiscard]] std::optional<fs::path> tryResolve(ResourceType type) const;
+        [[nodiscard]] std::expected<fs::path, std::string> validate(ResourceType type) const;
 
     private:
 

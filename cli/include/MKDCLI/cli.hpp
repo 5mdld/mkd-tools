@@ -5,7 +5,8 @@
 #pragma once
 
 #include "MKD/platform/dictionary_source.hpp"
-#include "MKD/output/common.hpp"
+#include "MKD/resource/resource_type.hpp"
+#include "MKD/output/export_options.hpp"
 
 #include <expected>
 #include <filesystem>
@@ -20,18 +21,7 @@ namespace fs = std::filesystem;
 
 namespace MKDCLI
 {
-    enum class ResourceType : uint8_t
-    {
-        Audio,
-        Entries,
-        Graphics,
-        Fonts,
-        Keystores,
-        Headlines,
-    };
-
-    std::optional<ResourceType> parseResourceType(std::string_view str) noexcept;
-    std::string_view resourceTypeName(ResourceType type) noexcept;
+    std::optional<MKD::ResourceType> parseResourceType(std::string_view str) noexcept;
 
     enum class Command
     {
@@ -47,13 +37,12 @@ namespace MKDCLI
         Command command = Command::Help;
         std::optional<fs::path> dirOverride;
         bool noColour = false;
-        bool verbose = false;
         std::string dictId;
         fs::path outputDir;
         bool overwrite = false;
         bool prettyPrintXml = false;
         MKD::KeystoreExportMode keystoreMode = MKD::KeystoreExportMode::Inverse;
-        std::vector<ResourceType> onlyResources;  // empty = all
+        std::vector<MKD::ResourceType> onlyResources;
     };
 
 
@@ -102,5 +91,4 @@ namespace MKDCLI
         CLIOptions options_;
         std::string program_;
     };
-
 }

@@ -42,36 +42,35 @@ namespace MKD
     {
     }
 
-    fs::path DictionaryPaths::resolve(const PathType type) const
+    fs::path DictionaryPaths::resolve(const ResourceType type) const
     {
         switch (type)
         {
-            case PathType::Audio: return contentDirectory_ / "audio";
-            case PathType::Appendix: return contentDirectory_ / "appendix";
-            case PathType::Contents: return contentDirectory_ / "contents";
-            case PathType::Graphics:
+            case ResourceType::Audio: return contentDirectory_ / "audio";
+            case ResourceType::Entries: return contentDirectory_ / "contents";
+            case ResourceType::Graphics:
             {
                 static constexpr std::array candidates = {"graphics"sv, "img"sv};
                 if (auto path = detail::findResourcePath(contentDirectory_, candidates))
                     return *path;
                 return contentDirectory_ / "graphics";
             }
-            case PathType::Fonts: return contentDirectory_ / "fonts";
-            case PathType::Headline: return contentDirectory_ / "headline";
-            case PathType::Keystore: return contentDirectory_ / "key";
+            case ResourceType::Fonts: return contentDirectory_ / "fonts";
+            case ResourceType::Headlines: return contentDirectory_ / "headline";
+            case ResourceType::Keystores: return contentDirectory_ / "key";
             default: return rootPath_;
         }
     }
 
 
-    std::optional<fs::path> DictionaryPaths::tryResolve(const PathType type) const
+    std::optional<fs::path> DictionaryPaths::tryResolve(const ResourceType type) const
     {
         auto path = resolve(type);
         return fs::exists(path) ? std::make_optional(path) : std::nullopt;
     }
 
 
-    std::expected<fs::path, std::string> DictionaryPaths::validate(const PathType type) const
+    std::expected<fs::path, std::string> DictionaryPaths::validate(const ResourceType type) const
     {
         auto path = resolve(type);
         if (!fs::exists(path))

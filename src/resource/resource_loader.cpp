@@ -16,25 +16,25 @@ namespace MKD
 
     std::optional<Rsc> ResourceLoader::loadEntries(std::string_view dictId) const
     {
-        return tryLoad<Rsc>(PathType::Contents, dictId);
+        return tryLoad<Rsc>(ResourceType::Entries, dictId);
     }
 
 
     std::optional<Nrsc> ResourceLoader::loadGraphics(std::string_view dictId) const
     {
-        return tryLoad<Nrsc>(PathType::Graphics, dictId);
+        return tryLoad<Nrsc>(ResourceType::Graphics, dictId);
     }
 
 
     std::optional<std::variant<Rsc, Nrsc>> ResourceLoader::loadAudio(std::string_view dictId) const
     {
-        return tryLoadEither(PathType::Audio, dictId);
+        return tryLoadEither(ResourceType::Audio, dictId);
     }
 
 
     std::vector<Font> ResourceLoader::loadFonts() const
     {
-        const auto fontsPath = paths_.tryResolve(PathType::Fonts);
+        const auto fontsPath = paths_.tryResolve(ResourceType::Fonts);
         if (!fontsPath)
             return {};
 
@@ -55,7 +55,7 @@ namespace MKD
 
     std::vector<Keystore> ResourceLoader::loadKeystores(std::string_view dictId) const
     {
-        const auto path = paths_.tryResolve(PathType::Keystore);
+        const auto path = paths_.tryResolve(ResourceType::Keystores);
         if (!path)
             return {};
 
@@ -75,7 +75,7 @@ namespace MKD
 
     std::vector<HeadlineStore> ResourceLoader::loadHeadlines() const
     {
-        const auto path = paths_.tryResolve(PathType::Headline);
+        const auto path = paths_.tryResolve(ResourceType::Headlines);
         if (!path)
             return {};
 
@@ -94,14 +94,14 @@ namespace MKD
 
 
     template<Openable T>
-    std::optional<T> ResourceLoader::tryLoad(const PathType pathType, std::string_view dictId) const
+    std::optional<T> ResourceLoader::tryLoad(const ResourceType pathType, std::string_view dictId) const
     {
         const auto path = paths_.tryResolve(pathType);
         return path ? tryLoadResource<T>(*path, dictId) : std::nullopt;
     }
 
 
-    std::optional<std::variant<Rsc, Nrsc> > ResourceLoader::tryLoadEither(const PathType pathType, std::string_view dictId) const
+    std::optional<std::variant<Rsc, Nrsc> > ResourceLoader::tryLoadEither(const ResourceType pathType, std::string_view dictId) const
     {
         const auto path = paths_.tryResolve(pathType);
         if (!path)

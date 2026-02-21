@@ -16,29 +16,15 @@
 
 namespace MKDCLI
 {
-    std::optional<ResourceType> parseResourceType(std::string_view str) noexcept
+    std::optional<MKD::ResourceType> parseResourceType(std::string_view str) noexcept
     {
-        if (str == "audio") return ResourceType::Audio;
-        if (str == "entries") return ResourceType::Entries;
-        if (str == "graphics") return ResourceType::Graphics;
-        if (str == "fonts") return ResourceType::Fonts;
-        if (str == "keystores") return ResourceType::Keystores;
-        if (str == "headlines") return ResourceType::Headlines;
+        if (str == "audio") return MKD::ResourceType::Audio;
+        if (str == "entries") return MKD::ResourceType::Entries;
+        if (str == "graphics") return MKD::ResourceType::Graphics;
+        if (str == "fonts") return MKD::ResourceType::Fonts;
+        if (str == "keystores") return MKD::ResourceType::Keystores;
+        if (str == "headlines") return MKD::ResourceType::Headlines;
         return std::nullopt;
-    }
-
-    std::string_view resourceTypeName(const ResourceType type) noexcept
-    {
-        switch (type)
-        {
-            case ResourceType::Audio: return "audio";
-            case ResourceType::Entries: return "entries";
-            case ResourceType::Graphics: return "graphics";
-            case ResourceType::Fonts: return "fonts";
-            case ResourceType::Keystores: return "keystores";
-            case ResourceType::Headlines: return "headlines";
-        }
-        return "unknown";
     }
 
 
@@ -95,12 +81,6 @@ namespace MKDCLI
             if (arg == "--no-colour")
             {
                 opts.noColour = true;
-                continue;
-            }
-
-            if (isFlag(arg, "-v", "--verbose"))
-            {
-                opts.verbose = true;
                 continue;
             }
 
@@ -258,11 +238,13 @@ namespace MKDCLI
     MKD::ExportOptions CLIApp::buildExportOptions() const
     {
         return {
-            .outputDirectory = options_.outputDir,
-            .overwriteExisting = options_.overwrite,
+            .outputDirectory     = options_.outputDir,
+            .overwriteExisting   = options_.overwrite,
             .createSubdirectories = true,
-            .prettyPrintXml = options_.prettyPrintXml,
-            .keystoreExportMode = options_.keystoreMode,
+            .prettyPrintXml      = options_.prettyPrintXml,
+            .keystoreExportMode  = options_.keystoreMode,
+            .resources           = options_.onlyResources,
+            .progressCallback    = nullptr,
         };
     }
 
@@ -292,7 +274,6 @@ namespace MKDCLI
 
                 << Colour::bold("GLOBAL OPTIONS:\n")
                 << "  -d, --dir <path>    Use a directory as dictionary source\n"
-                << "  -v, --verbose       Verbose output\n"
                 << "  --no-u          Disable coloured output\n\n"
 
                 << Colour::bold("EXPORT OPTIONS:\n")

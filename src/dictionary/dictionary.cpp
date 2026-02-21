@@ -102,36 +102,30 @@ namespace MKD
         return fonts_;
     }
 
-
-    bool Dictionary::hasAudio() const noexcept
+    size_t Dictionary::resourceCount(const ResourceType type) const noexcept
     {
-        return audio_.has_value();
+        switch (type)
+        {
+            case ResourceType::Audio:
+                return audio_ ? std::visit([](const auto& r) { return r.size(); }, *audio_) : 0;
+            case ResourceType::Entries:
+                return entries_ ? entries_->size() : 0;
+            case ResourceType::Graphics:
+                return graphics_ ? graphics_->size() : 0;
+            case ResourceType::Fonts:
+                return fonts_.size();
+            case ResourceType::Keystores:
+                return keystores_.size();
+            case ResourceType::Headlines:
+            {
+                size_t total = 0;
+                for (const auto& store : headlines_)
+                    total += store.size();
+                return total;
+            }
+        }
+        std::unreachable();
     }
-
-
-    bool Dictionary::hasGraphics() const noexcept
-    {
-        return graphics_ && !graphics_->empty();
-    }
-
-
-    bool Dictionary::hasFonts() const noexcept
-    {
-        return !fonts_.empty();
-    }
-
-
-    bool Dictionary::hasKeystores() const noexcept
-    {
-        return !keystores_.empty();
-    }
-
-
-    bool Dictionary::hasHeadlines() const noexcept
-    {
-        return !headlines_.empty();
-    }
-
 
     Dictionary::Dictionary(std::string id,
                            DictionaryMetadata metadata,
@@ -153,57 +147,52 @@ namespace MKD
     }
 
 
-    ExportResult Dictionary::exportAll(const ExportOptions& options) const
+    ExportResult Dictionary::exportWithOptions(const ExportOptions& options) const
     {
         ExportResult combinedResult;
 
-        if (hasFonts())
-        {
-            if (auto result = exportFonts(options))
-                combinedResult += *result;
-            else
-                combinedResult.errors.push_back(std::format("Failed to export fonts: {}", result.error()));
-        }
+        const auto shouldExport = [&](const ResourceType type) {
+            return options.resources.empty()
+                || std::ranges::find(options.resources, type) != options.resources.end();
+        };
 
-        if (hasGraphics())
-        {
-            if (auto result = exportGraphics(options))
-                combinedResult += *result;
-            else
-                combinedResult.errors.push_back(std::format("Failed to export graphics: {}", result.error()));
-        }
+        const auto notify = [&](const ExportEvent& event) {
+            if (options.progressCallback)
+                options.progressCallback(event);
+        };
 
-        if (hasAudio())
-        {
-            if (auto result = exportAudio(options))
-                combinedResult += *result;
-            else
-                combinedResult.errors.push_back(std::format("Failed to export audio: {}", result.error()));
-        }
+        const auto runPhase = [&](const ResourceType type, auto exportFn) {
+            if (!shouldExport(type))
+                return;
 
-        if (entries_)
-        {
-            if (auto result = exportEntries(options))
-                combinedResult += *result;
-            else
-                combinedResult.errors.push_back(std::format("Failed to export entries: {}", result.error()));
-        }
+            const size_t totalItems = resourceCount(type);
+            if (totalItems == 0)
+                return;
 
-        if (hasKeystores())
-        {
-            if (auto result = exportKeystores(options))
-                combinedResult += *result;
-            else
-                combinedResult.errors.push_back(std::format("Failed to export keystore: {}", result.error()));
-        }
+            notify(PhaseBeginEvent{type, totalItems});
 
-        if (hasHeadlines())
-        {
-            if (auto result = exportHeadlines(options))
+            if (auto result = exportFn())
+            {
+                notify(PhaseEndEvent{type, *result});
                 combinedResult += *result;
+            }
             else
-                combinedResult.errors.push_back(std::format("Failed to export headline store: {}", result.error()));
-        }
+            {
+                ExportResult failed;
+                failed.failed = 1;
+                failed.errors.push_back(std::format("Failed to export {}: {}",
+                    resourceTypeName(type), result.error()));
+                notify(PhaseEndEvent{type, failed});
+                combinedResult += failed;
+            }
+        };
+
+        runPhase(ResourceType::Audio,      [&] { return exportAudio(options); });
+        runPhase(ResourceType::Entries,    [&] { return ResourceExporter::exportAll(*entries_, options, ResourceType::Entries); });
+        runPhase(ResourceType::Fonts,      [&] { return exportFonts(options); });
+        runPhase(ResourceType::Graphics,   [&] { return ResourceExporter::exportAll(*graphics_, options, ResourceType::Graphics); });
+        runPhase(ResourceType::Headlines,  [&] { return exportHeadlines(options); });
+        runPhase(ResourceType::Keystores,  [&] { return exportKeystores(options); });
 
         return combinedResult;
     }
@@ -211,30 +200,10 @@ namespace MKD
 
     std::expected<ExportResult, std::string> Dictionary::exportAudio(const ExportOptions& options) const
     {
-        if (!hasAudio())
-            return ExportResult{};
-
         return std::visit([&options](const auto& audioResource) {
-            return ResourceExporter::exportAll(audioResource, options);
+            return ResourceExporter::exportAll(audioResource, options, ResourceType::Audio);
         }, *audio_);
     }
-
-
-    std::expected<ExportResult, std::string> Dictionary::exportEntries(const ExportOptions& options) const
-    {
-        if (!entries_)
-            return ExportResult{};
-
-        return ResourceExporter::exportAll(*entries_, options);
-    }
-
-
-    std::expected<ExportResult, std::string> Dictionary::exportGraphics(
-        const ExportOptions& options) const
-    {
-        return hasGraphics() ? ResourceExporter::exportAll(*graphics_, options) : ExportResult{};
-    }
-
 
     std::expected<ExportResult, std::string> Dictionary::exportFonts(
         const ExportOptions& options) const

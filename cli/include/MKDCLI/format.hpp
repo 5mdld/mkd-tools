@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "MKD/output/common.hpp"
+#include "MKD/output/export_result.hpp"
 
 #include <string>
 #include <string_view>
@@ -49,5 +49,4 @@ namespace MKDCLI
      * Prints a section header, e.g "── Resources ──"
      */
     void printSectionHeader(std::string_view title);
-
 }

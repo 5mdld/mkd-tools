@@ -4,6 +4,8 @@
 
 #include "MKDCLI/commands.hpp"
 #include "MKDCLI/format.hpp"
+#include "MKDCLI/progress.hpp"
+
 #include "MKD/dictionary/dictionary.hpp"
 
 #include <algorithm>
@@ -91,66 +93,15 @@ namespace MKDCLI
                     << " " << name << "\n";
         };
 
-        resourceLine("Entries", true);
-        resourceLine("Audio", dict->hasAudio());
-        resourceLine("Graphics", dict->hasGraphics());
-        resourceLine("Fonts", dict->hasFonts());
-        resourceLine("Keystores", dict->hasKeystores());
-        resourceLine("Headlines", dict->hasHeadlines());
+        resourceLine("Entries", dict->resourceCount(MKD::ResourceType::Entries));
+        resourceLine("Audio", dict->resourceCount(MKD::ResourceType::Audio));
+        resourceLine("Graphics", dict->resourceCount(MKD::ResourceType::Graphics));
+        resourceLine("Fonts", dict->resourceCount(MKD::ResourceType::Fonts));
+        resourceLine("Keystores", dict->resourceCount(MKD::ResourceType::Keystores));
+        resourceLine("Headlines", dict->resourceCount(MKD::ResourceType::Headlines));
 
         std::cerr << "\n";
         return 0;
-    }
-
-
-    namespace
-    {
-        bool shouldExport(const std::vector<ResourceType>& filter, const ResourceType type)
-        {
-            if (filter.empty()) return true;
-            return std::ranges::find(filter, type) != filter.end();
-        }
-
-        // Run a single export step, accumulate results, print status.
-        template<typename ExportFn>
-        void runExportStep(
-            std::string_view label,
-            ExportFn&& fn,
-            MKD::ExportResult& total,
-            bool verbose)
-        {
-            if (verbose)
-                printSectionHeader(label);
-
-            auto result = fn();
-            if (!result)
-            {
-                std::cerr << Colour::red("  Failed: ") << result.error() << "\n";
-                MKD::ExportResult err;
-                err.errors.push_back(result.error());
-                total += err;
-                return;
-            }
-
-            total += *result;
-
-            if (result->exported > 0 && verbose)
-            {
-                std::cerr << "  " << Colour::green(std::to_string(result->exported))
-                        << " exported";
-                if (result->skipped > 0)
-                    std::cerr << ", " << Colour::yellow(std::to_string(result->skipped))
-                            << " skipped";
-                if (result->failed > 0)
-                    std::cerr << ", " << Colour::red(std::to_string(result->failed))
-                            << " failed";
-                std::cerr << "\n";
-            }
-            else if (result->exported == 0 && result->skipped == 0)
-            {
-                std::cerr << Colour::dim("  (none)") << "\n";
-            }
-        }
     }
 
 
@@ -164,50 +115,13 @@ namespace MKDCLI
             return 1;
         }
 
-        if (opts.verbose)
-            std::cerr << Colour::bold("Exporting " + opts.dictId) << " → " << exportOpts.outputDirectory.string() << "\n\n";
+        auto options = exportOpts;
+        ExportProgress progress;
+        options.progressCallback = [&progress](const MKD::ExportEvent& event) {
+            progress.onEvent(event);
+        };
 
-        const auto& filter = opts.onlyResources;
-        MKD::ExportResult total;
-
-        if (shouldExport(filter, ResourceType::Entries))
-        {
-            runExportStep("Entries", [&] { return dict->exportEntries(exportOpts); },
-                          total, opts.verbose);
-        }
-
-        if (shouldExport(filter, ResourceType::Audio) && dict->hasAudio())
-        {
-            runExportStep("Audio", [&] { return dict->exportAudio(exportOpts); },
-                          total, opts.verbose);
-        }
-
-        if (shouldExport(filter, ResourceType::Graphics) && dict->hasGraphics())
-        {
-            runExportStep("Graphics", [&] { return dict->exportGraphics(exportOpts); },
-                          total, opts.verbose);
-        }
-
-        if (shouldExport(filter, ResourceType::Fonts) && dict->hasFonts())
-        {
-            runExportStep("Fonts", [&] { return dict->exportFonts(exportOpts); },
-                          total, opts.verbose);
-        }
-
-        if (shouldExport(filter, ResourceType::Keystores) && dict->hasKeystores())
-        {
-            runExportStep("Keystores", [&] { return dict->exportKeystores(exportOpts); },
-                          total, opts.verbose);
-        }
-
-        if (shouldExport(filter, ResourceType::Headlines) && dict->hasHeadlines())
-        {
-            runExportStep("Headlines", [&] { return dict->exportHeadlines(exportOpts); },
-                          total, opts.verbose);
-        }
-
-        if (opts.verbose)
-            std::cerr << "\n";
+        auto total = dict->exportWithOptions(options);
 
         printExportSummary(total);
 

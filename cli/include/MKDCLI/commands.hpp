@@ -32,6 +32,5 @@ namespace MKDCLI
      * @param exportOpts ExportOptions
      * @return 0 if success, 1 if failure
      */
-    int runExport(const MKD::DictionarySource& source, const CLIOptions& opts,
-                  const MKD::ExportOptions& exportOpts);
+    int runExport(const MKD::DictionarySource& source, const CLIOptions& opts, const MKD::ExportOptions& exportOpts);
 }

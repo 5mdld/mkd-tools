@@ -41,9 +41,9 @@ namespace MKD
         const DictionaryPaths& paths_;
 
         template<Openable T>
-        std::optional<T> tryLoad(PathType pathType, std::string_view dictId) const;
+        std::optional<T> tryLoad(ResourceType pathType, std::string_view dictId) const;
 
-        [[nodiscard]] std::optional<std::variant<Rsc, Nrsc>> tryLoadEither(PathType pathType, std::string_view dictId) const;
+        [[nodiscard]] std::optional<std::variant<Rsc, Nrsc>> tryLoadEither(ResourceType pathType, std::string_view dictId) const;
 
         template<Openable T>
         std::optional<T> tryLoadResource(const fs::path& path, std::string_view dictId) const;
