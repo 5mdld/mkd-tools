@@ -8,9 +8,16 @@
 #include "export_result.hpp"
 
 #include <cstdint>
+#include <functional>
+#include <variant>
 
 namespace MKD
 {
+    struct ExportBeginEvent
+    {
+        size_t totalItems = 0; // sum of heavy-phase items only
+    };
+
     struct PhaseBeginEvent
     {
         ResourceType type;
@@ -30,4 +37,14 @@ namespace MKD
         ResourceType type;
         ExportResult result;
     };
+
+    using ExportEvent = std::variant<ExportBeginEvent, PhaseBeginEvent, ProgressEvent, PhaseEndEvent>;
+    using ExportCallback = std::function<void(const ExportEvent&)>;
+
+    constexpr bool isHeavyResource(ResourceType type)
+    {
+        return type == ResourceType::Audio
+            || type == ResourceType::Entries
+            || type == ResourceType::Graphics;
+    }
 }

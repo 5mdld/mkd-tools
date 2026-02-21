@@ -161,6 +161,16 @@ namespace MKD
                 options.progressCallback(event);
         };
 
+        // Pre-count heavy resource totals for the unified progress bar
+        size_t heavyTotal = 0;
+        for (const auto type : {ResourceType::Audio, ResourceType::Entries, ResourceType::Graphics})
+        {
+            if (shouldExport(type))
+                heavyTotal += resourceCount(type);
+        }
+
+        notify(ExportBeginEvent{.totalItems = heavyTotal});
+
         const auto runPhase = [&](const ResourceType type, auto exportFn) {
             if (!shouldExport(type))
                 return;

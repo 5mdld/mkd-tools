@@ -15,9 +15,23 @@ namespace MKD
             if (callback)
                 callback(event);
         };
+
+        /*
+         *  Determines a reporting interval
+         */
+        constexpr size_t updateInterval(const size_t totalItems)
+        {
+            return std::max<size_t>(1, totalItems / 400);
+        }
+
+        bool shouldReport(const size_t completed, const size_t total, const size_t interval)
+        {
+            return completed == total || completed % interval == 0;
+        }
     }
 
-    std::expected<ExportResult, std::string> ResourceExporter::exportAll(const Rsc& rsc, const ExportOptions& options, const ResourceType type)
+    std::expected<ExportResult, std::string> ResourceExporter::exportAll(
+        const Rsc& rsc, const ExportOptions& options, const ResourceType type)
     {
         ExportResult result;
         result.totalResources = rsc.size();
@@ -25,17 +39,18 @@ namespace MKD
         if (result.totalResources == 0)
             return result;
 
+        const size_t interval = updateInterval(result.totalResources);
         std::vector<uint8_t> buffer;
 
         for (const auto& [itemId, data] : rsc)
         {
             auto [subdir, filename, finalData] = prepareRscItem(itemId, data, options, buffer);
             fs::path outputDir = options.createSubdirectories
-                ? options.outputDirectory / subdir
-                : options.outputDirectory;
+                                     ? options.outputDirectory / subdir
+                                     : options.outputDirectory;
 
-            fs::path outputPath = outputDir / filename;
-            if (shouldSkipExisting(outputPath, options.overwriteExisting))
+            if (const fs::path outputPath = outputDir / filename;
+                shouldSkipExisting(outputPath, options.overwriteExisting))
             {
                 result.skipped++;
             }
@@ -50,25 +65,32 @@ namespace MKD
                 result.errors.push_back(std::format("Entry {}: {}", itemId, writeResult.error()));
             }
 
-            notify(ProgressEvent{
-                .type = type,
-                .completedItems = result.exported + result.skipped + result.failed,
-                .totalItems = result.totalResources,
-                .bytesWritten = result.totalBytes
-            }, options.progressCallback);
+            if (const size_t completed = result.exported + result.skipped + result.failed;
+                shouldReport(completed, result.totalResources, interval))
+            {
+                notify(ProgressEvent{
+                           .type = type,
+                           .completedItems = completed,
+                           .totalItems = result.totalResources,
+                           .bytesWritten = result.totalBytes
+                       }, options.progressCallback);
+            }
         }
 
         return result;
     }
 
 
-    std::expected<ExportResult, std::string> ResourceExporter::exportAll(const Nrsc& nrsc, const ExportOptions& options, const ResourceType type)
+    std::expected<ExportResult, std::string> ResourceExporter::exportAll(
+        const Nrsc& nrsc, const ExportOptions& options, const ResourceType type)
     {
         ExportResult result;
         result.totalResources = nrsc.size();
 
         if (result.totalResources == 0)
             return result;
+
+        const size_t interval = updateInterval(result.totalResources);
 
         for (const auto& [id, data] : nrsc)
         {
@@ -78,9 +100,8 @@ namespace MKD
             if (options.createSubdirectories)
                 outputDir /= isAudio ? "audio" : "graphics";
 
-            fs::path outputPath = outputDir / (isAudio ? std::format("{}.aac", id) : std::string(id));
-
-            if (shouldSkipExisting(outputPath, options.overwriteExisting))
+            if (const fs::path outputPath = outputDir / (isAudio ? std::format("{}.aac", id) : std::string(id));
+                shouldSkipExisting(outputPath, options.overwriteExisting))
             {
                 result.skipped++;
             }
@@ -95,19 +116,24 @@ namespace MKD
                 result.errors.push_back(std::format("{}: {}", id, writeResult.error()));
             }
 
-            notify(ProgressEvent{
-                .type = type,
-                .completedItems = result.exported + result.skipped + result.failed,
-                .totalItems = result.totalResources,
-                .bytesWritten = result.totalBytes
-            }, options.progressCallback);
+            if (const size_t completed = result.exported + result.skipped + result.failed;
+                shouldReport(completed, result.totalResources, interval))
+            {
+                notify(ProgressEvent{
+                           .type = type,
+                           .completedItems = completed,
+                           .totalItems = result.totalResources,
+                           .bytesWritten = result.totalBytes
+                       }, options.progressCallback);
+            }
         }
 
         return result;
     }
 
 
-    std::expected<ExportResult, std::string> ResourceExporter::exportFont(const Font& font, const ExportOptions& options)
+    std::expected<ExportResult, std::string> ResourceExporter::exportFont(
+        const Font& font, const ExportOptions& options)
     {
         ExportResult result;
         result.totalResources = 1;
@@ -131,8 +157,8 @@ namespace MKD
                                        ? options.outputDirectory / "fonts"
                                        : options.outputDirectory;
 
-        const fs::path outputPath = outputDir / std::format("{}.{}", font.name(), extension.value());
-        if (shouldSkipExisting(outputPath, options.overwriteExisting))
+        if (const fs::path outputPath = outputDir / std::format("{}.{}", font.name(), extension.value());
+            shouldSkipExisting(outputPath, options.overwriteExisting))
         {
             result.skipped = 1;
         }
@@ -148,18 +174,11 @@ namespace MKD
                 std::format("Font export failed: {}", writeResult.error()));
         }
 
-        notify(ProgressEvent{
-            .type = ResourceType::Fonts,
-            .completedItems = 1,
-            .totalItems = 1,
-            .bytesWritten = result.totalBytes
-        }, options.progressCallback);
-
         return result;
     }
 
 
-    std::tuple<std::string, std::string, std::span<const uint8_t>> ResourceExporter::prepareRscItem(
+    std::tuple<std::string, std::string, std::span<const uint8_t> > ResourceExporter::prepareRscItem(
         uint32_t itemId, std::span<const uint8_t> data, const ExportOptions& options, std::vector<uint8_t>& buffer)
     {
         buffer.clear();

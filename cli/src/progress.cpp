@@ -11,7 +11,9 @@ namespace MKDCLI
     {
         std::visit([this](const auto& e) {
             using T = std::decay_t<decltype(e)>;
-            if constexpr (std::is_same_v<T, MKD::PhaseBeginEvent>)
+            if constexpr (std::is_same_v<T, MKD::ExportBeginEvent>)
+                onExportBegin(e);
+            else if constexpr (std::is_same_v<T, MKD::PhaseBeginEvent>)
                 onPhaseBegin(e);
             else if constexpr (std::is_same_v<T, MKD::ProgressEvent>)
                 onProgress(e);
@@ -20,12 +22,22 @@ namespace MKDCLI
         }, event);
     }
 
-    void ExportProgress::onPhaseBegin(const MKD::PhaseBeginEvent& e)
+    void ExportProgress::finish()
     {
-        currentType_ = e.type;
+        if (bar_ && !bar_->is_completed())
+            bar_->mark_as_completed();
+        bar_.reset();
 
-        if (e.totalItems == 0)
-            return;
+        indicators::show_console_cursor(true);
+    }
+
+
+    void ExportProgress::onExportBegin(const MKD::ExportBeginEvent& e)
+    {
+        grandTotal_ = e.totalItems;
+        phaseOffset_ = 0;
+
+        indicators::show_console_cursor(false);
 
         bar_ = std::make_unique<indicators::ProgressBar>(
             indicators::option::BarWidth{40},
@@ -34,31 +46,40 @@ namespace MKDCLI
             indicators::option::Lead{"█"},
             indicators::option::Remainder{"░"},
             indicators::option::End{"]"},
-            indicators::option::MaxProgress{e.totalItems},
+            indicators::option::MaxProgress{grandTotal_},
             indicators::option::ShowPercentage{true},
-            indicators::option::PrefixText{std::format("{:<10}", MKD::resourceTypeName(e.type))},
-            indicators::option::ShowElapsedTime{true}
+            indicators::option::ShowElapsedTime{true},
+            indicators::option::PrefixText{"Exporting  "}
         );
+    }
+
+
+    void ExportProgress::onPhaseBegin(const MKD::PhaseBeginEvent& e)
+    {
+        if (MKD::isHeavyResource(e.type))
+            currentPhase_ = e.type;
     }
 
 
     void ExportProgress::onProgress(const MKD::ProgressEvent& e) const
     {
-        if (!bar_)
+        if (!bar_ || !MKD::isHeavyResource(e.type))
             return;
 
+        const size_t globalCompleted = phaseOffset_ + e.completedItems;
+        auto name = MKD::resourceTypeName(e.type);
+
         bar_->set_option(indicators::option::PostfixText{
-            std::format("{}/{}", e.completedItems, e.totalItems)
+            std::format("{} {}/{}", name, e.completedItems, e.totalItems)
         });
-        bar_->set_progress(e.completedItems);
+        bar_->set_progress(globalCompleted);
     }
+
 
     void ExportProgress::onPhaseEnd(const MKD::PhaseEndEvent& e)
     {
-        if (bar_ && !bar_->is_completed())
-            bar_->mark_as_completed();
-
-        bar_.reset();
+        if (MKD::isHeavyResource(e.type))
+            phaseOffset_ += e.result.totalResources;
 
         for (const auto& err : e.result.errors)
             std::cerr << Colour::yellow("  warning: ") << err << "\n";

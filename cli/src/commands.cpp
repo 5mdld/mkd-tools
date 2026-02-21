@@ -123,6 +123,7 @@ namespace MKDCLI
 
         auto total = dict->exportWithOptions(options);
 
+        progress.finish();
         printExportSummary(total);
 
         return total.isSuccess() ? 0 : 1;
