@@ -4,10 +4,11 @@
 
 #pragma once
 
+#include "MKD/result.hpp"
+
 #include <cstdint>
 #include <expected>
 #include <span>
-#include <string>
 #include <vector>
 
 
@@ -46,7 +47,7 @@ namespace MKD
     /**
      * Decode a single variable-length entry from raw bytes.
      */
-    [[nodiscard]] std::expected<DecodedEntry, std::string> decodeKeystoreEntry(std::span<const uint8_t> data);
+    [[nodiscard]] Result<DecodedEntry> decodeKeystoreEntry(std::span<const uint8_t> data);
 
     /**
      * Decode all page references from a counted block.
@@ -56,5 +57,5 @@ namespace MKD
      * @param data  Span starting at the uint16 count field
      * @return Decoded page references, or an error
      */
-    [[nodiscard]] std::expected<std::vector<PageReference>, std::string> decodePageReferences(std::span<const uint8_t> data);
+    [[nodiscard]] Result<std::vector<PageReference>> decodePageReferences(std::span<const uint8_t> data);
 }

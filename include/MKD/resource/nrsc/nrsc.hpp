@@ -11,7 +11,6 @@
 #include <expected>
 #include <filesystem>
 #include <iterator>
-#include <string>
 
 
 namespace fs = std::filesystem;
@@ -34,7 +33,7 @@ namespace MKD
          * @param directoryPath Directory path containing the resources
          * @return Nrsc resource class or error string if failure
          */
-        static std::expected<Nrsc, std::string> open(const fs::path& directoryPath);
+        static Result<Nrsc> open(const fs::path& directoryPath);
 
 
         /**
@@ -44,7 +43,7 @@ namespace MKD
          * @param id String ID of the resource
          * @return Data view of resource data, error string if failure
          */
-        [[nodiscard]] std::expected<std::span<const uint8_t>, std::string> get(std::string_view id) const;
+        [[nodiscard]] Result<std::span<const uint8_t>> get(std::string_view id) const;
 
 
         /**
@@ -54,7 +53,7 @@ namespace MKD
          * @param index
          * @return
          */
-        [[nodiscard]] std::expected<NrscItem, std::string> getByIndex(size_t index) const;
+        [[nodiscard]] Result<NrscItem> getByIndex(size_t index) const;
 
 
         /**

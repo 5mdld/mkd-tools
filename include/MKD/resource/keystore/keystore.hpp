@@ -5,9 +5,10 @@
 #pragma once
 
 #include "MKD/resource/common.hpp"
+#include "MKD/result.hpp"
 #include "MKD/platform/binary_file_reader.hpp"
-#include "page_reference.hpp"
-#include "keystore_lookup_result.hpp"
+#include "MKD/resource/keystore/page_reference.hpp"
+#include "MKD/resource/keystore/keystore_lookup_result.hpp"
 
 #include <expected>
 #include <string>
@@ -115,7 +116,7 @@ namespace MKD
          *                whether automatic key-ID conversion is applied.
          * @return Loaded Keystore, or an error string
          */
-        static std::expected<Keystore, std::string> load(const fs::path& path, const std::string& dictId);
+        static Result<Keystore> load(const fs::path& path, const std::string& dictId);
 
 
         /**
@@ -128,8 +129,7 @@ namespace MKD
          * @param index      Position within that index
          * @return Lookup result with key and page references, or an error
          */
-        [[nodiscard]] std::expected<KeystoreLookupResult, std::string> getByIndex(
-            KeystoreIndex indexType, size_t index) const;
+        [[nodiscard]] Result<KeystoreLookupResult> getByIndex(KeystoreIndex indexType, size_t index) const;
 
         /**
          * @return Number of entries in the given index (0 if the index doesn't exist).
@@ -165,12 +165,12 @@ namespace MKD
             size_t pagesOffset; // words-section-relative
         };
 
-        [[nodiscard]] std::expected<WordEntry, std::string> parseWordEntry(uint32_t wordOffset) const;
+        [[nodiscard]] Result<WordEntry> parseWordEntry(uint32_t wordOffset) const;
 
         /**
          * Decode page references at the given words-section-relative offset.
          */
-        [[nodiscard]] std::expected<std::vector<PageReference>, std::string> decodePages(size_t pagesOffset) const;
+        [[nodiscard]] Result<std::vector<PageReference>> decodePages(size_t pagesOffset) const;
 
         /**
          * @return true if this dictionary needs automatic key-ID conversion.
@@ -182,18 +182,17 @@ namespace MKD
          */
         void applyConversion(std::vector<PageReference>& refs) const noexcept;
 
-        // File format parsing
-        static std::expected<KeystoreHeader, std::string> readHeader(BinaryFileReader& reader);
+        static Result<KeystoreHeader> readHeader(BinaryFileReader& reader);
+        static Result<std::vector<uint8_t>> readFileData(const BinaryFileReader& reader, size_t fileSize);
 
-        static std::expected<IndexHeader, std::string> readIndexHeader(std::span<const uint8_t> data, size_t maxSize);
+        static Result<IndexHeader> readIndexHeader(std::span<const uint8_t> data);
 
         struct IndexArrays
         {
             std::vector<uint32_t> length, prefix, suffix, other;
         };
 
-        static std::expected<IndexArrays, std::string> readAllIndices(std::span<const uint8_t> data,
-                                                                      const IndexHeader& header, size_t maxSize);
+        static Result<IndexArrays> readAllIndices(std::span<const uint8_t> data, const IndexHeader& header);
 
         /**
          * Read a single index array.
@@ -205,8 +204,9 @@ namespace MKD
          * @param end    Byte offset of the next index (or section end)
          * @return Offset array (count element removed), or error
          */
-        static std::expected<std::vector<uint32_t>, std::string> readSingleIndex(
-            std::span<const uint8_t> data, uint32_t start, uint32_t end);
+        static Result<std::vector<uint32_t>> readSingleIndex(std::span<const uint8_t> data, uint32_t start, uint32_t end);
+
+        static Result<std::span<const ConversionEntry>> parseConversionTable(std::span<const uint8_t> fileData, size_t offset, size_t fileSize);
 
         std::vector<uint8_t> fileData_;
         std::vector<uint32_t> indexLength_; // Index A

@@ -11,8 +11,7 @@
 
 namespace MKD
 {
-    std::expected<ExportResult, std::string> KeystoreExporter::exportKeystore(
-        const Keystore& keystore, const ExportOptions& options)
+    Result<ExportResult> KeystoreExporter::exportKeystore(const Keystore& keystore, const ExportOptions& options)
     {
         auto entries = collectEntries(keystore, KeystoreIndex::Prefix);
         if (!entries)
@@ -62,8 +61,7 @@ namespace MKD
     }
 
 
-    std::expected<std::vector<KeystoreExporter::ForwardEntry>, std::string> KeystoreExporter::collectEntries(
-        const Keystore& keystore, const KeystoreIndex index)
+    Result<std::vector<KeystoreExporter::ForwardEntry>> KeystoreExporter::collectEntries(const Keystore& keystore, const KeystoreIndex index)
     {
         const size_t count = keystore.indexSize(index);
         std::vector<ForwardEntry> entries;
@@ -85,8 +83,7 @@ namespace MKD
     }
 
 
-    std::expected<ExportResult, std::string> KeystoreExporter::writeForward(
-        std::span<const ForwardEntry> entries, const fs::path& path)
+    Result<ExportResult> KeystoreExporter::writeForward(std::span<const ForwardEntry> entries, const fs::path& path)
     {
         std::error_code ec;
         fs::create_directories(path.parent_path(), ec);
@@ -117,8 +114,7 @@ namespace MKD
     }
 
 
-    std::expected<ExportResult, std::string> KeystoreExporter::writeInverse(
-        std::span<const ForwardEntry> entries, const fs::path& path)
+    Result<ExportResult> KeystoreExporter::writeInverse(std::span<const ForwardEntry> entries, const fs::path& path)
     {
         std::error_code ec;
         fs::create_directories(path.parent_path(), ec);

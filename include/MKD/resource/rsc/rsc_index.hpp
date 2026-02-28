@@ -5,8 +5,9 @@
 #pragma once
 
 #include "MKD/resource/common.hpp"
-#include "rsc_index_record.hpp"
-#include "rsc_map.hpp"
+#include "MKD/result.hpp"
+#include "MKD/resource/rsc/rsc_index_record.hpp"
+#include "MKD/resource/rsc/rsc_map.hpp"
 
 #include <expected>
 #include <iterator>
@@ -84,11 +85,11 @@ namespace MKD
     class RscIndex
     {
     public:
-        static std::expected<RscIndex, std::string> load(const fs::path& directoryPath);
+        static Result<RscIndex> load(const fs::path& directoryPath);
 
-        [[nodiscard]] std::expected<MapRecord, std::string> findById(uint32_t itemId) const;
+        [[nodiscard]] Result<MapRecord> findById(uint32_t itemId) const;
 
-        [[nodiscard]] std::expected<std::pair<uint32_t, MapRecord>, std::string> getByIndex(size_t index) const;
+        [[nodiscard]] Result<std::pair<uint32_t, MapRecord>> getByIndex(size_t index) const;
 
         [[nodiscard]] uint32_t mapVersion() const;
 
@@ -144,9 +145,9 @@ namespace MKD
     private:
         RscIndex(uint32_t mapVersion, std::optional<std::vector<IdxRecord>>&& idxRecords, std::vector<MapRecord>&& mapRecords);
 
-        static std::expected<std::pair<std::vector<MapRecord>, uint32_t>, std::string> loadMapFile(const fs::path& directoryPath);
+        static Result<std::pair<std::vector<MapRecord>, uint32_t>> loadMapFile(const fs::path& directoryPath);
 
-        static std::expected<std::optional<std::vector<IdxRecord>>, std::string> loadIdxFile(const fs::path& directoryPath);
+        static Result<std::optional<std::vector<IdxRecord>>> loadIdxFile(const fs::path& directoryPath);
 
         std::optional<std::vector<IdxRecord>> idxRecords_;
         std::vector<MapRecord> mapRecords_;

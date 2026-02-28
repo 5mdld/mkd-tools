@@ -18,8 +18,8 @@ namespace MKD
     {
     public:
 
-        std::expected<std::vector<DictionaryInfo>, std::string> findAllAvailable() const override;
-        [[nodiscard]] std::expected<DictionaryInfo, std::string> findById(std::string_view dictId) const override;
+        Result<std::vector<DictionaryInfo>> findAllAvailable() const override;
+        [[nodiscard]] Result<DictionaryInfo> findById(std::string_view dictId) const override;
 
         bool checkAccess() const;
         bool requestAccess(bool activateProcess = false) const;

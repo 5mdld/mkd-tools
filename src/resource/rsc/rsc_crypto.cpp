@@ -94,7 +94,7 @@ namespace MKD
     }
 
 
-    std::expected<std::vector<uint8_t>, std::string> RscCrypto::decrypt(
+    Result<std::vector<uint8_t>> RscCrypto::decrypt(
         const std::span<const uint8_t> encryptedData, const std::array<uint8_t, 32>& key)
     {
         if (encryptedData.size() < 4)

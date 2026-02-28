@@ -7,7 +7,7 @@
 
 namespace MKD
 {
-    std::expected<Font, std::string> Font::load(const fs::path& directoryPath)
+    Result<Font> Font::load(const fs::path& directoryPath)
     {
         const auto fontName = directoryPath.stem().string();
 
@@ -40,7 +40,7 @@ namespace MKD
     }
 
 
-    std::expected<std::span<const uint8_t>, std::string> Font::getData() const
+    Result<std::span<const uint8_t>> Font::getData() const
     {
         return std::span(data_);
     }

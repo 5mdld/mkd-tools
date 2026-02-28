@@ -4,10 +4,11 @@
 
 #pragma once
 
+#include "MKD/result.hpp"
 #include "MKD/resource/rsc/rsc_index.hpp"
 #include "MKD/resource/rsc/rsc_crypto.hpp"
 #include "MKD/resource/zlib_decompressor.hpp"
-#include "MKD/platform/binary_file_reader.hpp"
+#include "MKD/platform/read_sequence.hpp"
 
 #include <array>
 #include <filesystem>
@@ -102,7 +103,7 @@ namespace MKD
          * @param mapVersion Version of the .map file (to determine whether key should be derived or not)
          * @return RscData instance or error string if failure
          */
-        static std::expected<RscData, std::string> load(const fs::path& directoryPath, std::string_view dictId = "", uint32_t mapVersion = 0);
+        static Result<RscData> load(const fs::path& directoryPath, std::string_view dictId = "", uint32_t mapVersion = 0);
 
         /**
          * Retrieve the data for a dictionary entry
@@ -117,7 +118,7 @@ namespace MKD
          *
          * @warning The returned span is only valid until the next call to get()
          */
-        [[nodiscard]] std::expected<std::span<const uint8_t>, std::string> get(const MapRecord& record) const;
+        [[nodiscard]] Result<std::span<const uint8_t>> get(const MapRecord& record) const;
 
     private:
         /**
@@ -126,12 +127,27 @@ namespace MKD
         explicit RscData(std::vector<RscResourceFile>&& files, const std::optional<std::array<uint8_t, 32>>& decryptionKey);
 
         /**
-         * Parse a single item from the currently loaded chunk
+         * Discover all .rsc files in a directory
          *
-         * @param offset Offset within chunkBuffer_ where item begins
-         * @return Span view of item content or error string
+         * @param directoryPath Directory to scan
+         * @return Vector of discovered files or error string
          */
-        std::expected<std::span<const uint8_t>, std::string> parseItemFromChunk(size_t offset) const;
+        static Result<std::vector<RscResourceFile>> discoverFiles(const fs::path& directoryPath);
+
+        /**
+         * Find which .rsc file contains a given global offset
+         *
+         * @param globalOffset Offset in global address space
+         * @return (file reference, local offset) pair or error string
+         */
+        Result<std::pair<const RscResourceFile&, size_t>> findFileByOffset(size_t globalOffset) const;
+
+        /**
+         * Open and seek a reader to the local position for a global offset
+         * @param globalOffset Offset in global address space
+         * @return BinaryFileReader or error string
+         */
+        Result<BinaryFileReader> openReaderAt(size_t globalOffset) const;
 
         /**
          * Load and decompress a chunk from disk
@@ -139,7 +155,7 @@ namespace MKD
          * @param globalOffset Global offset to the start of the chunk
          * @return void on success, error string on failure
          */
-        std::expected<void, std::string> loadChunk(size_t globalOffset) const;
+        Result<void> loadChunk(size_t globalOffset) const;
 
         /**
          * Reads and processes the data chunk using the provided BinaryFile reader
@@ -148,7 +164,7 @@ namespace MKD
          * @param reader Binary file reader for reading the chunk
          * @return Decoded data, or error string if failure
          */
-        std::expected<std::vector<uint8_t>, std::string> readAndProcessChunk(BinaryFileReader& reader) const;
+        Result<std::vector<uint8_t>> readAndProcessChunk(BinaryFileReader& reader) const;
 
         /**
          * Helper function to read and decrypt chunk data from the new format
@@ -157,7 +173,7 @@ namespace MKD
          * @param reader Binary file reader for reading the chunk
          * @return Decrypted data, or error string if failure
          */
-        std::expected<std::vector<uint8_t>, std::string> readAndDecryptData(BinaryFileReader& reader) const;
+        Result<std::vector<uint8_t>> readAndDecryptData(BinaryFileReader& reader) const;
 
         /**
          * Reads data directly at global offset. Typically used for fonts
@@ -165,23 +181,15 @@ namespace MKD
          * @param globalOffset Offset in global address space
          * @return Span view to the data
          */
-        std::expected<std::span<const uint8_t>, std::string> readDirectData(size_t globalOffset) const;
+        Result<std::span<const uint8_t>> readDirectData(size_t globalOffset) const;
 
         /**
-         * Discover all .rsc files in a directory
+         * Parse a single item from the currently loaded chunk
          *
-         * @param directoryPath Directory to scan
-         * @return Vector of discovered files or error string
+         * @param offset Offset within chunkBuffer_ where item begins
+         * @return Span view of item content or error string
          */
-        static std::expected<std::vector<RscResourceFile>, std::string> discoverFiles(const fs::path& directoryPath);
-
-        /**
-         * Find which .rsc file contains a given global offset
-         *
-         * @param globalOffset Offset in global address space
-         * @return (file reference, local offset) pair or error string
-         */
-        std::expected<std::pair<const RscResourceFile&, size_t>, std::string> findFileByOffset(size_t globalOffset) const;
+        Result<std::span<const uint8_t>> parseItemFromChunk(size_t offset) const;
 
         std::vector<RscResourceFile> files_;
         std::optional<std::array<uint8_t, 32>> decryptionKey_;

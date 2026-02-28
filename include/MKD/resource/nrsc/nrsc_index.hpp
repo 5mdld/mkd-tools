@@ -4,8 +4,9 @@
 
 #pragma once
 
-#include "nrsc_index_record.hpp"
 #include "MKD/resource/common.hpp"
+#include "MKD/result.hpp"
+#include "MKD/resource/nrsc/nrsc_index_record.hpp"
 
 #include <expected>
 #include <filesystem>
@@ -72,14 +73,14 @@ namespace MKD
          * @param directoryPath Directory containing the index
          * @return NrscIndex or error string if failure
          */
-        static std::expected<NrscIndex, std::string> load(const fs::path& directoryPath);
+        static Result<NrscIndex> load(const fs::path& directoryPath);
 
 
         /**
          * Find a record by string ID (binary search)
          * @return NrscIndexRecord or error string if failure
          */
-        [[nodiscard]] std::expected<NrscIndexRecord, std::string> findById(std::string_view id) const;
+        [[nodiscard]] Result<NrscIndexRecord> findById(std::string_view id) const;
 
 
         /**
@@ -87,7 +88,7 @@ namespace MKD
          * @param index Index of record
          * @return string ID & NrscIndexRecord pair or error string if failure
          */
-        [[nodiscard]] std::expected<std::pair<std::string_view, NrscIndexRecord>, std::string> getByIndex(size_t index) const;
+        [[nodiscard]] Result<std::pair<std::string_view, NrscIndexRecord>> getByIndex(size_t index) const;
 
 
         /**
@@ -158,7 +159,7 @@ namespace MKD
          * @param offset offset in index file
          * @return ID string or error string if failure
          */
-        [[nodiscard]] std::expected<std::string_view, std::string> getIdAt(size_t offset) const;
+        [[nodiscard]] Result<std::string_view> getIdAt(size_t offset) const;
 
 
         std::vector<NrscIndexRecord> records_;  // All index records, sorted by ID

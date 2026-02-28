@@ -4,11 +4,11 @@
 
 #pragma once
 
-#include "export_result.hpp"
+#include "MKD/result.hpp"
+#include "MKD/output/export_result.hpp"
 
 #include <expected>
 #include <span>
-#include <string>
 
 
 namespace MKD
@@ -16,7 +16,7 @@ namespace MKD
     class BaseExporter
     {
     protected:
-        static std::expected<void, std::string> writeData(std::span<const uint8_t> data, const fs::path& path);
+        static Result<void> writeData(std::span<const uint8_t> data, const fs::path& path);
 
         static bool shouldSkipExisting(const fs::path& path, bool overwrite);
     };

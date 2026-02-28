@@ -30,7 +30,7 @@ namespace MKD
     }
 
 
-    std::expected<ExportResult, std::string> ResourceExporter::exportAll(
+    Result<ExportResult> ResourceExporter::exportAll(
         const Rsc& rsc, const ExportOptions& options, const ResourceType type)
     {
         if (rsc.empty())
@@ -77,7 +77,7 @@ namespace MKD
     }
 
 
-    std::expected<ExportResult, std::string> ResourceExporter::exportAll(
+    Result<ExportResult> ResourceExporter::exportAll(
         const Nrsc& nrsc, const ExportOptions& options, const ResourceType type)
     {
         if (nrsc.empty())
@@ -119,7 +119,7 @@ namespace MKD
     }
 
 
-    std::expected<ExportResult, std::string> ResourceExporter::exportFont(
+    Result<ExportResult> ResourceExporter::exportFont(
         const Font& font, const ExportOptions& options)
     {
         ExportResult result;

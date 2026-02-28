@@ -9,7 +9,7 @@
 
 namespace MKD
 {
-    std::expected<Nrsc, std::string> Nrsc::open(const fs::path& directoryPath)
+    Result<Nrsc> Nrsc::open(const fs::path& directoryPath)
     {
         auto indexResult = NrscIndex::load(directoryPath);
         if (!indexResult)
@@ -23,7 +23,7 @@ namespace MKD
     }
 
 
-    std::expected<std::span<const uint8_t>, std::string> Nrsc::get(std::string_view id) const
+    Result<std::span<const uint8_t>> Nrsc::get(std::string_view id) const
     {
         auto record = index_.findById(id);
         if (!record)
@@ -33,7 +33,7 @@ namespace MKD
     }
 
 
-    std::expected<NrscItem, std::string> Nrsc::getByIndex(const size_t index) const
+    Result<NrscItem> Nrsc::getByIndex(const size_t index) const
     {
         auto result = index_.getByIndex(index);
         if (!result)

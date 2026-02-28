@@ -4,7 +4,8 @@
 
 #pragma once
 
-#include "nrsc_index.hpp"
+#include "MKD/result.hpp"
+#include "MKD/resource/nrsc/nrsc_index.hpp"
 #include "MKD/resource/zlib_decompressor.hpp"
 
 #include <expected>
@@ -56,7 +57,7 @@ namespace MKD
          * @param directoryPath Path to directory
          * @return NrscData class or string if failure
          */
-        static std::expected<NrscData, std::string> load(const fs::path& directoryPath);
+        static Result<NrscData> load(const fs::path& directoryPath);
 
         /**
          * Gets span view of the data for a given index record
@@ -66,7 +67,7 @@ namespace MKD
          * @return Span view of the data, or error string if failure
          * @warning The returned span is only valid until the next call to get()
          */
-        [[nodiscard]] std::expected<std::span<const uint8_t>, std::string> get(const NrscIndexRecord& record) const;
+        [[nodiscard]] Result<std::span<const uint8_t>> get(const NrscIndexRecord& record) const;
 
 
     private:
@@ -80,7 +81,7 @@ namespace MKD
          * @param record NrscIndexRecord specifying the global offset and length to read
          * @return void on success, or error string if failure
          */
-        [[nodiscard]] std::expected<void, std::string> readFromFile(const ResourceFile& file, const NrscIndexRecord& record) const;
+        [[nodiscard]] Result<void> readFromFile(const ResourceFile& file, const NrscIndexRecord& record) const;
 
 
         /**
@@ -91,7 +92,7 @@ namespace MKD
          * @warning The returned span is only valid until the next call to get(), as it may
          *          reference readBuffer_ or the decompressor's internal buffer
          */
-        [[nodiscard]] std::expected<std::span<const uint8_t>, std::string> decompressData(const NrscIndexRecord& record) const;
+        [[nodiscard]] Result<std::span<const uint8_t>> decompressData(const NrscIndexRecord& record) const;
 
         std::vector<ResourceFile> files_;
         std::unique_ptr<ZlibDecompressor> decompressor_;

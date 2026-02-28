@@ -13,7 +13,7 @@ namespace MKD
     class DictionaryProduct
     {
     public:
-        static std::expected<DictionaryProduct, std::string> openAtPath(const fs::path& path);
+        static Result<DictionaryProduct> openAtPath(const fs::path& path);
 
         [[nodiscard]] const DictionaryMetadata& metadata() const noexcept { return metadata_; }
         [[nodiscard]] const std::vector<Dictionary>& dictionaries() const noexcept { return dictionaries_; }

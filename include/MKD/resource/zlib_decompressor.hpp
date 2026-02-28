@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include "MKD/result.hpp"
+
 #include <cstdint>
 #include <expected>
 #include <span>
@@ -29,8 +31,7 @@ namespace MKD
         ZlibDecompressor& operator=(ZlibDecompressor&&) = default;
 
         // span is valid until next 'decompress' call or object destruction
-        [[nodiscard]] std::expected<std::span<const uint8_t>, std::string> decompress(
-            std::span<const uint8_t> compressed, size_t expectedSize) const;
+        [[nodiscard]] Result<std::span<const uint8_t>> decompress(std::span<const uint8_t> compressed, size_t expectedSize) const;
 
         [[nodiscard]] std::vector<uint8_t> takeBuffer() const;
 

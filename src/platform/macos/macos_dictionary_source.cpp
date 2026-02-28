@@ -11,7 +11,7 @@
 
 namespace MKD
 {
-    std::expected<std::vector<DictionaryInfo>, std::string> MacOSDictionarySource::findAllAvailable() const
+    Result<std::vector<DictionaryInfo>> MacOSDictionarySource::findAllAvailable() const
     {
         if (!checkAccess())
             return std::unexpected("Access not granted. Call requestAccess() first.");
@@ -39,7 +39,7 @@ namespace MKD
     }
 
 
-    std::expected<DictionaryInfo, std::string> MacOSDictionarySource::findById(std::string_view dictId) const
+    Result<DictionaryInfo> MacOSDictionarySource::findById(std::string_view dictId) const
     {
         if (!cachedDictionaries_)
         {

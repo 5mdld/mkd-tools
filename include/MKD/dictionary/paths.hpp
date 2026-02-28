@@ -4,13 +4,11 @@
 
 #pragma once
 
-#include "metadata.hpp"
+#include "MKD/dictionary/metadata.hpp"
 #include "MKD/resource/resource_type.hpp"
 
-#include <expected>
 #include <filesystem>
 #include <optional>
-#include <string>
 
 namespace fs = std::filesystem;
 
@@ -20,7 +18,7 @@ namespace MKD
     {
     public:
 
-        static std::expected<DictionaryPaths, std::string> create(fs::path productRoot);
+        static Result<DictionaryPaths> create(fs::path productRoot);
 
         [[nodiscard]] std::optional<fs::path> tryResolve(ResourceType type, std::string_view contentDir) const;
 

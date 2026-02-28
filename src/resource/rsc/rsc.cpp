@@ -11,7 +11,7 @@
 
 namespace MKD
 {
-    std::expected<Rsc, std::string> Rsc::open(const fs::path& directoryPath, std::string_view dictId)
+    Result<Rsc> Rsc::open(const fs::path& directoryPath, std::string_view dictId)
     {
         auto indexResult = RscIndex::load(directoryPath);
         if (!indexResult)
@@ -25,7 +25,7 @@ namespace MKD
     }
 
 
-    std::expected<std::span<const uint8_t>, std::string> Rsc::get(const uint32_t itemId) const
+    Result<std::span<const uint8_t>> Rsc::get(const uint32_t itemId) const
     {
         const auto record = index_.findById(itemId);
         if (!record)
@@ -35,7 +35,7 @@ namespace MKD
     }
 
 
-    std::expected<RscItem, std::string> Rsc::getByIndex(const size_t index) const
+    Result<RscItem> Rsc::getByIndex(const size_t index) const
     {
         auto result = index_.getByIndex(index);
         if (!result)

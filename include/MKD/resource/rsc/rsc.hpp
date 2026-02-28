@@ -31,21 +31,21 @@ namespace MKD
          * @param directoryPath Directory path containing the .idx/.map & .rsc files
          * @return
          */
-        static std::expected<Rsc, std::string> open(const fs::path& directoryPath, std::string_view dictId = "");
+        static Result<Rsc> open(const fs::path& directoryPath, std::string_view dictId = "");
 
         /**
          * This will basically look up the itemId first with RscIndex, if it finds a
          * map record, it will use that to retrieve the data from the .rsc
          * this works well for dictionary entries where you want to get the xml data for a given itemId
          */
-        [[nodiscard]] std::expected<std::span<const uint8_t>, std::string> get(uint32_t itemId) const;
+        [[nodiscard]] Result<std::span<const uint8_t>> get(uint32_t itemId) const;
 
         /**
          * Get RscItem by index
          * @param index index
          * @return Rscitem or error string if failure
          */
-        [[nodiscard]] std::expected<RscItem, std::string> getByIndex(size_t index) const;
+        [[nodiscard]] Result<RscItem> getByIndex(size_t index) const;
 
         /**
          * Get total number of records

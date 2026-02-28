@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "MKD/result.hpp"
 #include "MKD/dictionary/dictionary_info.hpp"
 
 #include <expected>
@@ -17,8 +18,8 @@ namespace MKD
     public:
 
         virtual ~DictionarySource() = default;
-        [[nodiscard]] virtual std::expected<std::vector<DictionaryInfo>, std::string> findAllAvailable() const = 0;
-        [[nodiscard]] virtual std::expected<DictionaryInfo, std::string> findById(std::string_view dictId) const = 0;
+        [[nodiscard]] virtual Result<std::vector<DictionaryInfo>> findAllAvailable() const = 0;
+        [[nodiscard]] virtual Result<DictionaryInfo> findById(std::string_view dictId) const = 0;
 
     };
 }

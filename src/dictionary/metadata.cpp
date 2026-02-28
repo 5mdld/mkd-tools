@@ -7,7 +7,7 @@
 
 namespace MKD
 {
-    std::expected<DictionaryMetadata, std::string> DictionaryMetadata::loadFromPath(const fs::path& path)
+    Result<DictionaryMetadata> DictionaryMetadata::loadFromPath(const fs::path& path)
     {
         auto fileContent = readTextFile(path);
         if (!fileContent)

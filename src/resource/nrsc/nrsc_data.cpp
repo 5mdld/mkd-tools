@@ -10,7 +10,7 @@
 
 namespace MKD
 {
-    std::expected<NrscData, std::string> NrscData::load(const fs::path& directoryPath)
+    Result<NrscData> NrscData::load(const fs::path& directoryPath)
     {
         std::vector<ResourceFile> files;
 
@@ -38,7 +38,7 @@ namespace MKD
     }
 
 
-    std::expected<std::span<const uint8_t>, std::string> NrscData::get(const NrscIndexRecord& record) const
+    Result<std::span<const uint8_t>> NrscData::get(const NrscIndexRecord& record) const
     {
         if (record.fileSequence >= files_.size())
             return std::unexpected(std::format("File index '{}' out of range, total files: {}", record.fileSequence,
@@ -61,7 +61,7 @@ namespace MKD
     }
 
 
-    std::expected<void, std::string> NrscData::readFromFile(const ResourceFile& file,
+    Result<void> NrscData::readFromFile(const ResourceFile& file,
                                                             const NrscIndexRecord& record) const
     {
         const uint64_t fileOffset = record.offset();
@@ -93,7 +93,7 @@ namespace MKD
     }
 
 
-    std::expected<std::span<const uint8_t>, std::string> NrscData::decompressData(const NrscIndexRecord& record) const
+    Result<std::span<const uint8_t>> NrscData::decompressData(const NrscIndexRecord& record) const
     {
         const auto format = record.compressionFormat();
         const std::span<const uint8_t> compressed(readBuffer_.data(), record.len());

@@ -9,10 +9,6 @@
 #include "MKD/output/base_exporter.hpp"
 #include "MKD/resource/headline/headline_store.hpp"
 
-#include <expected>
-#include <string>
-
-
 namespace MKD
 {
     /**
@@ -28,13 +24,11 @@ namespace MKD
          * @param options Export options
          * @return ExportResult with statistics or error
          */
-        static std::expected<ExportResult, std::string> exportHeadlines(
-            const HeadlineStore& store,
-            const ExportOptions& options);
+        static Result<ExportResult> exportHeadlines(const HeadlineStore& store, const ExportOptions& options);
 
 
     private:
 
-        static std::expected<void, std::string> writeRow(std::ofstream& out, const HeadlineComponents& components);
+        static Result<void> writeRow(std::ofstream& out, const HeadlineComponents& components);
     };
 }

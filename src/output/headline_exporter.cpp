@@ -9,9 +9,7 @@
 
 namespace MKD
 {
-    std::expected<ExportResult, std::string> HeadlineExporter::exportHeadlines(
-        const HeadlineStore& store,
-        const ExportOptions& options)
+    Result<ExportResult> HeadlineExporter::exportHeadlines(const HeadlineStore& store, const ExportOptions& options)
     {
         ExportResult result;
         result.totalResources = store.size();
@@ -65,8 +63,7 @@ namespace MKD
     }
 
 
-    std::expected<void, std::string> HeadlineExporter::writeRow(std::ofstream& out,
-                                                                const HeadlineComponents& components)
+    Result<void> HeadlineExporter::writeRow(std::ofstream& out, const HeadlineComponents& components)
     {
         out << std::format("{:06}-{:04X}", components.entryId.pageId, components.entryId.itemId) << '\t';
         if (!components.headline.empty())

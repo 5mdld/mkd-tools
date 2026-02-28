@@ -5,6 +5,8 @@
 
 #include "MKD/dictionary/dictionary.hpp"
 #include "MKD/resource/resource_loader.hpp"
+#include "MKD/output/keystore_exporter.hpp"
+#include "MKD/output/headline_exporter.hpp"
 
 #include <utility>
 
@@ -160,15 +162,14 @@ namespace MKD
     }
 
 
-    std::expected<ExportResult, std::string> Dictionary::exportAudio(const ExportOptions& options) const
+    Result<ExportResult> Dictionary::exportAudio(const ExportOptions& options) const
     {
         return std::visit([&options](const auto& audioResource) {
             return ResourceExporter::exportAll(audioResource, options, ResourceType::Audio);
         }, *audio_);
     }
 
-    std::expected<ExportResult, std::string> Dictionary::exportFonts(
-        const ExportOptions& options) const
+    Result<ExportResult> Dictionary::exportFonts(const ExportOptions& options) const
     {
         ExportResult combinedResult;
         for (auto& font : fonts_)
@@ -183,7 +184,7 @@ namespace MKD
     }
 
 
-    std::expected<ExportResult, std::string> Dictionary::exportKeystores(const ExportOptions& options) const
+    Result<ExportResult> Dictionary::exportKeystores(const ExportOptions& options) const
     {
         ExportResult combined;
         for (const auto& keystore : keystores_)
@@ -198,7 +199,7 @@ namespace MKD
     }
 
 
-    std::expected<ExportResult, std::string> Dictionary::exportHeadlines(const ExportOptions& options) const
+    Result<ExportResult> Dictionary::exportHeadlines(const ExportOptions& options) const
     {
         ExportResult combined;
         for (const auto& store : headlines_)

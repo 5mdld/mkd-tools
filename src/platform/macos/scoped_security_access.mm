@@ -67,7 +67,7 @@ namespace MKD::macOS
     }
 
 
-    std::expected<BookmarkAccess, std::string> restoreAccessFromBookmark(const std::vector<uint8_t>& bookmarkData)
+    Result<BookmarkAccess> restoreAccessFromBookmark(const std::vector<uint8_t>& bookmarkData)
     {
         @autoreleasepool
         {

@@ -3,7 +3,7 @@
 //
 
 #include "MKD/resource/headline/headline_store.hpp"
-#include "MKD/platform/binary_file_reader.hpp"
+#include "MKD/platform/read_sequence.hpp"
 
 #include <utf8.h>
 
@@ -68,37 +68,28 @@ namespace MKD
     }
 
 
-    std::expected<HeadlineStore, std::string> HeadlineStore::load(const fs::path& filePath)
+    Result<HeadlineStore> HeadlineStore::load(const fs::path& filePath)
     {
         auto reader = BinaryFileReader::open(filePath);
-        if (!reader)
-            return std::unexpected(std::format("Failed to open headline store '{}'", filePath.string()));
+        if (!reader) return std::unexpected(std::format("Failed to open headline store '{}'", filePath.string()));
 
-        const auto fileSize = reader->remainingBytes();
-        if (fileSize < sizeof(HeadlineHeader))
-            return std::unexpected("Headline store file too small for header");
+        auto sec = reader->sequence();
+        auto header = sec.read<HeadlineHeader>();
+        auto data = sec.readBytes(sec.remaining());
 
-        std::vector<uint8_t> data(fileSize);
-        if (auto readResult = reader->readBytes(std::span(data)); !readResult)
-            return std::unexpected("Failed to read headline store");
+        if (!sec)
+            return std::unexpected(std::format("Failed to load headline store: {}", sec.error()));
 
-        if (auto seekResult = reader->seek(0); !seekResult)
-            return std::unexpected("Failed to seek to beginning of headline store");
-
-        auto header = reader->readStruct<HeadlineHeader>();
-        if (!header)
-            return std::unexpected("Failed to read headline header");
-
-        const uint32_t stride = header->effectiveStride();
-        const uint32_t entryCount = header->entryCount;
-        const uint8_t* base = data.data();
-        const uint8_t* records = base + header->recordsOffset;
-        const uint8_t* strings = base + header->stringsOffset;
+        const uint32_t stride = header.effectiveStride();
+        const uint32_t entryCount = header.entryCount;
+        const uint8_t* base = data.data() - sizeof(HeadlineHeader);
+        const uint8_t* records = base + header.recordsOffset;
+        const uint8_t* strings = base + header.stringsOffset;
 
         return HeadlineStore(std::move(data), filePath.filename().string(), entryCount, stride, records, strings);
     }
 
-    std::expected<HeadlineComponents, std::string> HeadlineStore::operator[](const size_t index) const
+    Result<HeadlineComponents> HeadlineStore::operator[](const size_t index) const
     {
         if (index >= entryCount_)
             return std::unexpected(std::format(
@@ -108,7 +99,7 @@ namespace MKD
     }
 
 
-    std::expected<HeadlineEntryId, std::string> HeadlineStore::entryIdAt(const size_t index) const
+    Result<HeadlineEntryId> HeadlineStore::entryIdAt(const size_t index) const
     {
         if (index >= entryCount_)
             return std::unexpected(std::format(
@@ -251,7 +242,7 @@ namespace MKD
         return records_ + index * stride_;
     }
 
-    std::expected<std::u16string_view, std::string> HeadlineStore::stringAt(const uint32_t offset) const
+    Result<std::u16string_view> HeadlineStore::stringAt(const uint32_t offset) const
     {
         const auto* str = reinterpret_cast<const char16_t*>(strings_ + offset);
 
@@ -263,7 +254,7 @@ namespace MKD
     }
 
 
-    std::expected<HeadlineComponents, std::string> HeadlineStore::componentsFromRecord(const uint8_t* record) const
+    Result<HeadlineComponents> HeadlineStore::componentsFromRecord(const uint8_t* record) const
     {
         HeadlineRecord rec{};
         std::memcpy(&rec, record, sizeof(rec));

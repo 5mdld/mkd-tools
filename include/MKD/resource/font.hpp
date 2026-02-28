@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include "MKD/result.hpp"
+
 #include <expected>
 #include <filesystem>
 #include <optional>
@@ -18,11 +20,11 @@ namespace MKD
     class Font
     {
     public:
-        static std::expected<Font, std::string> load(const fs::path& directoryPath);
+        static Result<Font> load(const fs::path& directoryPath);
 
         [[nodiscard]] const std::string& name() const noexcept;
 
-        [[nodiscard]] std::expected<std::span<const uint8_t>, std::string> getData() const;
+        [[nodiscard]] Result<std::span<const uint8_t>> getData() const;
 
         [[nodiscard]] std::optional<std::string> detectType() const;
 

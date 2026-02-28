@@ -16,6 +16,8 @@
 
 namespace MKD
 {
+    class ReadSequence;
+
     [[nodiscard]] std::expected<std::filesystem::path, std::string> findFileWithExtension(
         const std::filesystem::path& directoryPath, std::string_view extension);
 
@@ -27,6 +29,8 @@ namespace MKD
     {
     public:
         static std::expected<BinaryFileReader, std::string> open(const std::filesystem::path& filePath);
+
+        inline ReadSequence sequence();
 
         std::expected<void, std::string> seek(size_t offset) const;
 

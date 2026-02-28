@@ -13,7 +13,7 @@
 
 namespace MKD
 {
-    std::expected<void, std::string> BaseExporter::writeData(const std::span<const uint8_t> data, const fs::path& path)
+    Result<void> BaseExporter::writeData(const std::span<const uint8_t> data, const fs::path& path)
     {
         const int fd = ::open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
         if (fd < 0)

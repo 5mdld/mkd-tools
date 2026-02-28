@@ -11,18 +11,16 @@
 #include "MKD/resource/nrsc/nrsc.hpp"
 #include "MKD/resource/font.hpp"
 
-#include <expected>
-
 namespace MKD
 {
     class ResourceExporter final : public BaseExporter
     {
     public:
-        static std::expected<ExportResult, std::string> exportAll(const Rsc& rsc, const ExportOptions& options, ResourceType type);
+        static Result<ExportResult> exportAll(const Rsc& rsc, const ExportOptions& options, ResourceType type);
 
-        static std::expected<ExportResult, std::string> exportAll(const Nrsc& nrsc, const ExportOptions& options, ResourceType type);
+        static Result<ExportResult> exportAll(const Nrsc& nrsc, const ExportOptions& options, ResourceType type);
 
-        static std::expected<ExportResult, std::string> exportFont(const Font& font, const ExportOptions& options);
+        static Result<ExportResult> exportFont(const Font& font, const ExportOptions& options);
 
     private:
 

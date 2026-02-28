@@ -12,7 +12,7 @@
 namespace MKD
 {
 
-    std::expected<std::span<const uint8_t>, std::string> ZlibDecompressor::decompress(std::span<const uint8_t> compressed, const size_t expectedSize) const
+    Result<std::span<const uint8_t>> ZlibDecompressor::decompress(std::span<const uint8_t> compressed, const size_t expectedSize) const
     {
         decompressBuffer_.resize(expectedSize);
 

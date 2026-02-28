@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include "MKD/result.hpp"
+
 #include <expected>
 #include <filesystem>
 #include <optional>
@@ -48,7 +50,7 @@ namespace MKD::macOS
         ScopedSecurityAccess access;
     };
 
-    std::expected<BookmarkAccess, std::string> restoreAccessFromBookmark(const std::vector<uint8_t>& bookmarkData);
+    Result<BookmarkAccess> restoreAccessFromBookmark(const std::vector<uint8_t>& bookmarkData);
 
     std::optional<BookmarkData> createSecurityScopedBookmark(const fs::path& path);
 }

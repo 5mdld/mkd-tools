@@ -5,7 +5,7 @@
 #pragma once
 
 #include "MKD/resource/resource_type.hpp"
-#include "export_result.hpp"
+#include "MKD/output/export_result.hpp"
 
 #include <cstdint>
 #include <functional>
@@ -41,7 +41,7 @@ namespace MKD
     using ExportEvent = std::variant<ExportBeginEvent, PhaseBeginEvent, ProgressEvent, PhaseEndEvent>;
     using ExportCallback = std::function<void(const ExportEvent&)>;
 
-    constexpr bool isHeavyResource(ResourceType type)
+    constexpr bool isHeavyResource(const ResourceType type)
     {
         return type == ResourceType::Audio
             || type == ResourceType::Entries

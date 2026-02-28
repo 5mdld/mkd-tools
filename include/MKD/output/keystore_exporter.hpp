@@ -9,9 +9,6 @@
 #include "MKD/output/base_exporter.hpp"
 #include "MKD/resource/keystore/keystore.hpp"
 
-#include <expected>
-#include <string>
-
 namespace MKD
 {
     [[nodiscard]] constexpr KeystoreExportMode operator|(KeystoreExportMode a, KeystoreExportMode b) noexcept
@@ -24,7 +21,6 @@ namespace MKD
     {
         return (static_cast<uint8_t>(mode) & static_cast<uint8_t>(flag)) != 0;
     }
-
 
     class KeystoreExporter : BaseExporter
     {
@@ -41,9 +37,7 @@ namespace MKD
          * The inverse map is built with a hash map over packed
          * page references, then sorted by page ID
          */
-        static std::expected<ExportResult, std::string> exportKeystore(
-            const Keystore& keystore,
-            const ExportOptions& options);
+        static Result<ExportResult> exportKeystore(const Keystore& keystore, const ExportOptions& options);
 
     private:
         struct ForwardEntry
@@ -52,17 +46,10 @@ namespace MKD
             std::vector<PageReference> pages;
         };
 
-        /// Walk the entire index once, collecting all forward entries.
-        static std::expected<std::vector<ForwardEntry>, std::string> collectEntries(
-            const Keystore& keystore, KeystoreIndex index);
+        static Result<std::vector<ForwardEntry>> collectEntries(const Keystore& keystore, KeystoreIndex index);
 
-        /// Write forward mapping TSV. Streams directly to disk.
-        static std::expected<ExportResult, std::string> writeForward(
-            std::span<const ForwardEntry> entries, const fs::path& path);
+        static Result<ExportResult> writeForward(std::span<const ForwardEntry> entries, const fs::path& path);
 
-        /// Build inverse map from pre-collected entries and write TSV.
-        /// Uses packed uint64 keys
-        static std::expected<ExportResult, std::string> writeInverse(
-            std::span<const ForwardEntry> entries, const fs::path& path);
+        static Result<ExportResult> writeInverse(std::span<const ForwardEntry> entries, const fs::path& path);
     };
 }

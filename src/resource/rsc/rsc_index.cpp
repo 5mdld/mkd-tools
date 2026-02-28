@@ -3,7 +3,7 @@
 //
 
 #include "MKD/resource/rsc/rsc_index.hpp"
-#include "MKD/platform/binary_file_reader.hpp"
+#include "MKD/platform/read_sequence.hpp"
 
 #include <algorithm>
 #include <bit>
@@ -20,7 +20,7 @@ namespace MKD
     }
 
 
-    std::expected<RscIndex, std::string> RscIndex::load(const fs::path& directoryPath)
+    Result<RscIndex> RscIndex::load(const fs::path& directoryPath)
     {
         auto idxResult = loadIdxFile(directoryPath);
         if (!idxResult)
@@ -37,7 +37,7 @@ namespace MKD
     }
 
 
-    std::expected<MapRecord, std::string> RscIndex::findById(uint32_t itemId) const
+    Result<MapRecord> RscIndex::findById(uint32_t itemId) const
     {
         // If no idx records, use direct indexing
         // Seems to only be the case for fonts
@@ -93,7 +93,7 @@ namespace MKD
     }
 
 
-    std::expected<std::pair<uint32_t, MapRecord>, std::string> RscIndex::getByIndex(size_t index) const
+    Result<std::pair<uint32_t, MapRecord>> RscIndex::getByIndex(size_t index) const
     {
         if (index >= mapRecords_.size())
             return std::unexpected(std::format("Index {} out of range (size: {})", index, mapRecords_.size()));
@@ -145,7 +145,8 @@ namespace MKD
     }
 
 
-    RscIndex::RscIndex(uint32_t mapVersion, std::optional<std::vector<IdxRecord>>&& idxRecords, std::vector<MapRecord>&& mapRecords)
+    RscIndex::RscIndex(const uint32_t mapVersion, std::optional<std::vector<IdxRecord> >&& idxRecords,
+                       std::vector<MapRecord>&& mapRecords)
         : idxRecords_(std::move(idxRecords)), mapRecords_(std::move(mapRecords)), mapVersion_(mapVersion)
     {
     }
@@ -244,47 +245,39 @@ namespace MKD
         return Iterator{this, size()};
     }
 
-    std::expected<std::pair<std::vector<MapRecord>, uint32_t>, std::string> RscIndex::loadMapFile(const fs::path& directoryPath)
+    Result<std::pair<std::vector<MapRecord>, uint32_t>> RscIndex::loadMapFile(
+        const fs::path& directoryPath)
     {
-        auto filePathResult = findFileWithExtension(directoryPath, ".map");
-        if (!filePathResult)
-            return std::unexpected(filePathResult.error());
+        auto file = findFileWithExtension(directoryPath, ".map")
+                .and_then(BinaryFileReader::open);
+        if (!file) return std::unexpected(file.error());
 
-        auto reader = BinaryFileReader::open(*filePathResult);
-        if (!reader)
-            return std::unexpected(reader.error());
+        auto seq = file->sequence();
+        auto header = seq.read<MapHeader>();
+        auto records = seq.readArray<MapRecord>(header.recordCount);
 
-        auto header = reader->readStruct<MapHeader>();
-        if (!header)
-            return std::unexpected(header.error());
+        if (!seq)
+            return std::unexpected(seq.error());
 
-        auto records = reader->readStructArray<MapRecord>(header->recordCount);
-        if (!records)
-            return std::unexpected(records.error());
-
-        return std::pair{*records, header->version};
+        return std::pair{records, header.version};
     }
 
 
-    std::expected<std::optional<std::vector<IdxRecord>>, std::string> RscIndex::loadIdxFile(const fs::path& directoryPath)
+    Result<std::optional<std::vector<IdxRecord>>> RscIndex::loadIdxFile(
+        const fs::path& directoryPath)
     {
         // index file is optional so no error is returned if it simply isn't found
-        auto filePathResult = findFileWithExtension(directoryPath, ".idx");
-        if (!filePathResult)
-            return std::nullopt;
+        auto file = findFileWithExtension(directoryPath, ".idx")
+                .and_then(BinaryFileReader::open);
+        if (!file) return std::nullopt;
 
-        auto reader = BinaryFileReader::open(*filePathResult);
-        if (!reader)
-            return std::unexpected(reader.error());
+        auto seq = file->sequence();
+        auto header = seq.read<IdxHeader>();
+        auto records = seq.readArray<IdxRecord>(header.length);
 
-        auto header = reader->readStruct<IdxHeader>();
-        if (!header)
-            return std::unexpected(header.error());
+        if (!seq)
+            return std::unexpected(seq.error());
 
-        auto records = reader->readStructArray<IdxRecord>(header->length);
-        if (!records)
-            return std::unexpected(records.error());
-
-        return *records;
+        return records;
     }
 }

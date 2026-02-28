@@ -4,8 +4,9 @@
 
 #pragma once
 
-#include "headline_record.hpp"
 #include "MKD/resource/common.hpp"
+#include "MKD/result.hpp"
+#include "MKD/resource/headline/headline_record.hpp"
 
 #include <expected>
 #include <iterator>
@@ -92,7 +93,7 @@ namespace MKD
          * @param filePath Path to the headlines file
          * @return HeadlineStore or error string
          */
-        static std::expected<HeadlineStore, std::string> load(const fs::path& filePath);
+        static Result<HeadlineStore> load(const fs::path& filePath);
 
 
         /**
@@ -100,14 +101,14 @@ namespace MKD
          * @param index Zero-based record index
          * @return HeadlineComponents or error if out of range / malformed
          */
-        [[nodiscard]] std::expected<HeadlineComponents, std::string> operator[](size_t index) const;
+        [[nodiscard]] Result<HeadlineComponents> operator[](size_t index) const;
 
         /**
          * Get the packed 48-bit entry ID at a given index.
          * @param index Zero-based record index
          * @return Packed entry ID, or error if out of range
          */
-        [[nodiscard]] std::expected<HeadlineEntryId, std::string> entryIdAt(size_t index) const;
+        [[nodiscard]] Result<HeadlineEntryId> entryIdAt(size_t index) const;
 
 
         /**
@@ -189,13 +190,13 @@ namespace MKD
          * @param offset Byte offset from strings region start
          * @return String view into the mapped data, or error
          */
-        [[nodiscard]] std::expected<std::u16string_view, std::string> stringAt(uint32_t offset) const;
+        [[nodiscard]] Result<std::u16string_view> stringAt(uint32_t offset) const;
 
 
         /**
          * Build HeadlineComponents from a raw record pointer
          */
-        [[nodiscard]] std::expected<HeadlineComponents, std::string> componentsFromRecord(const uint8_t* record) const;
+        [[nodiscard]] Result<HeadlineComponents> componentsFromRecord(const uint8_t* record) const;
 
 
         std::vector<uint8_t> fileData_;     // Entire file contents (owns the memory)

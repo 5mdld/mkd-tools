@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include "MKD/result.hpp"
+
 #include <glaze/glaze.hpp>
 
 #include <filesystem>
@@ -33,8 +35,7 @@ namespace MKD
 
     struct DictionaryMetadata
     {
-    public:
-        static std::expected<DictionaryMetadata, std::string> loadFromPath(const fs::path& path);
+        static Result<DictionaryMetadata> loadFromPath(const fs::path& path);
 
         std::optional<LocalizedString> displayName;
         std::optional<LocalizedString> description;

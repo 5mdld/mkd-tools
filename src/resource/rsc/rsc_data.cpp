@@ -9,24 +9,22 @@
 
 namespace MKD
 {
-    std::expected<RscData, std::string> RscData::load(const fs::path& directoryPath, std::string_view dictId, const uint32_t mapVersion)
+    Result<RscData> RscData::load(const fs::path& directoryPath, std::string_view dictId, const uint32_t mapVersion)
     {
-        auto filesResult = discoverFiles(directoryPath);
-        if (!filesResult)
-            return std::unexpected(filesResult.error());
+        auto files = discoverFiles(directoryPath);
+        if (!files) return std::unexpected(files.error());
 
-        auto& files = filesResult.value();
-        std::ranges::sort(files, {}, &RscResourceFile::sequenceNumber);
+        std::ranges::sort(*files, {}, &RscResourceFile::sequenceNumber);
 
         // Calculate and set global offset for each .rsc file
         size_t globalOffset = 0;
-        for (size_t i = 0; i < files.size(); ++i)
+        for (size_t i = 0; i < files->size(); ++i)
         {
-            if (files[i].sequenceNumber != i)
+            if ((*files)[i].sequenceNumber != i)
                 return std::unexpected(std::format("Missing resource file with sequence number: {}", i));
 
-            files[i].globalOffset = globalOffset;
-            globalOffset += files[i].length;
+            (*files)[i].globalOffset = globalOffset;
+            globalOffset += (*files)[i].length;
         }
 
         std::optional<std::array<uint8_t, 32>> key;
@@ -34,13 +32,13 @@ namespace MKD
             key = RscCrypto::deriveKey(dictId);
 
         return RscData{
-            std::move(files),
+            std::move(*files),
             key
         };
     }
 
 
-    std::expected<std::span<const uint8_t>, std::string> RscData::get(const MapRecord& record) const
+    Result<std::span<const uint8_t>> RscData::get(const MapRecord& record) const
     {
         // Special case: intraBlock offset of 0xFFFFFFFF means direct data access (no chunk decompression is used)
         if (record.ioffset == 0xFFFFFFFF)
@@ -67,152 +65,7 @@ namespace MKD
     }
 
 
-    std::expected<std::span<const uint8_t>, std::string> RscData::parseItemFromChunk(const size_t offset) const
-    {
-        if (offset >= chunkBuffer_.size())
-            return std::unexpected("Invalid offset within chunk");
-
-        const uint8_t* data = chunkBuffer_.data() + offset;
-        const size_t remaining = chunkBuffer_.size() - offset;
-
-        // Check minimum header size for old format (4 bytes)
-        if (remaining < 4)
-            return std::unexpected("Insufficient data for item length");
-
-        // new format has zero as first word
-        const uint32_t firstWord = *reinterpret_cast<const uint32_t*>(data);
-        const bool isNewFormat = firstWord == 0;
-
-        if (isNewFormat && remaining < 8)
-            return std::unexpected("Insufficient data for new format header");
-
-        const size_t headerSize = isNewFormat ? 8 : 4;
-        const size_t contentLength = isNewFormat
-                                         ? *reinterpret_cast<const uint32_t*>(data + 4)
-                                         : firstWord;
-
-        if (remaining < headerSize + contentLength)
-            return std::unexpected("Insufficient data for item content");
-
-        return std::span(data + headerSize, contentLength);
-    }
-
-
-    std::expected<void, std::string> RscData::loadChunk(size_t globalOffset) const
-    {
-        // Find which file contains this offset
-        auto fileAndOffset = findFileByOffset(globalOffset);
-        if (!fileAndOffset)
-            return std::unexpected(fileAndOffset.error());
-
-        auto& [file, localOffset] = *fileAndOffset;
-
-        auto readerResult = BinaryFileReader::open(file.filePath);
-        if (!readerResult)
-            return std::unexpected(readerResult.error());
-        auto& reader = *readerResult;
-
-        // Seek to the local offset
-        if (auto seekResult = reader.seek(localOffset); !seekResult)
-            return std::unexpected(seekResult.error());
-
-        // Read and process chunk data
-        auto dataResult = readAndProcessChunk(reader);
-        if (!dataResult)
-            return std::unexpected(dataResult.error());
-
-        chunkBuffer_ = std::move(*dataResult);
-        currentChunkOffset_ = globalOffset;
-        return {};
-    }
-
-
-    std::expected<std::vector<uint8_t>, std::string> RscData::readAndProcessChunk(BinaryFileReader& reader) const
-    {
-        // Read format marker (first 4 bytes)
-        auto versionResult = reader.read<uint32_t>();
-        if (!versionResult)
-            return std::unexpected(versionResult.error());
-
-        uint32_t& version = versionResult.value();
-        std::vector<uint8_t> data;
-        if (version == 0)
-        {
-            auto decryptedData = readAndDecryptData(reader);
-            if (!decryptedData)
-                return std::unexpected(decryptedData.error());
-            data = std::move(*decryptedData);
-        }
-        else
-        {
-            // version is the length in the old format
-            data.resize(version);
-            if (auto result = reader.readBytes(data); !result)
-                return std::unexpected(result.error());
-        }
-
-        // decompress data if needed
-        if (!ZlibDecompressor::isZlibCompressed(data))
-            return data;
-
-        if (auto result = decompressor_->decompress(data, data.size()); !result)
-            return std::unexpected(result.error());
-
-        return decompressor_->takeBuffer();
-    }
-
-
-    std::expected<std::vector<uint8_t>, std::string> RscData::readAndDecryptData(BinaryFileReader& reader) const
-    {
-        if (!decryptionKey_)
-            return std::unexpected("Encrypted data requires decryption key");
-
-        auto lengthResult = reader.read<uint32_t>();
-        if (!lengthResult)
-            return std::unexpected(lengthResult.error());
-
-        std::vector<uint8_t> encryptedData(*lengthResult);
-        if (auto result = reader.readBytes(encryptedData); !result)
-            return std::unexpected(result.error());
-
-        return RscCrypto::decrypt(encryptedData, *decryptionKey_);
-    }
-
-
-    std::expected<std::span<const uint8_t>, std::string> RscData::readDirectData(size_t globalOffset) const
-    {
-        auto fileAndOffset = findFileByOffset(globalOffset);
-        if (!fileAndOffset)
-            return std::unexpected(fileAndOffset.error());
-
-        auto& [file, localOffset] = *fileAndOffset;
-
-        auto readerResult = BinaryFileReader::open(file.filePath);
-        if (!readerResult)
-            return std::unexpected(readerResult.error());
-        auto& reader = *readerResult;
-
-        // Seek to the local offset
-        if (auto seekResult = reader.seek(localOffset); !seekResult)
-            return std::unexpected(seekResult.error());
-
-        // Read the data header to get length
-        auto lengthResult = reader.read<uint32_t>();
-        if (!lengthResult)
-            return std::unexpected(lengthResult.error());
-
-        uint32_t length = lengthResult.value();
-
-        // version is the length in old format
-        directDataBuffer_.resize(length);
-        if (auto result = reader.readBytes(directDataBuffer_); !result)
-            return std::unexpected(result.error());
-
-        return std::span<const uint8_t>(directDataBuffer_);
-    }
-
-
-    std::expected<std::vector<RscResourceFile>, std::string> RscData::discoverFiles(const fs::path& directoryPath)
+    Result<std::vector<RscResourceFile>> RscData::discoverFiles(const fs::path& directoryPath)
     {
         std::vector<RscResourceFile> files;
 
@@ -222,8 +75,7 @@ namespace MKD
                 continue;
 
             const auto seqNum = detail::parseSequenceNumber(entry.path().filename(), ".rsc");
-            if (!seqNum)
-                continue;
+            if (!seqNum) continue;
 
             std::error_code ec;
             const auto fileSize = fs::file_size(entry.path(), ec);
@@ -247,8 +99,7 @@ namespace MKD
     }
 
 
-    std::expected<std::pair<const RscResourceFile&, size_t>, std::string> RscData::findFileByOffset(
-        const size_t globalOffset) const
+    Result<std::pair<const RscResourceFile&, size_t>> RscData::findFileByOffset(const size_t globalOffset) const
     {
         // Binary search to find which file contains this offset
         auto it = std::ranges::upper_bound(
@@ -269,5 +120,116 @@ namespace MKD
 
         size_t localOffset = globalOffset - it->globalOffset;
         return std::pair{std::ref(*it), localOffset};
+    }
+
+
+    Result<BinaryFileReader> RscData::openReaderAt(size_t globalOffset) const
+    {
+        auto location = findFileByOffset(globalOffset);
+        if (!location) return std::unexpected(location.error());
+        auto& [file, localOffset] = *location;
+
+        auto reader = BinaryFileReader::open(file.filePath);
+        if (!reader) return std::unexpected(reader.error());
+
+        if (auto s = reader->seek(localOffset); !s)
+            return std::unexpected(s.error());
+
+        return std::move(*reader);
+    }
+
+
+    Result<void> RscData::loadChunk(size_t globalOffset) const
+    {
+        auto reader = openReaderAt(globalOffset);
+        if (!reader) return std::unexpected(reader.error());
+
+        auto data = readAndProcessChunk(*reader);
+        if (!data) return std::unexpected(data.error());
+
+        chunkBuffer_ = std::move(*data);
+        currentChunkOffset_ = globalOffset;
+        return {};
+    }
+
+
+    Result<std::vector<uint8_t>> RscData::readAndProcessChunk(BinaryFileReader& reader) const
+    {
+        auto marker = reader.read<uint32_t>();
+        if (!marker) return std::unexpected(marker.error());
+
+        auto data = *marker == 0
+            ? readAndDecryptData(reader)
+            : reader.readBytes(*marker).transform([](auto bytes) { return bytes; });
+
+        if (!data) return std::unexpected(data.error());
+
+        // decompress data if needed
+        if (!ZlibDecompressor::isZlibCompressed(*data))
+            return data;
+
+        if (auto result = decompressor_->decompress(*data, data->size()); !result)
+            return std::unexpected(result.error());
+
+        return decompressor_->takeBuffer();
+    }
+
+
+    Result<std::vector<uint8_t>> RscData::readAndDecryptData(BinaryFileReader& reader) const
+    {
+        if (!decryptionKey_)
+            return std::unexpected("Missing decryption key");
+
+        auto seq = reader.sequence();
+        const auto length = seq.readValue<uint32_t>();
+        auto encrypted = seq.readBytes(length);
+
+        if (!seq) return std::unexpected(seq.error());
+
+        return RscCrypto::decrypt(encrypted, *decryptionKey_);
+    }
+
+
+    Result<std::span<const uint8_t>> RscData::readDirectData(const size_t globalOffset) const
+    {
+        auto reader = openReaderAt(globalOffset);
+        if (!reader) return std::unexpected(reader.error());
+
+        auto seq = reader->sequence();
+        const auto length = seq.readValue<uint32_t>();
+        directDataBuffer_ = seq.readBytes(length);
+
+        if (!seq) return std::unexpected(seq.error());
+
+        return std::span<const uint8_t>(directDataBuffer_);
+    }
+
+
+    Result<std::span<const uint8_t>> RscData::parseItemFromChunk(const size_t offset) const
+    {
+        if (offset >= chunkBuffer_.size())
+            return std::unexpected("Invalid offset within chunk");
+
+        const uint8_t* data = chunkBuffer_.data() + offset;
+        const size_t remaining = chunkBuffer_.size() - offset;
+
+        if (remaining < 4)
+            return std::unexpected("Insufficient data for item header");
+
+        const uint32_t firstWord = *reinterpret_cast<const uint32_t*>(data);
+        const bool isNewFormat = firstWord == 0;
+
+        if (isNewFormat && remaining < 8)
+            return std::unexpected("Insufficient data for new format header");
+
+        const size_t headerSize = isNewFormat ? 8 : 4;
+        const size_t contentLength = isNewFormat
+            ? *reinterpret_cast<const uint32_t*>(data + 4)
+            : firstWord;
+
+        if (remaining < headerSize + contentLength)
+            return std::unexpected("Insufficient data for item content");
+
+        return std::span(data + headerSize, contentLength);
     }
 }

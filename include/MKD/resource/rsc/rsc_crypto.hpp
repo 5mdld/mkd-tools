@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include "MKD/result.hpp"
+
 #include <array>
 #include <cstdint>
 #include <expected>
@@ -46,7 +48,7 @@ namespace MKD
          * @note The key must match the one used during encryption, otherwise
          *       the output will be garbage data.
          */
-        static std::expected<std::vector<uint8_t>, std::string> decrypt(std::span<const uint8_t> encryptedData,
+        static Result<std::vector<uint8_t>> decrypt(std::span<const uint8_t> encryptedData,
                                                                         const std::array<uint8_t, 32>& key);
 
     private:

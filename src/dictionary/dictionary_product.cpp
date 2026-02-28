@@ -7,7 +7,7 @@
 
 namespace MKD
 {
-    std::expected<DictionaryProduct, std::string> DictionaryProduct::openAtPath(const fs::path& path)
+    Result<DictionaryProduct> DictionaryProduct::openAtPath(const fs::path& path)
     {
         auto metadata = DictionaryMetadata::loadFromPath(
             path / "Contents" / (path.stem().string() + ".json")

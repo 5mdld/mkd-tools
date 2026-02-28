@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "MKD/result.hpp"
 #include "MKD/dictionary/paths.hpp"
 #include "MKD/resource/nrsc/nrsc.hpp"
 #include "MKD/resource/rsc/rsc.hpp"
@@ -18,9 +19,9 @@ namespace MKD
 
     template<typename T>
     concept Openable = requires(const fs::path& path) {
-        { T::open(path) } -> std::same_as<std::expected<T, std::string>>;
+        { T::open(path) } -> std::same_as<Result<T>>;
     } || requires(const fs::path& path, const std::string& dictId) {
-        { T::open(path, dictId) } -> std::same_as<std::expected<T, std::string>>;
+        { T::open(path, dictId) } -> std::same_as<Result<T>>;
     };
 
     class ResourceLoader

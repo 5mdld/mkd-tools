@@ -3,7 +3,7 @@
 //
 
 #include "MKD/resource/nrsc/nrsc_index.hpp"
-#include "MKD/platform/binary_file_reader.hpp"
+#include "MKD/platform/read_sequence.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -20,50 +20,38 @@ namespace MKD
     }
 
 
-    std::expected<NrscIndex, std::string> NrscIndex::load(const fs::path& directoryPath)
+    Result<NrscIndex> NrscIndex::load(const fs::path& directoryPath)
     {
-        auto filePathResult = findFileWithExtension(directoryPath, ".nidx");
-        if (!filePathResult)
-            return std::unexpected(filePathResult.error());
+        auto file = findFileWithExtension(directoryPath, ".nidx")
+                                                                .and_then(BinaryFileReader::open);
+        if (!file) return std::unexpected(file.error());
 
-        auto reader = BinaryFileReader::open(*filePathResult);
-        if (!reader)
-            return std::unexpected(reader.error());
+        auto seq = file->sequence();
+        auto header = seq.read<NrscIndexHeader>();
+        auto records = seq.readArray<NrscIndexRecord>(header.recordCount);
+        auto idStrings = seq.readString(seq.remaining());
 
-        auto header = reader->readStruct<NrscIndexHeader>();
-        if (!header)
-            return std::unexpected(header.error());
-
-        auto records = reader->readStructArray<NrscIndexRecord>(header->recordCount);
-        if (!records)
-            return std::unexpected(records.error());
-
-        // Read remaining bytes as ID strings
-        const size_t stringRegionSize = reader->remainingBytes();
-        auto idStrings = reader->readBytesIntoString(stringRegionSize);
-        if (!idStrings)
-            return std::unexpected(idStrings.error());
-
-        const size_t totalHeaderSize = HEADER_SIZE + header->recordCount * RECORD_SIZE;
+        if (!seq)
+            return std::unexpected(seq.error());
 
         return NrscIndex(
-            std::move(*records),
-            std::move(*idStrings),
-            totalHeaderSize
+            std::move(records),
+            std::move(idStrings),
+            HEADER_SIZE + header.recordCount * RECORD_SIZE
         );
     }
 
 
-    std::expected<NrscIndexRecord, std::string> NrscIndex::findById(std::string_view id) const
+    Result<NrscIndexRecord> NrscIndex::findById(std::string_view id) const
     {
         const auto it = std::ranges::lower_bound(records_, id,
-            [](std::string_view a, std::string_view b) {
-                return a < b;
-            },
-            [this](const NrscIndexRecord& record) -> std::string_view {
-                const auto result = this->getIdAt(record.idOffset());
-                return result ? *result : std::string_view{};
-            });
+                                                 [](std::string_view a, std::string_view b) {
+                                                     return a < b;
+                                                 },
+                                                 [this](const NrscIndexRecord& record) -> std::string_view {
+                                                     const auto result = this->getIdAt(record.idOffset());
+                                                     return result ? *result : std::string_view{};
+                                                 });
 
         if (it == records_.end())
             return std::unexpected(std::format("Resource not found: {}", id));
@@ -79,7 +67,7 @@ namespace MKD
     }
 
 
-    std::expected<std::pair<std::string_view, NrscIndexRecord>, std::string> NrscIndex::getByIndex(
+    Result<std::pair<std::string_view, NrscIndexRecord>> NrscIndex::getByIndex(
         const size_t index) const
     {
         if (index >= records_.size())
@@ -215,7 +203,7 @@ namespace MKD
     }
 
 
-    std::expected<std::string_view, std::string> NrscIndex::getIdAt(size_t offset) const
+    Result<std::string_view> NrscIndex::getIdAt(size_t offset) const
     {
         const size_t adjustedOffset = offset - headerSize_;
 

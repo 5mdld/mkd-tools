@@ -10,7 +10,7 @@
 
 namespace MKD
 {
-    std::expected<DecodedEntry, std::string> decodeKeystoreEntry(
+    Result<DecodedEntry> decodeKeystoreEntry(
         const std::span<const uint8_t> data)
     {
         if (data.empty())
@@ -90,7 +90,7 @@ namespace MKD
         return entry;
     }
 
-    std::expected<std::vector<PageReference>, std::string> decodePageReferences(const std::span<const uint8_t> data)
+    Result<std::vector<PageReference>> decodePageReferences(const std::span<const uint8_t> data)
     {
         if (data.size() < 2)
             return std::unexpected(std::format(
