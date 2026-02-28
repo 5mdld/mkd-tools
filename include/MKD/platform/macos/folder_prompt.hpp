@@ -7,9 +7,15 @@
 #include <filesystem>
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace MKD::macOS
 {
+    struct FolderPromptResult {
+        std::filesystem::path path;
+        std::vector<uint8_t> bookmarkData;
+    };
+
     struct FolderPromptOptions
     {
         std::string message = "Select a folder";
@@ -26,5 +32,5 @@ namespace MKD::macOS
     /*
      * Show an NSOpenPanel for directory selection
      */
-    std::optional<std::filesystem::path> promptForFolder(const FolderPromptOptions& options);
+    std::optional<FolderPromptResult> promptForFolder(const FolderPromptOptions& options);
 }

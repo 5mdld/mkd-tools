@@ -8,6 +8,7 @@
 
 #ifdef __APPLE__
 #include "MKD/platform/macos/macos_dictionary_source.hpp"
+#include "MKD/platform/macos/bookmark_store.hpp"
 #endif
 
 #include <algorithm>

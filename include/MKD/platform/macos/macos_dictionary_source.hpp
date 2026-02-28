@@ -29,6 +29,8 @@ namespace MKD
     private:
         bool tryRestoreFromBookmark() const;
 
+        bool canAccessDirectly() const;
+
         mutable std::optional<std::vector<DictionaryInfo>> cachedDictionaries_;
         mutable std::optional<fs::path> authorizedPath_;
         mutable macOS::ScopedSecurityAccess securityAccess_;

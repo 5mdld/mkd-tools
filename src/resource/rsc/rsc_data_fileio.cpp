@@ -127,7 +127,7 @@ namespace MKD
         if (!reader) return std::unexpected(reader.error());
 
         auto seq = reader->sequence();
-        auto length = seq.readValue<uint32_t>();
+        const auto length = seq.readValue<uint32_t>();
         auto bytes = seq.readBytes(length);
 
         if (!seq) return std::unexpected(seq.error());

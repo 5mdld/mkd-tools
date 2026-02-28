@@ -93,8 +93,7 @@ namespace MKD
         if (auto result = decompressor.decompress(*compressed, record.len()); !result)
             return std::unexpected(result.error());
 
-        auto buffer = std::make_shared<const std::vector<uint8_t>>(
-            decompressor.takeBuffer());
+        auto buffer = std::make_shared<const std::vector<uint8_t>>(decompressor.takeBuffer());
 
         return OwnedSpan{std::move(buffer)};
     }

@@ -7,6 +7,8 @@
 #include "MKD/platform/macos/folder_prompt.hpp"
 #include "MKD/platform/macos/fs.hpp"
 
+#include <unistd.h>
+#include <sys/fcntl.h>
 #include <format>
 
 namespace MKD
@@ -60,6 +62,9 @@ namespace MKD
         if (securityAccess_.isValid())
             return true;
 
+        if (canAccessDirectly())
+            return true;
+
         return tryRestoreFromBookmark();
     }
 
@@ -72,26 +77,24 @@ namespace MKD
         if (activateProcess)
             macOS::activateAsAccessory();
 
-        const auto dictPath = macOS::getMonokakidoDictionariesPath(MONOKAKIDO_GROUP_ID, DICTIONARIES_SUBPATH);
+        const auto dictPath = macOS::getMonokakidoDictionariesPath(
+            MONOKAKIDO_GROUP_ID, DICTIONARIES_SUBPATH);
 
-        const auto selectedPath = macOS::promptForFolder({
+        auto folderResult = macOS::promptForFolder({
             .message = "Please select the Monokakido Dictionaries folder to grant access",
             .confirmButton = "Grant Access",
             .initialDirectory = dictPath,
         });
 
-        if (!selectedPath) return false;
+        if (!folderResult) return false;
 
-        auto bookmarkData = macOS::createSecurityScopedBookmark(*selectedPath);
-        if (!bookmarkData) return false;
-
-        macOS::saveBookmark(bookmarkData->data);
-        securityAccess_ = macOS::ScopedSecurityAccess(bookmarkData->resolvedPath);
+        macOS::saveBookmark(folderResult->bookmarkData);
+        securityAccess_ = macOS::ScopedSecurityAccess(folderResult->path);
 
         if (!securityAccess_.isValid())
             return false;
 
-        authorizedPath_ = bookmarkData->resolvedPath;
+        authorizedPath_ = folderResult->path;
         cachedDictionaries_.reset();
         return true;
     }
@@ -115,4 +118,26 @@ namespace MKD
         securityAccess_ = std::move(access->access);
         return true;
     }
+
+
+    bool MacOSDictionarySource::canAccessDirectly() const
+    {
+        const auto dictPath = macOS::getMonokakidoDictionariesPath(MONOKAKIDO_GROUP_ID, DICTIONARIES_SUBPATH);
+        if (!dictPath) return false;
+
+        const fs::path& path = *dictPath;
+
+        if (std::error_code ec; !fs::exists(path, ec) || ec)
+            return false;
+
+        const int fd = ::open(path.c_str(), O_RDONLY | O_DIRECTORY);
+        if (fd < 0)
+            return false;
+
+        ::close(fd);
+
+        authorizedPath_ = path;
+        return true;
+    }
+
 }

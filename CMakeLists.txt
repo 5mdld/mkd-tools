@@ -55,6 +55,8 @@ endif()
 file(GLOB_RECURSE MKD_SOURCES src/*.cpp)
 
 if(APPLE)
+    list(FILTER MKD_SOURCES EXCLUDE REGEX ".*parallel\\.cpp$")
+
     file(GLOB_RECURSE MKD_OBJCXX_SOURCES src/*.mm)
     list(APPEND MKD_SOURCES ${MKD_OBJCXX_SOURCES})
     set_source_files_properties(${MKD_OBJCXX_SOURCES} PROPERTIES COMPILE_FLAGS "-fno-objc-arc")
@@ -64,7 +66,6 @@ endif()
 
 if(APPLE OR UNIX)
     list(FILTER MKD_SOURCES EXCLUDE REGEX ".*rsc_data_fileio\\.cpp$")
-    list(FILTER MKD_SOURCES EXCLUDE REGEX ".*parallel\\.cpp$")
 else()
     list(FILTER MKD_SOURCES EXCLUDE REGEX ".*rsc_data_mmap\\.cpp$")
 endif()
