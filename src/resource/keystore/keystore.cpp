@@ -4,6 +4,7 @@
 
 #include "MKD/resource/keystore/keystore.hpp"
 
+#include <array>
 #include <bit>
 #include <format>
 #include <utility>

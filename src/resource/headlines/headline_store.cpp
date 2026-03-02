@@ -52,19 +52,37 @@ namespace MKD
 
     std::string HeadlineComponents::prefixUtf8() const
     {
+#if defined(_WIN32)
+        std::string result;
+        utf8::utf16to8(prefix.begin(), prefix.end(), std::back_inserter(result));
+        return result;
+#else
         return utf8::utf16to8(prefix);
+#endif
     }
 
 
     std::string HeadlineComponents::headlineUtf8() const
     {
+#if defined(_WIN32)
+        std::string result;
+        utf8::utf16to8(headline.begin(), headline.end(), std::back_inserter(result));
+        return result;
+#else
         return utf8::utf16to8(headline);
+#endif
     }
 
 
     std::string HeadlineComponents::suffixUtf8() const
     {
+#if defined(_WIN32)
+        std::string result;
+        utf8::utf16to8(suffix.begin(), suffix.end(), std::back_inserter(result));
+        return result;
+#else
         return utf8::utf16to8(suffix);
+#endif
     }
 
 

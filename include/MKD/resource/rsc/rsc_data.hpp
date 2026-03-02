@@ -212,7 +212,7 @@ namespace MKD
          * @param globalOffset Global offset to the start of the chunk
          * @return void on success, error string on failure
          */
-        Result<void> loadChunk(size_t globalOffset) const;
+        Result<std::shared_ptr<const std::vector<uint8_t>>> loadChunk(size_t globalOffset) const;
 
         /**
          * Find which .rsc file contains a given global offset
@@ -247,10 +247,7 @@ namespace MKD
          */
         Result<std::vector<uint8_t>> readAndDecryptData(BinaryFileReader& reader) const;
 
-        std::unique_ptr<ZlibDecompressor> decompressor_;
-
-        mutable std::vector<uint8_t> directDataBuffer_;
-        mutable std::vector<uint8_t> chunkBuffer_;
+        mutable std::shared_ptr<const std::vector<uint8_t>> currentChunk_;
         mutable size_t currentChunkOffset_ = SIZE_MAX;
 #endif
     };

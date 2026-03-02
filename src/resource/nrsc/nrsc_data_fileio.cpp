@@ -97,7 +97,7 @@ namespace MKD
     }
 
 
-    Result<OwnedSpan> NrscData::readUncompressed(const NrscResourceFile& file, const NrscIndexRecord& record) const
+    Result<OwnedSpan> NrscData::readUncompressed(const NrscResourceFile& file, const NrscIndexRecord& record)
     {
         auto bytes = readBytesFromFile(file.filePath, record.offset(), record.len());
         if (!bytes) return std::unexpected(bytes.error());
@@ -107,7 +107,7 @@ namespace MKD
     }
 
 
-    Result<OwnedSpan> NrscData::readCompressed(const NrscResourceFile& file, const NrscIndexRecord& record) const
+    Result<OwnedSpan> NrscData::readCompressed(const NrscResourceFile& file, const NrscIndexRecord& record)
     {
         auto bytes = readBytesFromFile(file.filePath, record.offset(), record.len());
         if (!bytes) return std::unexpected(bytes.error());

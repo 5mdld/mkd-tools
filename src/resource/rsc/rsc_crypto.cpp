@@ -5,11 +5,12 @@
 #include "MKD/resource/rsc/rsc_crypto.hpp"
 
 #if defined(__APPLE__)
-    #include <CommonCrypto/CommonDigest.h>
+#include <CommonCrypto/CommonDigest.h>
 #elif defined(_WIN32)
-    #include <bcrypt.h>
+#include <windows.h>
+#include <bcrypt.h>
 #else
-    #include <openssl/sha.h>
+#include <openssl/sha.h>
 #endif
 
 #include <cstring>

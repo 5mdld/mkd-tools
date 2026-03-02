@@ -96,28 +96,34 @@ namespace MKD
 
     Result<BinaryFileReader> RscData::openReaderAt(const size_t globalOffset) const
     {
-        return findFileByOffset(globalOffset)
-            .and_then([](auto location) -> Result<BinaryFileReader> {
-                auto& [file, localOffset] = location;
-                return BinaryFileReader::open(file.get().filePath)
-                    .and_then([&](auto reader) -> Result<BinaryFileReader> {
-                        auto s = reader.seek(localOffset);
-                        if (!s) return std::unexpected(s.error());
-                        return std::move(reader);
-                    });
+        auto it = std::ranges::upper_bound(
+            files_, globalOffset, std::less{},
+            [](const RscResourceFile& f) { return f.globalOffset; });
+
+        if (it == files_.begin())
+            return std::unexpected(std::string("Offset before first file"));
+
+        --it;
+        const auto localOffset = globalOffset - it->globalOffset;
+
+        return BinaryFileReader::open(it->filePath)
+            .and_then([localOffset](auto reader) -> Result<BinaryFileReader> {
+                auto s = reader.seek(localOffset);
+                if (!s) return std::unexpected(s.error());
+                return std::move(reader);
             });
     }
 
 
     Result<OwnedSpan> RscData::get(const MapRecord& record) const
     {
-        if (record.ioffset == 0xFFFFFFFF)
+        if (record.itemOffset == 0xFFFFFFFF)
             return readDirectData(record.chunkGlobalOffset);
 
         auto chunk = loadChunk(record.chunkGlobalOffset);
         if (!chunk) return std::unexpected(chunk.error());
 
-        return parseItemFromChunk(std::move(*chunk), record.ioffset);
+        return parseItemFromChunk(std::move(*chunk), record.itemOffset);
     }
 
 

@@ -8,7 +8,6 @@
 
 #ifdef __APPLE__
 #include "MKD/platform/macos/macos_dictionary_source.hpp"
-#include "MKD/platform/macos/bookmark_store.hpp"
 #endif
 
 #include <algorithm>
@@ -298,7 +297,6 @@ namespace MKDCLI
 
     void CLIApp::printVersion()
     {
-        MKD::macOS::clearSavedBookmark();
         std::cout << "mkd-tools 0.1.0\n";
     }
 

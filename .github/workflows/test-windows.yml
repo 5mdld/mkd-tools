@@ -1,0 +1,35 @@
+name: Windows Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  windows-build-and-test:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure CMake (Debug)
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DMKD_BUILD_CLI=ON -DBUILD_TESTING=OFF
+
+      - name: Build
+        run: cmake --build build --config Debug
+
+      - name: Run mkd with verbose output
+        if: always()
+        shell: cmd
+        run: |
+          mkdir output
+          echo === Running mkd ===
+          .\build\cli\Debug\mkd.exe -d .\test\test-data -e TESTDICT -o output 2>&1
+          echo === Exit code: %ERRORLEVEL% ===
+
+      - name: List output files
+        if: always()
+        shell: cmd
+        run: dir /s /b output
