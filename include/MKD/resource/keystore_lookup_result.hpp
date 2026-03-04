@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "page_reference.hpp"
+#include "MKD/resource/page_reference.hpp"
 
 #include <string_view>
 #include <vector>

@@ -4,10 +4,10 @@
 
 #pragma once
 
-#include "MKD/resource/common.hpp"
 #include "MKD/result.hpp"
-#include "MKD/resource/rsc/rsc_index_record.hpp"
-#include "MKD/resource/rsc/rsc_map.hpp"
+#include "MKD/resource/common.hpp"
+#include "rsc_index_record.hpp"
+#include "rsc_map.hpp"
 
 #include <expected>
 #include <iterator>

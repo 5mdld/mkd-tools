@@ -4,11 +4,11 @@
 
 #pragma once
 
-#include "export_options.hpp"
-#include "export_result.hpp"
-#include "base_exporter.hpp"
-#include "MKD/resource/rsc/rsc.hpp"
-#include "MKD/resource/nrsc/nrsc.hpp"
+#include "MKD/output/export_options.hpp"
+#include "MKD/output/export_result.hpp"
+#include "MKD/output/base_exporter.hpp"
+#include "MKD/resource/rsc.hpp"
+#include "MKD/resource/nrsc.hpp"
 #include "MKD/resource/font.hpp"
 
 namespace MKD

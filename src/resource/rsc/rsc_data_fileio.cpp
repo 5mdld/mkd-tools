@@ -2,7 +2,8 @@
 // kiwakiwaaにより 2026/01/22 に作成されました。
 //
 
-#include "MKD/resource/rsc/rsc_data.hpp"
+#include "rsc_data.hpp"
+#include "../zlib_decompressor.hpp"
 
 #include <algorithm>
 #include <format>

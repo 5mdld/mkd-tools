@@ -7,7 +7,7 @@
 #include "MKD/output/export_options.hpp"
 #include "MKD/output/export_result.hpp"
 #include "MKD/output/base_exporter.hpp"
-#include "MKD/resource/keystore/keystore.hpp"
+#include "MKD/resource/keystore.hpp"
 
 namespace MKD
 {

@@ -3,29 +3,50 @@
 //
 
 #include "MKD/platform/macos/macos_dictionary_source.hpp"
-#include "MKD/platform/macos/bookmark_store.hpp"
-#include "MKD/platform/macos/folder_prompt.hpp"
-#include "MKD/platform/macos/fs.hpp"
+#include "scoped_security_access.hpp"
+#include "bookmark_store.hpp"
+#include "folder_prompt.hpp"
+#include "fs.hpp"
 
 #include <unistd.h>
 #include <sys/fcntl.h>
 #include <format>
+#include <optional>
 
 namespace MKD
 {
+    struct MacOSDictionarySource::Impl
+    {
+        mutable std::optional<std::vector<DictionaryInfo>> cachedDictionaries_;
+        mutable std::optional<fs::path> authorizedPath_;
+        mutable macOS::ScopedSecurityAccess securityAccess_;
+    };
+
+
+    MacOSDictionarySource::MacOSDictionarySource()
+        : impl_(std::make_unique<Impl>())
+    {
+    }
+
+
+    MacOSDictionarySource::~MacOSDictionarySource() = default;
+    MacOSDictionarySource::MacOSDictionarySource(MacOSDictionarySource&&) noexcept = default;
+    MacOSDictionarySource& MacOSDictionarySource::operator=(MacOSDictionarySource&&) noexcept = default;
+
+
     Result<std::vector<DictionaryInfo>> MacOSDictionarySource::findAllAvailable() const
     {
         if (!checkAccess())
             return std::unexpected("Access not granted. Call requestAccess() first.");
 
-        if (!authorizedPath_)
+        if (!impl_->authorizedPath_)
             return std::unexpected("No authorized path available");
 
         std::vector<DictionaryInfo> result;
 
         try
         {
-            for (const auto& entry : std::filesystem::directory_iterator(*authorizedPath_))
+            for (const auto& entry : std::filesystem::directory_iterator(impl_->authorizedPath_.value()))
             {
                 if (!entry.is_directory()) continue;
                 result.emplace_back(entry.path().stem(), entry.path());
@@ -36,19 +57,19 @@ namespace MKD
             return std::unexpected(std::format("Failed to read dictionaries: {}", e.what()));
         }
 
-        cachedDictionaries_ = result;
+        impl_->cachedDictionaries_ = result;
         return result;
     }
 
 
     Result<DictionaryInfo> MacOSDictionarySource::findById(std::string_view dictId) const
     {
-        if (!cachedDictionaries_)
+        if (!impl_->cachedDictionaries_)
         {
             if (auto all = findAllAvailable(); !all) return std::unexpected(all.error());
         }
 
-        for (const auto& info : *cachedDictionaries_)
+        for (const auto& info : *impl_->cachedDictionaries_)
         {
             if (info.id == dictId) return info;
         }
@@ -59,7 +80,7 @@ namespace MKD
 
     bool MacOSDictionarySource::checkAccess() const
     {
-        if (securityAccess_.isValid())
+        if (impl_->securityAccess_.isValid())
             return true;
 
         if (canAccessDirectly())
@@ -92,13 +113,13 @@ namespace MKD
         if (!bookmarkData) return false;
 
         macOS::saveBookmark(bookmarkData->data);
-        securityAccess_ = macOS::ScopedSecurityAccess(bookmarkData->resolvedPath);
+        impl_->securityAccess_ = macOS::ScopedSecurityAccess(bookmarkData->resolvedPath);
 
-        if (!securityAccess_.isValid())
+        if (!impl_->securityAccess_.isValid())
             return false;
 
-        authorizedPath_ = bookmarkData->resolvedPath;
-        cachedDictionaries_.reset();
+        impl_->authorizedPath_ = bookmarkData->resolvedPath;
+        impl_->cachedDictionaries_.reset();
         return true;
     }
 
@@ -117,8 +138,8 @@ namespace MKD
         auto access = macOS::restoreAccessFromBookmark(*bookmark);
         if (!access) return false;
 
-        authorizedPath_ = std::move(access->path);
-        securityAccess_ = std::move(access->access);
+        impl_->authorizedPath_ = std::move(access->path);
+        impl_->securityAccess_ = std::move(access->access);
         return true;
     }
 
@@ -139,7 +160,7 @@ namespace MKD
 
         ::close(fd);
 
-        authorizedPath_ = path;
+        impl_->authorizedPath_ = path;
         return true;
     }
 

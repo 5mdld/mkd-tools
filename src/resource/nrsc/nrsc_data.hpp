@@ -5,9 +5,8 @@
 #pragma once
 
 #include "MKD/result.hpp"
-#include "MKD/resource/owned_span.hpp"
-#include "MKD/resource/nrsc/nrsc_index.hpp"
-#include "MKD/resource/zlib_decompressor.hpp"
+#include "MKD/resource/retained_span.hpp"
+#include "nrsc_index.hpp"
 
 #include <expected>
 #include <fstream>
@@ -15,7 +14,7 @@
 #include <vector>
 
 #if defined(__APPLE__) || defined(__linux__)
-    #include "MKD/platform/mmap_file.hpp"
+#include "../../platform/mmap_file.hpp"
 #endif
 
 namespace fs = std::filesystem;
@@ -75,7 +74,7 @@ namespace MKD
          * @param record
          * @return Span view of the data, or error string if failure
          */
-        [[nodiscard]] Result<OwnedSpan> get(const NrscIndexRecord& record) const;
+        [[nodiscard]] Result<RetainedSpan> get(const NrscIndexRecord& record) const;
 
 
     private:
@@ -96,7 +95,7 @@ namespace MKD
          * @param record NrscIndexRecord specifying the global offset and length to read
          * @return void on success, or error string if failure
          */
-        static Result<OwnedSpan> readUncompressed(const NrscResourceFile& file, const NrscIndexRecord& record);
+        static Result<RetainedSpan> readUncompressed(const NrscResourceFile& file, const NrscIndexRecord& record);
 
 
         /**
@@ -105,7 +104,7 @@ namespace MKD
          * @param record rscIndexRecord specifying compression format and expected decompressed length
          * @return Span view of the decompressed data, or error string if failure
          */
-        static Result<OwnedSpan> readCompressed(const NrscResourceFile& file, const NrscIndexRecord& record);
+        static Result<RetainedSpan> readCompressed(const NrscResourceFile& file, const NrscIndexRecord& record);
 
         std::vector<NrscResourceFile> files_;
     };

@@ -2,7 +2,7 @@
 // kiwakiwaaにより 2026/01/17 に作成されました。
 //
 
-#include "MKD/resource/nrsc/nrsc_index_record.hpp"
+#include "nrsc_index_record.hpp"
 
 #include <bit>
 

@@ -2,7 +2,7 @@
 // kiwakiwaaにより 2026/01/15 に作成されました。
 //
 
-#include "MKD/platform/macos/scoped_security_access.hpp"
+#include "scoped_security_access.hpp"
 
 #import <Cocoa/Cocoa.h>
 #import <Foundation/Foundation.h>

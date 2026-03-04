@@ -2,7 +2,7 @@
 // kiwakiwaaにより 2026/02/11 に作成されました。
 //
 
-#include "MKD/resource/keystore/page_reference.hpp"
+#include "MKD/resource/page_reference.hpp"
 
 #include <cstring>
 #include <bit>

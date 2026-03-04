@@ -2,7 +2,7 @@
 // kiwakiwaaにより 2026/01/30 に作成されました。
 //
 
-#include "MKD/resource/rsc/rsc_crypto.hpp"
+#include "rsc_crypto.hpp"
 
 #if defined(__APPLE__)
 #include <CommonCrypto/CommonDigest.h>

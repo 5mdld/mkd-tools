@@ -2,7 +2,8 @@
 // kiwakiwaaにより 2026/02/28 に作成されました。
 //
 
-#include "MKD/resource/rsc/rsc_data.hpp"
+#include "rsc_data.hpp"
+#include "../zlib_decompressor.hpp"
 
 #include <algorithm>
 #include <cstring>
@@ -89,7 +90,7 @@ namespace MKD
     }
 
 
-    Result<OwnedSpan> RscData::get(const MapRecord& record) const
+    Result<RetainedSpan> RscData::get(const MapRecord& record) const
     {
         if (record.itemOffset == 0xFFFFFFFF)
             return readDirectData(record.chunkGlobalOffset);
@@ -101,7 +102,7 @@ namespace MKD
     }
 
 
-    Result<OwnedSpan> RscData::readDirectData(const size_t globalOffset) const
+    Result<RetainedSpan> RscData::readDirectData(const size_t globalOffset) const
     {
         auto header = resolveGlobal(globalOffset, sizeof(uint32_t));
         if (!header) return std::unexpected(header.error());
@@ -112,7 +113,7 @@ namespace MKD
         auto payload = resolveGlobal(globalOffset + sizeof(uint32_t), length);
         if (!payload) return std::unexpected(payload.error());
 
-        return OwnedSpan{*payload};
+        return RetainedSpan{*payload};
     }
 
 
@@ -186,7 +187,7 @@ namespace MKD
     }
 
 
-    Result<OwnedSpan> RscData::parseItemFromChunk(
+    Result<RetainedSpan> RscData::parseItemFromChunk(
         std::shared_ptr<const std::vector<uint8_t>> chunk,
         const size_t offset)
     {
@@ -209,10 +210,10 @@ namespace MKD
         if (isNewFormat)
             std::memcpy(&contentLength, data + 4, sizeof(uint32_t));
 
-        if (remaining < contentLength)
+        if (remaining < headerSize + contentLength)
             return std::unexpected("Insufficient data for item content");
 
-        return OwnedSpan{
+        return RetainedSpan{
             std::move(chunk),
             std::span(data + headerSize, contentLength)
         };

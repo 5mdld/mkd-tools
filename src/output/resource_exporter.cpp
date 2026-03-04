@@ -4,8 +4,9 @@
 
 #include "MKD/output/resource_exporter.hpp"
 #include "MKD/output/export_accumulator.hpp"
-#include "MKD/platform/parallel.hpp"
+#include "../platform/parallel.hpp"
 
+#include <format>
 #include <pugixml.h>
 #include <sstream>
 
@@ -27,9 +28,6 @@ namespace MKD
             return options.outputDirectory;
         }
     }
-
-
-
 
 
     Result<ExportResult> ResourceExporter::exportAll(const Rsc& rsc, const ExportOptions& options, const ResourceType type)

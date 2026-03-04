@@ -2,7 +2,7 @@
 // kiwakiwaaにより 2026/02/25 に作成されました。
 //
 
-#include "MKD/platform/parallel.hpp"
+#include "parallel.hpp"
 
 #include <algorithm>
 #include <thread>

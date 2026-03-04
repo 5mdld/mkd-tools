@@ -2,8 +2,9 @@
 // kiwakiwaaにより 2026/02/28 に作成されました。
 //
 
-#include "MKD/resource/nrsc/nrsc_data.hpp"
 #include "MKD/resource/common.hpp"
+#include "nrsc_data.hpp"
+#include "../zlib_decompressor.hpp"
 
 #include <algorithm>
 #include <format>
@@ -53,7 +54,7 @@ namespace MKD
     }
 
 
-    Result<OwnedSpan> NrscData::get(const NrscIndexRecord& record) const
+    Result<RetainedSpan> NrscData::get(const NrscIndexRecord& record) const
     {
         if (record.fileSequence >= files_.size())
             return std::unexpected(std::format(
@@ -74,17 +75,17 @@ namespace MKD
     }
 
 
-    Result<OwnedSpan> NrscData::readUncompressed(const NrscResourceFile& file, const NrscIndexRecord& record)
+    Result<RetainedSpan> NrscData::readUncompressed(const NrscResourceFile& file, const NrscIndexRecord& record)
     {
         auto span = file.mapping.slice(record.offset(), record.len());
         if (!span) return std::unexpected(span.error());
 
         // span directly into mmap
-        return OwnedSpan{*span};
+        return RetainedSpan{*span};
     }
 
 
-    Result<OwnedSpan> NrscData::readCompressed(const NrscResourceFile& file, const NrscIndexRecord& record)
+    Result<RetainedSpan> NrscData::readCompressed(const NrscResourceFile& file, const NrscIndexRecord& record)
     {
         auto compressed = file.mapping.slice(record.offset(), record.len());
         if (!compressed) return std::unexpected(compressed.error());
@@ -95,6 +96,6 @@ namespace MKD
 
         auto buffer = std::make_shared<const std::vector<uint8_t>>(decompressor.takeBuffer());
 
-        return OwnedSpan{std::move(buffer)};
+        return RetainedSpan{std::move(buffer)};
     }
 }

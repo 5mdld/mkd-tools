@@ -4,11 +4,12 @@
 
 #pragma once
 
-#include "MKD/dictionary/metadata.hpp"
+#include "MKD/result.hpp"
 #include "MKD/resource/resource_type.hpp"
 
 #include <filesystem>
 #include <optional>
+#include <string_view>
 
 namespace fs = std::filesystem;
 

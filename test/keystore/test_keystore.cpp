@@ -6,9 +6,9 @@
 #include <filesystem>
 
 #include "../test_listener.hpp"
-#include "MKD/platform/macos/fs.hpp"
+#include "../../src/platform/macos/fs.hpp"
 #include "MKD/platform/macos/macos_dictionary_source.hpp"
-#include "MKD/resource/keystore/keystore.hpp"
+#include "../../include/MKD/resource/keystore.hpp"
 
 class KeystoreTest : public ::testing::Test
 {

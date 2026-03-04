@@ -2,8 +2,8 @@
 // kiwakiwaaにより 2026/02/12 に作成されました。
 //
 
-#include "MKD/resource/headline/headline_store.hpp"
-#include "MKD/platform/read_sequence.hpp"
+#include "MKD/resource/headline_store.hpp"
+#include "../../platform/read_sequence.hpp"
 
 #include <utf8.h>
 

@@ -6,7 +6,7 @@
 #include <filesystem>
 #include <fstream>
 
-#include "MKD/resource/rsc/rsc_crypto.hpp"
+#include "../../src/resource/rsc/rsc_crypto.hpp"
 #include "../test_listener.hpp"
 
 using namespace MKD;

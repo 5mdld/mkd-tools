@@ -6,7 +6,7 @@
 
 #include "MKD/resource/common.hpp"
 #include "MKD/result.hpp"
-#include "MKD/resource/nrsc/nrsc_index_record.hpp"
+#include "nrsc_index_record.hpp"
 
 #include <expected>
 #include <filesystem>

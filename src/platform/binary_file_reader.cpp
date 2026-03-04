@@ -1,5 +1,5 @@
-#include "MKD/platform/binary_file_reader.hpp"
-#include "MKD/platform/read_sequence.hpp"
+#include "binary_file_reader.hpp"
+#include "read_sequence.hpp"
 
 #include <fstream>
 #include <sstream>

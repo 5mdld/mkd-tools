@@ -6,10 +6,10 @@
 #include <filesystem>
 
 #include "../test_listener.hpp"
-#include "MKD/platform/macos/fs.hpp"
+#include "../../src/platform/macos/fs.hpp"
 #include "MKD/platform/macos/macos_dictionary_source.hpp"
 #include "MKD/resource/rsc/rsc_index.hpp"
-#include "MKD/resource/rsc/rsc_data.hpp"
+#include "../../src/resource/rsc/rsc_data.hpp"
 
 class RscIndexTest : public ::testing::Test
 {

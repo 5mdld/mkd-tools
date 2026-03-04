@@ -6,11 +6,11 @@
 
 #include "MKD/result.hpp"
 #include "MKD/dictionary/paths.hpp"
-#include "MKD/resource/nrsc/nrsc.hpp"
-#include "MKD/resource/rsc/rsc.hpp"
 #include "MKD/resource/font.hpp"
-#include "MKD/resource/keystore/keystore.hpp"
-#include "MKD/resource/headline/headline_store.hpp"
+#include "MKD/resource/nrsc.hpp"
+#include "MKD/resource/rsc.hpp"
+#include "MKD/resource/keystore.hpp"
+#include "MKD/resource/headline_store.hpp"
 
 #include <variant>
 

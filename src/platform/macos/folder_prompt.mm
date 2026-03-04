@@ -1,4 +1,8 @@
-#include "MKD/platform/macos/folder_prompt.hpp"
+//
+// kiwakiwaaにより 2026/02/27 に作成されました。
+//
+
+#include "folder_prompt.hpp"
 
 #import <Cocoa/Cocoa.h>
 

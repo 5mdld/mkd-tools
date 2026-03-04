@@ -5,9 +5,6 @@
 #pragma once
 
 #include "MKD/platform/dictionary_source.hpp"
-#include "scoped_security_access.hpp"
-
-#include <optional>
 
 namespace MKD
 {
@@ -17,23 +14,26 @@ namespace MKD
     class MacOSDictionarySource final : public DictionarySource
     {
     public:
+        MacOSDictionarySource();
+        ~MacOSDictionarySource() override;
 
-        Result<std::vector<DictionaryInfo>> findAllAvailable() const override;
+        MacOSDictionarySource(MacOSDictionarySource&&) noexcept;
+        MacOSDictionarySource& operator=(MacOSDictionarySource&&) noexcept;
+
+        [[nodiscard]] Result<std::vector<DictionaryInfo>> findAllAvailable() const override;
         [[nodiscard]] Result<DictionaryInfo> findById(std::string_view dictId) const override;
 
-        bool checkAccess() const;
-        bool requestAccess(bool activateProcess = false) const;
+        [[nodiscard]] bool checkAccess() const;
+        [[nodiscard]] bool requestAccess(bool activateProcess = false) const;
 
         static bool isMonokakidoInstalled() ;
 
     private:
-        bool tryRestoreFromBookmark() const;
+        [[nodiscard]] bool tryRestoreFromBookmark() const;
 
-        bool canAccessDirectly() const;
+        [[nodiscard]] bool canAccessDirectly() const;
 
-        mutable std::optional<std::vector<DictionaryInfo>> cachedDictionaries_;
-        mutable std::optional<fs::path> authorizedPath_;
-        mutable macOS::ScopedSecurityAccess securityAccess_;
-
+        struct Impl;
+        std::unique_ptr<Impl> impl_;
     };
 }

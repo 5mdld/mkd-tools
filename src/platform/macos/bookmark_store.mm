@@ -2,7 +2,7 @@
 // kiwakiwaaにより 2026/02/27 に作成されました。
 //
 
-#include "MKD/platform/macos/bookmark_store.hpp"
+#include "bookmark_store.hpp"
 
 #import <Foundation/Foundation.h>
 

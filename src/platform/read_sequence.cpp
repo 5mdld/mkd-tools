@@ -2,7 +2,7 @@
 // kiwakiwaaにより 2026/02/27 に作成されました。
 //
 
-#include "MKD/platform/read_sequence.hpp"
+#include "read_sequence.hpp"
 
 namespace MKD
 {

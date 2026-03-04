@@ -8,13 +8,13 @@
 #include "MKD/dictionary/metadata.hpp"
 #include "MKD/dictionary/paths.hpp"
 #include "MKD/platform/dictionary_source.hpp"
-#include "MKD/resource/nrsc/nrsc.hpp"
-#include "MKD/resource/rsc/rsc.hpp"
-#include "MKD/resource/font.hpp"
-#include "MKD/resource/keystore/keystore.hpp"
-#include "MKD/resource/headline/headline_store.hpp"
 #include "MKD/output/export_options.hpp"
 #include "MKD/output/resource_exporter.hpp"
+#include "MKD/resource/nrsc.hpp"
+#include "MKD/resource/rsc.hpp"
+#include "MKD/resource/font.hpp"
+#include "MKD/resource/keystore.hpp"
+#include "MKD/resource/headline_store.hpp"
 
 #include <variant>
 
@@ -42,13 +42,13 @@ namespace MKD
 
         [[nodiscard]] size_t resourceCount(ResourceType type) const noexcept;
 
-        ExportResult exportWithOptions(const ExportOptions& options) const;
+        [[nodiscard]] ExportResult exportWithOptions(const ExportOptions& options) const;
 
     private:
-        Result<ExportResult> exportAudio(const ExportOptions& options) const;
-        Result<ExportResult> exportFonts(const ExportOptions& options) const;
-        Result<ExportResult> exportKeystores(const ExportOptions& options) const;
-        Result<ExportResult> exportHeadlines(const ExportOptions& options) const;
+        [[nodiscard]] Result<ExportResult> exportAudio(const ExportOptions& options) const;
+        [[nodiscard]] Result<ExportResult> exportFonts(const ExportOptions& options) const;
+        [[nodiscard]] Result<ExportResult> exportKeystores(const ExportOptions& options) const;
+        [[nodiscard]] Result<ExportResult> exportHeadlines(const ExportOptions& options) const;
 
         DictionaryContent content_;
         std::optional<Rsc> entries_;

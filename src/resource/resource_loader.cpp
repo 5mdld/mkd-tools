@@ -4,6 +4,7 @@
 
 #include "MKD/resource/resource_loader.hpp"
 
+#include <algorithm>
 #include <iostream>
 
 namespace MKD

@@ -12,7 +12,6 @@
 #include <string>
 #include <vector>
 
-
 namespace MKD
 {
     class ZlibDecompressor

@@ -2,12 +2,11 @@
 // kiwakiwaaにより 2026/01/16 に作成されました。
 //
 
-#include "MKD/resource/zlib_decompressor.hpp"
+#include "zlib_decompressor.hpp"
 
 #include <iostream>
 #include <format>
 #include <zlib.h>
-
 
 namespace MKD
 {

@@ -7,7 +7,7 @@
 #include "MKD/output/export_options.hpp"
 #include "MKD/output/export_result.hpp"
 #include "MKD/output/base_exporter.hpp"
-#include "MKD/resource/headline/headline_store.hpp"
+#include "MKD/resource/headline_store.hpp"
 
 namespace MKD
 {

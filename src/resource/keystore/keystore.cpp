@@ -2,7 +2,8 @@
 // kiwakiwaaにより 2026/02/11 に作成されました。
 //
 
-#include "MKD/resource/keystore/keystore.hpp"
+#include "MKD/resource/keystore.hpp"
+#include "../../platform/binary_file_reader.hpp"
 
 #include <array>
 #include <bit>
@@ -36,26 +37,99 @@ namespace MKD
     }
 
 
-    Keystore::Keystore(
-        std::vector<uint8_t>&& fileData,
-        std::vector<uint32_t>&& indexLength,
-        std::vector<uint32_t>&& indexPrefix,
-        std::vector<uint32_t>&& indexSuffix,
-        std::vector<uint32_t>&& indexD,
-        const size_t wordsOffset,
-        const std::span<const ConversionEntry> conversionTable,
-        std::string dictId,
-        std::string filename)
-        : fileData_(std::move(fileData))
-          , indexLength_(std::move(indexLength))
-          , indexPrefix_(std::move(indexPrefix))
-          , indexSuffix_(std::move(indexSuffix))
-          , indexOther_(std::move(indexD))
-          , wordsOffset_(wordsOffset)
-          , conversionTable_(conversionTable)
-          , dictId_(std::move(dictId))
-          , filename_(std::move(filename))
+    struct Keystore::Impl
     {
+        std::vector<uint8_t> fileData;
+        std::vector<uint32_t> indexLength; // Index A
+        std::vector<uint32_t> indexPrefix; // Index B
+        std::vector<uint32_t> indexSuffix; // Index C
+        std::vector<uint32_t> indexOther; // Index D
+        size_t wordsOffset;
+
+        std::span<const ConversionEntry> conversionTable;
+        std::string dictId;
+        std::string filename;
+
+
+        Impl(std::vector<uint8_t>&& fileData,
+             std::vector<uint32_t>&& indexLength,
+             std::vector<uint32_t>&& indexPrefix,
+             std::vector<uint32_t>&& indexSuffix,
+             std::vector<uint32_t>&& indexD,
+             size_t wordsOffset,
+             std::span<const ConversionEntry> conversionTable,
+             std::string dictId,
+             std::string filename)
+            : fileData(std::move(fileData))
+              , indexLength(std::move(indexLength))
+              , indexPrefix(std::move(indexPrefix))
+              , indexSuffix(std::move(indexSuffix))
+              , indexOther(std::move(indexD))
+              , wordsOffset(wordsOffset)
+              , conversionTable(conversionTable)
+              , dictId(std::move(dictId))
+              , filename(std::move(filename))
+        {
+        }
+    };
+
+
+    Keystore::Keystore(std::unique_ptr<Impl> impl) noexcept
+        : impl_(std::move(impl))
+    {
+    }
+
+
+    Keystore::~Keystore() = default;
+    Keystore::Keystore(Keystore&&) noexcept = default;
+    Keystore& Keystore::operator=(Keystore&&) noexcept = default;
+
+
+    namespace
+    {
+        Result<KeystoreHeader> readHeader(BinaryFileReader& reader)
+        {
+            auto result = reader.readStructPartial<KeystoreHeader>(16);
+            if (!result)
+                return std::unexpected(result.error());
+
+            KeystoreHeader header = *result;
+
+            if (header.version != KEYSTORE_V1 && header.version != KEYSTORE_V2)
+                return std::unexpected(std::format("Invalid keystore version: 0x{:x}", header.version));
+
+            // V2 has an additional 16 bytes
+            if (header.version == KEYSTORE_V2)
+            {
+                const auto ext = reader.readStructPartial<KeystoreHeader>(16);
+                if (!ext) return std::unexpected("Failed to read v2 header extension");
+                std::memcpy(&header.conversionTableOffset, &ext->version, 16);
+            }
+
+            if (header.magic1 != 0)
+                return std::unexpected("Invalid magic1 field");
+            if (header.wordsOffset >= header.indexOffset)
+                return std::unexpected("Invalid offset ordering: wordsOffset >= idxOffset");
+
+            if (header.version == KEYSTORE_V2)
+            {
+                if (header.magic5 != 0 || header.magic6 != 0 || header.magic7 != 0)
+                    return std::unexpected("Invalid magic fields in v2 header");
+                if (header.conversionTableOffset != 0 && header.indexOffset >= header.conversionTableOffset)
+                    return std::unexpected("Invalid next offset in v2 header");
+            }
+
+            return header;
+        }
+
+
+        Result<std::vector<uint8_t>> readFileData(const BinaryFileReader& reader, const size_t fileSize)
+        {
+            if (auto s = reader.seek(0); !s)
+                return std::unexpected(s.error());
+
+            return reader.readBytes(fileSize);
+        }
     }
 
 
@@ -84,12 +158,13 @@ namespace MKD
         auto convTable = parseConversionTable(*fileData, header->conversionTableOffset, fileSize);
         if (!convTable) return std::unexpected(convTable.error());
 
-        return Keystore(
+
+        return Keystore(std::make_unique<Impl>(
             std::move(*fileData),
             std::move(indices->length), std::move(indices->prefix),
             std::move(indices->suffix), std::move(indices->other),
             header->wordsOffset, *convTable, dictId, path.filename().string()
-        );
+        ));
     }
 
 
@@ -130,17 +205,17 @@ namespace MKD
     }
 
 
-    std::string_view Keystore::filename() const { return filename_; }
+    std::string_view Keystore::filename() const { return impl_->filename; }
 
 
     const std::vector<uint32_t>* Keystore::getIndexArray(const KeystoreIndex type) const noexcept
     {
         switch (type)
         {
-            case KeystoreIndex::Length: return &indexLength_;
-            case KeystoreIndex::Prefix: return &indexPrefix_;
-            case KeystoreIndex::Suffix: return &indexSuffix_;
-            case KeystoreIndex::Other: return &indexOther_;
+            case KeystoreIndex::Length: return &impl_->indexLength;
+            case KeystoreIndex::Prefix: return &impl_->indexPrefix;
+            case KeystoreIndex::Suffix: return &impl_->indexSuffix;
+            case KeystoreIndex::Other: return &impl_->indexOther;
         }
         std::unreachable();
     }
@@ -148,14 +223,14 @@ namespace MKD
 
     Result<Keystore::WordEntry> Keystore::parseWordEntry(const uint32_t wordOffset) const
     {
-        const size_t absOffset = wordsOffset_ + wordOffset;
+        const size_t absOffset = impl_->wordsOffset + wordOffset;
 
         // Need at least: uint32 pagesOffset + 1 separator byte
-        if (absOffset + sizeof(uint32_t) + 1 >= fileData_.size())
+        if (absOffset + sizeof(uint32_t) + 1 >= impl_->fileData.size())
             return std::unexpected("Word offset out of bounds");
 
         uint32_t pagesOffset;
-        std::memcpy(&pagesOffset, &fileData_[absOffset], sizeof(uint32_t));
+        std::memcpy(&pagesOffset, &impl_->fileData[absOffset], sizeof(uint32_t));
         if constexpr (std::endian::native == std::endian::big)
             pagesOffset = std::byteswap(pagesOffset);
 
@@ -164,15 +239,15 @@ namespace MKD
 
         // Find null terminator
         const auto* nullPos = static_cast<const uint8_t*>(
-            std::memchr(&fileData_[stringStart], 0, fileData_.size() - stringStart)
+            std::memchr(&impl_->fileData[stringStart], 0, impl_->fileData.size() - stringStart)
         );
         if (!nullPos)
             return std::unexpected("Unterminated word string");
 
-        const auto stringLen = static_cast<size_t>(nullPos - &fileData_[stringStart]);
+        const auto stringLen = static_cast<size_t>(nullPos - &impl_->fileData[stringStart]);
 
         return WordEntry{
-            .key = std::string_view(reinterpret_cast<const char*>(&fileData_[stringStart]), stringLen),
+            .key = std::string_view(reinterpret_cast<const char*>(&impl_->fileData[stringStart]), stringLen),
             .pagesOffset = pagesOffset,
         };
     }
@@ -180,20 +255,20 @@ namespace MKD
 
     Result<std::vector<PageReference> > Keystore::decodePages(const size_t pagesOffset) const
     {
-        const size_t absOffset = wordsOffset_ + pagesOffset;
+        const size_t absOffset = impl_->wordsOffset + pagesOffset;
 
-        if (absOffset + 2 > fileData_.size())
+        if (absOffset + 2 > impl_->fileData.size())
             return std::unexpected(std::format(
-                "Pages offset out of bounds: {} + 2 > {}", absOffset, fileData_.size()));
+                "Pages offset out of bounds: {} + 2 > {}", absOffset, impl_->fileData.size()));
 
-        return decodePageReferences(std::span(fileData_).subspan(absOffset));
+        return decodePageReferences(std::span(impl_->fileData).subspan(absOffset));
     }
 
 
     // this should actually be determined by a var 'searchOption' but I don't know its origins
     bool Keystore::needsConversion() const noexcept
     {
-        return !conversionTable_.empty() && (dictId_ == "KNEJ.EJ" || dictId_ == "KNJE.JE");
+        return !impl_->conversionTable.empty() && (impl_->dictId == "KNEJ.EJ" || impl_->dictId == "KNJE.JE");
     }
 
 
@@ -201,58 +276,13 @@ namespace MKD
     {
         for (auto& [page, item] : refs)
         {
-            if (page < conversionTable_.size())
+            if (page < impl_->conversionTable.size())
             {
-                const auto& mapped = conversionTable_[page];
+                const auto& mapped = impl_->conversionTable[page];
                 page = mapped.page;
                 item = mapped.item;
             }
         }
-    }
-
-
-    Result<KeystoreHeader> Keystore::readHeader(BinaryFileReader& reader)
-    {
-        auto result = reader.readStructPartial<KeystoreHeader>(16);
-        if (!result)
-            return std::unexpected(result.error());
-
-        KeystoreHeader header = *result;
-
-        if (header.version != KEYSTORE_V1 && header.version != KEYSTORE_V2)
-            return std::unexpected(std::format("Invalid keystore version: 0x{:x}", header.version));
-
-        // V2 has an additional 16 bytes
-        if (header.version == KEYSTORE_V2)
-        {
-            auto ext = reader.readStructPartial<KeystoreHeader>(16);
-            if (!ext) return std::unexpected("Failed to read v2 header extension");
-            std::memcpy(&header.conversionTableOffset, &ext->version, 16);
-        }
-
-        if (header.magic1 != 0)
-            return std::unexpected("Invalid magic1 field");
-        if (header.wordsOffset >= header.indexOffset)
-            return std::unexpected("Invalid offset ordering: wordsOffset >= idxOffset");
-
-        if (header.version == KEYSTORE_V2)
-        {
-            if (header.magic5 != 0 || header.magic6 != 0 || header.magic7 != 0)
-                return std::unexpected("Invalid magic fields in v2 header");
-            if (header.conversionTableOffset != 0 && header.indexOffset >= header.conversionTableOffset)
-                return std::unexpected("Invalid next offset in v2 header");
-        }
-
-        return header;
-    }
-
-
-    Result<std::vector<uint8_t> > Keystore::readFileData(const BinaryFileReader& reader, const size_t fileSize)
-    {
-        if (auto s = reader.seek(0); !s)
-            return std::unexpected(s.error());
-
-        return reader.readBytes(fileSize);
     }
 
 
@@ -322,7 +352,7 @@ namespace MKD
         };
 
         // Resolve the end boundary for index i: the first nonzero offset after it, or sz
-        auto endOf = [&](size_t i) -> uint32_t {
+        auto endOf = [&](const size_t i) -> uint32_t {
             for (size_t j = i + 1; j < offsets.size(); ++j)
                 if (offsets[j] != 0) return offsets[j];
             return sz;

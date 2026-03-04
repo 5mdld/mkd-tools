@@ -4,9 +4,9 @@
 
 #pragma once
 
-#include "MKD/resource/common.hpp"
 #include "MKD/result.hpp"
-#include "MKD/resource/headline/headline_record.hpp"
+#include "MKD/resource/common.hpp"
+#include "MKD/resource/headline_record.hpp"
 
 #include <expected>
 #include <iterator>

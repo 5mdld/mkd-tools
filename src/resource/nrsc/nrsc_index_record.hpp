@@ -8,7 +8,6 @@
 
 #include <format>
 
-
 namespace MKD
 {
     /**

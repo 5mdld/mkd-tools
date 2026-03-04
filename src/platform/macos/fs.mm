@@ -1,4 +1,8 @@
-#include "MKD/platform/macos/fs.hpp"
+//
+// kiwakiwaaにより 2026/02/19 に作成されました。
+//
+
+#include "fs.hpp"
 
 #import <Foundation/Foundation.h>
 

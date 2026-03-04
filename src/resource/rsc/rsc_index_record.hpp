@@ -6,7 +6,6 @@
 
 #include "MKD/resource/common.hpp"
 
-
 namespace MKD
 {
     /**

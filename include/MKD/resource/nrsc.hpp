@@ -4,11 +4,10 @@
 
 #pragma once
 
+#include "MKD/result.hpp"
 #include "MKD/resource/common.hpp"
-#include "nrsc_index.hpp"
-#include "nrsc_data.hpp"
+#include "MKD/resource/retained_span.hpp"
 
-#include <expected>
 #include <filesystem>
 #include <iterator>
 
@@ -22,12 +21,16 @@ namespace MKD
     struct NrscItem
     {
         std::string_view id;
-        std::span<const uint8_t> data;
+        RetainedSpan data;
     };
 
     class Nrsc
     {
     public:
+        ~Nrsc();
+        Nrsc(Nrsc&&) noexcept;
+        Nrsc& operator=(Nrsc&&) noexcept;
+
         /**
          * Factory method to open a .nrsc resource from a directory
          * @param directoryPath Directory path containing the resources
@@ -41,7 +44,7 @@ namespace MKD
          * @param id String ID of the resource
          * @return Data view of resource data, error string if failure
          */
-        [[nodiscard]] Result<std::span<const uint8_t>> get(std::string_view id) const;
+        [[nodiscard]] Result<RetainedSpan> get(std::string_view id) const;
 
         /**
          * Get resource by index
@@ -97,11 +100,9 @@ namespace MKD
         static_assert(std::forward_iterator<Iterator>);
 
     private:
-
-        explicit Nrsc(NrscIndex&& index, NrscData&& data);
-
-        NrscIndex index_;
-        NrscData data_;
+        struct Impl;
+        std::unique_ptr<Impl> impl_;
+        explicit Nrsc(std::unique_ptr<Impl> impl) noexcept;
 
     };
 

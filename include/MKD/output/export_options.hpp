@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "event.hpp"
+#include "MKD/output/event.hpp"
 #include "MKD/resource/resource_type.hpp"
 
 #include <filesystem>

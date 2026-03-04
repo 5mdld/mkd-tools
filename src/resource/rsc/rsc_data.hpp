@@ -5,11 +5,10 @@
 #pragma once
 
 #include "MKD/result.hpp"
-#include "MKD/resource/owned_span.hpp"
-#include "MKD/resource/rsc/rsc_index.hpp"
-#include "MKD/resource/rsc/rsc_crypto.hpp"
-#include "MKD/resource/zlib_decompressor.hpp"
-#include "MKD/platform/read_sequence.hpp"
+#include "MKD/resource/retained_span.hpp"
+#include "../../platform/read_sequence.hpp"
+#include "rsc_index.hpp"
+#include "rsc_crypto.hpp"
 
 #include <array>
 #include <filesystem>
@@ -18,8 +17,8 @@
 #include <vector>
 
 #if defined(__APPLE__) || defined(__linux__)
-    #include "MKD/platform/mmap_file.hpp"
-    #include <mutex>
+    #include "../../platform/mmap_file.hpp"
+#include <mutex>
     #include <unordered_map>
 #endif
 
@@ -133,7 +132,7 @@ namespace MKD
          * @param record MapRecord specifying the chunk offset and item offset
          * @return Span view of item data, or error string if failure
          */
-        [[nodiscard]] Result<OwnedSpan> get(const MapRecord& record) const;
+        [[nodiscard]] Result<RetainedSpan> get(const MapRecord& record) const;
 
     private:
         /**
@@ -155,7 +154,7 @@ namespace MKD
          * @param globalOffset Offset in global address space
          * @return Span view to the data
          */
-        [[nodiscard]] Result<OwnedSpan> readDirectData(size_t globalOffset) const;
+        [[nodiscard]] Result<RetainedSpan> readDirectData(size_t globalOffset) const;
 
         /**
          * Parse a single item from the currently loaded chunk
@@ -163,7 +162,7 @@ namespace MKD
          * @param offset Offset within chunkBuffer_ where item begins
          * @return Span view of item content or error string
          */
-        static Result<OwnedSpan> parseItemFromChunk(std::shared_ptr<const std::vector<uint8_t>> chunk, size_t offset);
+        static Result<RetainedSpan> parseItemFromChunk(std::shared_ptr<const std::vector<uint8_t>> chunk, size_t offset);
 
         std::vector<RscResourceFile> files_;
         std::optional<std::array<uint8_t, 32>> decryptionKey_;

@@ -2,8 +2,7 @@
 // kiwakiwaaにより 2026/01/29 に作成されました。
 //
 
-#include "MKD/resource/rsc/rsc_map.hpp"
-
+#include "rsc_map.hpp"
 
 namespace MKD
 {

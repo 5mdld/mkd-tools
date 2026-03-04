@@ -15,23 +15,23 @@ namespace MKD
     /*
      * A span of bytes that keeps its backing memory alive
      */
-    class OwnedSpan
+    class RetainedSpan
     {
     public:
         // non owning view
-        explicit OwnedSpan(const std::span<const uint8_t> span)
+        explicit RetainedSpan(const std::span<const uint8_t> span)
             : span_(span)
         {
         }
 
         // Owning view into a shared buffer.
-        OwnedSpan(std::shared_ptr<const std::vector<uint8_t>> owner, const std::span<const uint8_t> span)
+        RetainedSpan(std::shared_ptr<const std::vector<uint8_t>> owner, const std::span<const uint8_t> span)
             : owner_(std::move(owner)), span_(span)
         {
         }
 
         // Owning view of a shared buffer
-        explicit OwnedSpan(std::shared_ptr<const std::vector<uint8_t>> owner)
+        explicit RetainedSpan(std::shared_ptr<const std::vector<uint8_t>> owner)
             : owner_(std::move(owner))
             , span_(owner_->data(), owner_->size())
         {

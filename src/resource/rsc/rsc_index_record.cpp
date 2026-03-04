@@ -2,8 +2,7 @@
 // kiwakiwaaにより 2026/01/29 に作成されました。
 //
 
-#include "MKD/resource/rsc/rsc_index_record.hpp"
-
+#include "rsc_index_record.hpp"
 
 namespace MKD
 {

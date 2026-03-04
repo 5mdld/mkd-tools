@@ -4,13 +4,12 @@
 
 #pragma once
 
-#include "MKD/resource/rsc/rsc_index.hpp"
-#include "MKD/resource/rsc/rsc_data.hpp"
+#include "MKD/result.hpp"
+#include "MKD/resource/retained_span.hpp"
 
 #include <expected>
+#include <filesystem>
 #include <iterator>
-#include <optional>
-#include <string>
 
 namespace fs = std::filesystem;
 
@@ -19,16 +18,21 @@ namespace MKD
     struct RscItem
     {
         uint32_t itemId;
-        std::span<const uint8_t> data;
+        RetainedSpan data;
     };
 
     class Rsc
     {
     public:
+        ~Rsc() noexcept;
+        Rsc(Rsc&&) noexcept;
+        Rsc& operator=(Rsc&&) noexcept;
+
         /**
          * Factory method to open .rsc dictionary contents from a dictionary
          *
          * @param directoryPath Directory path containing the .idx/.map & .rsc files
+         * @param dictId Needed if the dictionary has encryption applied. The decryption key is derived from the identifier
          * @return
          */
         static Result<Rsc> open(const fs::path& directoryPath, std::string_view dictId = "");
@@ -38,7 +42,7 @@ namespace MKD
          * map record, it will use that to retrieve the data from the .rsc
          * this works well for dictionary entries where you want to get the xml data for a given itemId
          */
-        [[nodiscard]] Result<OwnedSpan> get(uint32_t itemId) const;
+        [[nodiscard]] Result<RetainedSpan> get(uint32_t itemId) const;
 
         /**
          * Get RscItem by index
@@ -91,10 +95,10 @@ namespace MKD
         static_assert(std::forward_iterator<Iterator>);
 
     private:
-        explicit Rsc(RscIndex&& index, RscData&& data);
+        struct Impl;
+        std::unique_ptr<Impl> impl_;
 
-        RscIndex index_;
-        RscData data_;
+        explicit Rsc(std::unique_ptr<Impl> impl) noexcept;
     };
 
 

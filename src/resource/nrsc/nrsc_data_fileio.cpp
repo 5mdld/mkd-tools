@@ -2,8 +2,9 @@
 // kiwakiwaaにより 2026/01/16 に作成されました。
 //
 
-#include "MKD/resource/nrsc/nrsc_data.hpp"
 #include "MKD/resource/common.hpp"
+#include "nrsc_data.hpp"
+#include "../zlib_decompressor.hpp"
 
 #include <algorithm>
 #include <format>

@@ -2,13 +2,38 @@
 // kiwakiwaaにより 2026/01/16 に作成されました。
 //
 
-#include "MKD/resource/nrsc/nrsc.hpp"
+#include "MKD/resource/nrsc.hpp"
+#include "nrsc_index.hpp"
+#include "nrsc_data.hpp"
 
 #include <cassert>
 #include <format>
 
 namespace MKD
 {
+    struct Nrsc::Impl
+    {
+        NrscIndex index;
+        NrscData data;
+
+        Impl(NrscIndex&& index, NrscData&& data)
+            : index(std::move(index)), data(std::move(data))
+        {
+        }
+    };
+
+
+    Nrsc::Nrsc(std::unique_ptr<Impl> impl) noexcept
+        : impl_(std::move(impl))
+    {
+    }
+
+
+    Nrsc::~Nrsc() = default;
+    Nrsc::Nrsc(Nrsc&&) noexcept = default;
+    Nrsc& Nrsc::operator=(Nrsc&&) noexcept = default;
+
+
     Result<Nrsc> Nrsc::open(const fs::path& directoryPath)
     {
         auto indexResult = NrscIndex::load(directoryPath);
@@ -19,28 +44,28 @@ namespace MKD
         if (!dataResult)
             return std::unexpected(std::format("Failed to load nrsc data: {}", dataResult.error()));
 
-        return Nrsc{std::move(*indexResult), std::move(*dataResult)};
+        return Nrsc{std::make_unique<Impl>(std::move(*indexResult), std::move(*dataResult))};
     }
 
 
-    Result<std::span<const uint8_t>> Nrsc::get(std::string_view id) const
+    Result<RetainedSpan> Nrsc::get(std::string_view id) const
     {
-        auto record = index_.findById(id);
+        auto record = impl_->index.findById(id);
         if (!record)
             return std::unexpected(record.error());
 
-        return data_.get(*record);
+        return impl_->data.get(*record);
     }
 
 
     Result<NrscItem> Nrsc::getByIndex(const size_t index) const
     {
-        auto result = index_.getByIndex(index);
+        auto result = impl_->index.getByIndex(index);
         if (!result)
             return std::unexpected(result.error());
 
         auto [id, record] = *result;
-        auto dataResult = data_.get(record);
+        auto dataResult = impl_->data.get(record);
         if (!dataResult)
             return std::unexpected(dataResult.error());
 
@@ -50,13 +75,13 @@ namespace MKD
 
     size_t Nrsc::size() const noexcept
     {
-        return index_.size();
+        return impl_->index.size();
     }
 
 
     bool Nrsc::empty() const noexcept
     {
-        return index_.empty();
+        return impl_->index.empty();
     }
 
 
@@ -102,12 +127,6 @@ namespace MKD
     bool Nrsc::Iterator::operator!=(const Iterator& other) const
     {
         return !(*this == other);
-    }
-
-
-    Nrsc::Nrsc(NrscIndex&& index, NrscData&& data)
-        : index_(std::move(index)), data_(std::move(data))
-    {
     }
 
 

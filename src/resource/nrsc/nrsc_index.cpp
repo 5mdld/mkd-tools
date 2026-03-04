@@ -2,8 +2,8 @@
 // kiwakiwaaにより 2026/01/16 に作成されました。
 //
 
-#include "MKD/resource/nrsc/nrsc_index.hpp"
-#include "MKD/platform/read_sequence.hpp"
+#include "../../platform/read_sequence.hpp"
+#include "nrsc_index.hpp"
 
 #include <algorithm>
 #include <cassert>

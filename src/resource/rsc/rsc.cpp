@@ -2,15 +2,39 @@
 // kiwakiwaaにより 2026/02/01 に作成されました。
 //
 
-#include "MKD/resource/rsc/rsc.hpp"
+#include "MKD/resource/rsc.hpp"
+#include "rsc_index.hpp"
+#include "rsc_data.hpp"
 
 #include <algorithm>
 #include <cassert>
-#include <iostream>
 #include <ranges>
 
 namespace MKD
 {
+    struct Rsc::Impl
+    {
+        RscIndex index;
+        RscData data;
+
+        Impl(RscIndex&& index, RscData&& data)
+            : index(std::move(index)), data(std::move(data))
+        {
+        }
+    };
+
+
+    Rsc::Rsc(std::unique_ptr<Impl> impl) noexcept
+        : impl_(std::move(impl))
+    {
+    }
+
+
+    Rsc::~Rsc() noexcept = default;
+    Rsc::Rsc(Rsc&&) noexcept = default;
+    Rsc& Rsc::operator=(Rsc&&) noexcept = default;
+
+
     Result<Rsc> Rsc::open(const fs::path& directoryPath, std::string_view dictId)
     {
         auto indexResult = RscIndex::load(directoryPath);
@@ -21,44 +45,44 @@ namespace MKD
         if (!dataResult)
             return std::unexpected(std::format("Failed to load rsc data: {}", dataResult.error()));
 
-        return Rsc(std::move(*indexResult), std::move(*dataResult));
+        return Rsc(std::make_unique<Impl>(std::move(*indexResult), std::move(*dataResult)));
     }
 
 
-    Result<OwnedSpan> Rsc::get(const uint32_t itemId) const
+    Result<RetainedSpan> Rsc::get(const uint32_t itemId) const
     {
-        const auto record = index_.findById(itemId);
+        const auto record = impl_->index.findById(itemId);
         if (!record)
             return std::unexpected(std::format("Failed to get record from rsc index: {}", itemId));
 
-        return data_.get(*record);
+        return impl_->data.get(*record);
     }
 
 
     Result<RscItem> Rsc::getByIndex(const size_t index) const
     {
-        auto result = index_.getByIndex(index);
+        auto result = impl_->index.getByIndex(index);
         if (!result)
             return std::unexpected(result.error());
 
         auto [id, record] = *result;
-        auto dataResult = data_.get(record);
+        auto dataResult = impl_->data.get(record);
         if (!dataResult)
             return std::unexpected(dataResult.error());
 
-        return RscItem{id, dataResult->span()};
+        return RscItem{id, *dataResult};
     }
 
 
     size_t Rsc::size() const noexcept
     {
-        return index_.size();
+        return impl_->index.size();
     }
 
 
     bool Rsc::empty() const noexcept
     {
-        return index_.empty();
+        return impl_->index.empty();
     }
 
 
@@ -114,11 +138,5 @@ namespace MKD
     Rsc::Iterator Rsc::end() const
     {
         return Iterator{this, size()};
-    }
-
-
-    Rsc::Rsc(RscIndex&& index, RscData&& data)
-    : index_(std::move(index)), data_(std::move(data))
-    {
     }
 }

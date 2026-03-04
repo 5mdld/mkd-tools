@@ -3,7 +3,9 @@
 //
 
 #include "MKD/resource/font.hpp"
-#include "MKD/resource/rsc/rsc.hpp"
+#include "MKD/resource/rsc.hpp"
+
+#include <format>
 
 namespace MKD
 {

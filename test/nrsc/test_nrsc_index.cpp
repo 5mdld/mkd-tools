@@ -6,9 +6,9 @@
 #include <filesystem>
 
 #include "../test_listener.hpp"
-#include "MKD/platform/macos/fs.hpp"
+#include "../../src/platform/macos/fs.hpp"
 #include "MKD/platform/macos/macos_dictionary_source.hpp"
-#include "MKD/resource/nrsc/nrsc_index.hpp"
+#include "../../src/resource/nrsc/nrsc_index.hpp"
 
 class NrscIndexTest : public ::testing::Test
 {

@@ -13,7 +13,9 @@
 
 namespace MKD
 {
-    /// RAII read-only memory-mapped file.
+    /*
+     * Read only mmap file
+     */
     class MappedFile
     {
     public:
@@ -30,7 +32,12 @@ namespace MKD
         [[nodiscard]] std::span<const uint8_t> data() const noexcept;
         [[nodiscard]] size_t size() const noexcept;
 
-        /// Return a subspan, or error if out of bounds.
+        /**
+         * Return a subspan of the memory mapped data
+         * @param offset starting offset
+         * @param length length of the data
+         * @return Subspan of the data or error string if failure
+         */
         [[nodiscard]] Result<std::span<const uint8_t>> slice(size_t offset, size_t length) const;
 
     private:

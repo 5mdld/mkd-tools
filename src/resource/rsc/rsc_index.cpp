@@ -2,8 +2,8 @@
 // kiwakiwaaにより 2026/01/19 に作成されました。
 //
 
-#include "MKD/resource/rsc/rsc_index.hpp"
-#include "MKD/platform/read_sequence.hpp"
+#include "../../platform/read_sequence.hpp"
+#include "rsc_index.hpp"
 
 #include <algorithm>
 #include <bit>

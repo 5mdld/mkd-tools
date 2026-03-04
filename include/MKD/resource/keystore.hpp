@@ -4,11 +4,10 @@
 
 #pragma once
 
-#include "MKD/resource/common.hpp"
 #include "MKD/result.hpp"
-#include "MKD/platform/binary_file_reader.hpp"
-#include "MKD/resource/keystore/page_reference.hpp"
-#include "MKD/resource/keystore/keystore_lookup_result.hpp"
+#include "MKD/resource/common.hpp"
+#include "MKD/resource/page_reference.hpp"
+#include "MKD/resource/keystore_lookup_result.hpp"
 
 #include <expected>
 #include <string>
@@ -105,6 +104,10 @@ namespace MKD
     class Keystore
     {
     public:
+        ~Keystore();
+        Keystore(Keystore&&) noexcept;
+        Keystore& operator=(Keystore&&) noexcept;
+
         /**
          * Load a keystore file from disk.
          *
@@ -140,18 +143,6 @@ namespace MKD
         [[nodiscard]] std::string_view filename() const;
 
     private:
-        Keystore(
-            std::vector<uint8_t>&& fileData,
-            std::vector<uint32_t>&& indexLength,
-            std::vector<uint32_t>&& indexPrefix,
-            std::vector<uint32_t>&& indexSuffix,
-            std::vector<uint32_t>&& indexD,
-            size_t wordsOffset,
-            std::span<const ConversionEntry> conversionTable,
-            std::string dictId,
-            std::string filename
-        );
-
         [[nodiscard]] const std::vector<uint32_t>* getIndexArray(KeystoreIndex type) const noexcept;
 
         /**
@@ -181,9 +172,6 @@ namespace MKD
          */
         void applyConversion(std::vector<PageReference>& refs) const noexcept;
 
-        static Result<KeystoreHeader> readHeader(BinaryFileReader& reader);
-        static Result<std::vector<uint8_t>> readFileData(const BinaryFileReader& reader, size_t fileSize);
-
         static Result<IndexHeader> readIndexHeader(std::span<const uint8_t> data);
 
         struct IndexArrays
@@ -206,15 +194,8 @@ namespace MKD
 
         static Result<std::span<const ConversionEntry>> parseConversionTable(std::span<const uint8_t> fileData, size_t offset, size_t fileSize);
 
-        std::vector<uint8_t> fileData_;
-        std::vector<uint32_t> indexLength_; // Index A
-        std::vector<uint32_t> indexPrefix_; // Index B
-        std::vector<uint32_t> indexSuffix_; // Index C
-        std::vector<uint32_t> indexOther_; // Index D
-        size_t wordsOffset_;
-
-        std::span<const ConversionEntry> conversionTable_;
-        std::string dictId_;
-        std::string filename_;
+        struct Impl;
+        std::unique_ptr<Impl> impl_;
+        explicit Keystore(std::unique_ptr<Impl> impl) noexcept;
     };
 }
