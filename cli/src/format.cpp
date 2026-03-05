@@ -128,7 +128,7 @@ namespace MKDCLI
 
     void printExportSummary(const MKD::ExportResult& result)
     {
-        std::cerr << Colour::bold("Done. ");
+        std::cerr << Colour::bold("Complete. ");
         std::cerr << Colour::green(std::to_string(result.exported)) << " exported";
 
         if (result.skipped > 0)

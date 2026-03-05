@@ -24,10 +24,10 @@ namespace MKDCLI
 
     void ExportProgress::finish()
     {
+        bar_->set_option(indicators::option::PostfixText{"│ Complete"});
         if (bar_ && !bar_->is_completed())
             bar_->mark_as_completed();
         bar_.reset();
-
         indicators::show_console_cursor(true);
     }
 
@@ -36,21 +36,26 @@ namespace MKDCLI
     {
         grandTotal_ = e.totalItems;
         phaseOffset_ = 0;
-
         indicators::show_console_cursor(false);
-
         bar_ = std::make_unique<indicators::ProgressBar>(
             indicators::option::BarWidth{40},
-            indicators::option::Start{"["},
-            indicators::option::Fill{"█"},
-            indicators::option::Lead{"█"},
-            indicators::option::Remainder{"░"},
-            indicators::option::End{"]"},
+            indicators::option::Start{"⟨"},
+            indicators::option::Fill{"▓"},
+            indicators::option::Lead{"▒"},
+            indicators::option::Remainder{"─"},
+            indicators::option::End{"⟩"},
             indicators::option::MaxProgress{grandTotal_},
             indicators::option::ShowPercentage{true},
             indicators::option::ShowElapsedTime{true},
-            indicators::option::PrefixText{"Exporting  "}
+            indicators::option::PrefixText{"EXPORTING  "}
         );
+
+        if (Colour::isEnabled())
+        {
+            bar_->set_option(indicators::option::ForegroundColor{indicators::Color::red});
+            bar_->set_option(indicators::option::FontStyles{std::vector{indicators::FontStyle::bold}
+            });
+        }
     }
 
 
@@ -70,7 +75,7 @@ namespace MKDCLI
         auto name = MKD::resourceTypeName(e.type);
 
         bar_->set_option(indicators::option::PostfixText{
-            std::format("{} {}/{}", name, e.completedItems, e.totalItems)
+            std::format("│ {} {}/{}", name, e.completedItems, e.totalItems)
         });
         bar_->set_progress(globalCompleted);
     }
@@ -82,6 +87,6 @@ namespace MKDCLI
             phaseOffset_ += e.result.totalResources;
 
         for (const auto& err : e.result.errors)
-            std::cerr << Colour::yellow("  warning: ") << err << "\n";
+            std::cerr << Colour::yellow("  ⚠ warning: ") << err << "\n";
     }
 }

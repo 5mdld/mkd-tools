@@ -3,7 +3,7 @@
 //
 
 #include "MKD/output/resource_exporter.hpp"
-#include "MKD/output/export_accumulator.hpp"
+#include "export_accumulator.hpp"
 #include "../platform/parallel.hpp"
 
 #include <format>

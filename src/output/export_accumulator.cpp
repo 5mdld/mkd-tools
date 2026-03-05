@@ -2,7 +2,7 @@
 // kiwakiwaaにより 2026/02/26 に作成されました。
 //
 
-#include "MKD/output/export_accumulator.hpp"
+#include "export_accumulator.hpp"
 
 
 namespace MKD
