@@ -50,8 +50,11 @@ namespace MKD
 
         switch (type)
         {
-            case ResourceType::Entries: return existingDir(base / "contents");
-            case ResourceType::Audio: return existingDir(base / "audio");
+            case ResourceType::Contents:
+                return existingDir(base / "contents");
+            case ResourceType::Audio:
+            case ResourceType::AudioLegacy:
+                return existingDir(base / "audio");
             case ResourceType::Graphics:
             {
                 static constexpr std::array candidates = {"graphics"sv, "img"sv};
@@ -59,9 +62,12 @@ namespace MKD
                     return *path;
                 return std::nullopt;
             }
-            case ResourceType::Keystores: return existingDir(base / "key");
-            case ResourceType::Headlines: return existingDir(base / "headline");
-            case ResourceType::Fonts: return existingDir(base / "fonts");
+            case ResourceType::Keystores:
+                return existingDir(base / "key");
+            case ResourceType::Headlines:
+                return existingDir(base / "headline");
+            case ResourceType::Fonts:
+                return existingDir(base / "fonts");
         }
         std::unreachable();
     }

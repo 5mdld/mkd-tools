@@ -19,7 +19,7 @@ namespace MKDCLI
     std::optional<MKD::ResourceType> parseResourceType(std::string_view str) noexcept
     {
         if (str == "audio") return MKD::ResourceType::Audio;
-        if (str == "entries") return MKD::ResourceType::Entries;
+        if (str == "entries") return MKD::ResourceType::Contents;
         if (str == "graphics") return MKD::ResourceType::Graphics;
         if (str == "fonts") return MKD::ResourceType::Fonts;
         if (str == "keystores") return MKD::ResourceType::Keystores;

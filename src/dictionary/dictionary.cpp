@@ -76,8 +76,9 @@ namespace MKD
         switch (type)
         {
             case ResourceType::Audio:
+            case ResourceType::AudioLegacy:
                 return audio_ ? std::visit([](const auto& r) { return r.size(); }, *audio_) : 0;
-            case ResourceType::Entries:
+            case ResourceType::Contents:
                 return entries_ ? entries_->size() : 0;
             case ResourceType::Graphics:
                 return graphics_ ? graphics_->size() : 0;
@@ -113,7 +114,7 @@ namespace MKD
 
         // Pre-count heavy resource totals for the unified progress bar
         size_t heavyTotal = 0;
-        for (const auto type : {ResourceType::Audio, ResourceType::Entries, ResourceType::Graphics})
+        for (const auto type : {ResourceType::Audio, ResourceType::Contents, ResourceType::Graphics})
         {
             if (shouldExport(type))
                 heavyTotal += resourceCount(type);
@@ -148,8 +149,8 @@ namespace MKD
         };
 
         runPhase(ResourceType::Audio, [&] { return exportAudio(options); });
-        runPhase(ResourceType::Entries, [&] {
-            return ResourceExporter::exportAll(*entries_, options, ResourceType::Entries);
+        runPhase(ResourceType::Contents, [&] {
+            return ResourceExporter::exportAll(*entries_, options, ResourceType::Contents);
         });
         runPhase(ResourceType::Fonts, [&] { return exportFonts(options); });
         runPhase(ResourceType::Graphics, [&] {

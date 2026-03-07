@@ -142,7 +142,7 @@ namespace MKDCLI
                 std::cerr << "\n";
             };
 
-            resourceLine("Entries", dict.resourceCount(MKD::ResourceType::Entries));
+            resourceLine("Entries", dict.resourceCount(MKD::ResourceType::Contents));
             resourceLine("Audio", dict.resourceCount(MKD::ResourceType::Audio));
             resourceLine("Graphics", dict.resourceCount(MKD::ResourceType::Graphics));
             resourceLine("Fonts", dict.resourceCount(MKD::ResourceType::Fonts));

@@ -17,7 +17,7 @@ namespace MKD
 
     std::optional<Rsc> ResourceLoader::loadEntries(std::string_view contentDir, std::string_view dictId) const
     {
-        return tryLoad<Rsc>(ResourceType::Entries, contentDir, dictId);
+        return tryLoad<Rsc>(ResourceType::Contents, contentDir, dictId);
     }
 
 

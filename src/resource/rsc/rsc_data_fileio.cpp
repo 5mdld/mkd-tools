@@ -3,7 +3,7 @@
 //
 
 #include "rsc_data.hpp"
-#include "../zlib_stream.hpp"
+#include "../detail/zlib_stream.hpp"
 
 #include <algorithm>
 #include <format>
@@ -172,10 +172,10 @@ namespace MKD
 
         if (!data) return std::unexpected(data.error());
 
-        if (!ZlibStream::isZlibCompressed(*data))
+        if (!detail::ZlibStream::isZlibCompressed(*data))
             return std::move(*data);
 
-        const ZlibStream stream;
+        const detail::ZlibStream stream;
         if (auto r = stream.decompress(*data, data->size()); !r)
             return std::unexpected(r.error());
 

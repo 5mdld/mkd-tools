@@ -44,7 +44,7 @@ namespace MKD
     constexpr bool isHeavyResource(const ResourceType type)
     {
         return type == ResourceType::Audio
-            || type == ResourceType::Entries
+            || type == ResourceType::Contents
             || type == ResourceType::Graphics;
     }
 }

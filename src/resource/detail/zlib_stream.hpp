@@ -13,7 +13,7 @@
 #include <string>
 #include <vector>
 
-namespace MKD
+namespace MKD::detail
 {
     class ZlibStream
     {

@@ -4,7 +4,7 @@
 
 #include "MKD/resource/common.hpp"
 #include "nrsc_data.hpp"
-#include "../zlib_stream.hpp"
+#include "../detail/zlib_stream.hpp"
 
 #include <algorithm>
 #include <format>
@@ -113,7 +113,7 @@ namespace MKD
         auto bytes = readBytesFromFile(file.filePath, record.offset(), record.len());
         if (!bytes) return std::unexpected(bytes.error());
 
-        const ZlibStream stream;
+        const detail::ZlibStream stream;
         auto result = stream.decompress(*bytes, bytes->size());
         if (!result) return std::unexpected(result.error());
 

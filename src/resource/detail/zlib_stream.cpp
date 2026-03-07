@@ -7,7 +7,7 @@
 #include <iostream>
 #include <format>
 
-namespace MKD
+namespace MKD::detail
 {
     Result<std::span<const uint8_t>> ZlibStream::compress(std::span<const uint8_t> data, int level) const
     {
@@ -27,7 +27,8 @@ namespace MKD
         if (int initResult = deflateInit(&stream, level); initResult != Z_OK)
             return std::unexpected(std::format("Failed to initialise zlib compression with level {}: error code {}", level, initResult));
 
-        if (int result = deflate(&stream, Z_FINISH); result != Z_STREAM_END) {
+        if (int result = deflate(&stream, Z_FINISH); result != Z_STREAM_END)
+        {
             deflateEnd(&stream);
             if (result == Z_OK)
                 return std::unexpected("Compression buffer too small, this shouldn't happen with compressBound");

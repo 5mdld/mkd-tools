@@ -38,7 +38,7 @@ namespace MKD
         if (const auto ec = createOutputDirs(options, type))
             return std::unexpected(std::format("Failed to create output directories: {}", ec.message()));
 
-        const auto ext = type == ResourceType::Entries ? ".xml" : ".aac";
+        const auto ext = type == ResourceType::Contents ? ".xml" : ".aac";
         const auto baseDir = buildOutputDir(options, type);
         ExportAccumulator acc(rsc.size(), type, options.progressCallback);
 
