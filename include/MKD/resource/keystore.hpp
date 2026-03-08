@@ -20,37 +20,94 @@ namespace MKD
      * Keystore File Format (.keystore)
      * =================================
      *
-     * Keystores map search terms (typically Japanese words) to locations
-     * within dictionary content files. They enable efficient lookup of
-     * dictionary entries by various keys (word form, reading, etc.).
+     * Keystores map search terms to locations within dictionary content files.
      *
      * File Structure:
      * ┌─────────────────────────────────────────────────────────┐
-     * │ File Header (16 or 32 bytes)                            │
-     * │  - Version (4 bytes) — 0x10000 (v1) or 0x20000 (v2)     │
-     * │  - Magic fields (must be 0)                             │
-     * │  - Words offset                                         │
-     * │  - Index offset                                         │
-     * │  - Next offset (v2 only, points to conversion table)    │
+     * │ File Header                                             │
      * ├─────────────────────────────────────────────────────────┤
-     * │ Words Section (variable length)                         │
-     * │  - uint32_le  pages_offset                              │
-     * │  - uint8      separator (0x00)                          │
-     * │  - Null-terminated UTF-8 search term                    │
-     * │  - Page reference data (variable-length encoded)        │
+     * │ Words Section                                           │
      * ├─────────────────────────────────────────────────────────┤
-     * │ Index Header (20 bytes)                                 │
-     * │  - Magic (0x04)                                         │
-     * │  - Four index offsets (A, B, C, D)                      │
-     * ├─────────────────────────────────────────────────────────┤
-     * │ Index Sections A, B, C, D (variable length each)        │
-     * │  - uint32_le count                                      │
-     * │  - uint32_le[] offsets into words section               │
+     * │ Index Section                                           │
      * ├─────────────────────────────────────────────────────────┤
      * │ Conversion Table (optional, v2 only)                    │
-     * │  - uint32_le count                                      │
-     * │  - ConversionEntry[count]                               │
      * └─────────────────────────────────────────────────────────┘
+     *
+     * FILE HEADER
+     * -----------
+     * Two versions exist, distinguished by the version field:
+     *
+     * V1 header (16 bytes):
+     * ┌─────────────────────────────────────────────────────────┐
+     * │ version          (4 bytes)  0x10000                     │
+     * │ magic1           (4 bytes)  must be 0                   │
+     * │ wordsOffset      (4 bytes)  offset to words section     │
+     * │ indexOffset      (4 bytes)  offset to index section     │
+     * └─────────────────────────────────────────────────────────┘
+     *
+     * V2 header (32 bytes):
+     * ┌─────────────────────────────────────────────────────────┐
+     * │ version          (4 bytes)  0x20000                     │
+     * │ magic1           (4 bytes)  must be 0                   │
+     * │ wordsOffset      (4 bytes)  offset to words section     │
+     * │ indexOffset       (4 bytes)  offset to index section    │
+     * │ convTableOffset  (4 bytes)  offset to conversion table  │
+     * │ magic5           (4 bytes)  must be 0                   │
+     * │ magic6           (4 bytes)  must be 0                   │
+     * │ magic7           (4 bytes)  must be 0                   │
+     * └─────────────────────────────────────────────────────────┘
+     *
+     * WORDS SECTION
+     * -------------
+     * Contains word entries and page reference blocks. Index arrays point into this section via word offsets.
+     * Word entry:
+     * ┌─────────────────────────────────────────────────────────┐
+     * │ pagesOffset      (4 bytes)  words-section-relative      │
+     * │ separator         (1 byte)   0x00                       │
+     * │ key               (variable) null-terminated UTF-8      │
+     * └─────────────────────────────────────────────────────────┘
+     *
+     * Page references:
+     * ┌─────────────────────────────────────────────────────────┐
+     * │ Variable-length encoded page references                 │
+     * │ (decoded by decodePageReferences)                       │
+     * └─────────────────────────────────────────────────────────┘
+     *
+     * INDEX SECTION
+     * -------------
+     * Begins at indexOffset. Contains a header followed by up to
+     * four index arrays, each providing a different sort order
+     * over the word entries.
+     *
+     * Index header (20 bytes):
+     * ┌─────────────────────────────────────────────────────────┐
+     * │ magic            (4 bytes)  must be 0x04                │
+     * │ indexAOffset     (4 bytes)  relative to index section   │
+     * │ indexBOffset     (4 bytes)  relative to index section   │
+     * │ indexCOffset     (4 bytes)  relative to index section   │
+     * │ indexDOffset     (4 bytes)  relative to index section   │
+     * └─────────────────────────────────────────────────────────┘
+     *
+     * An offset of 0 means that index is not present.
+     *
+     * Each index array:
+     * ┌─────────────────────────────────────────────────────────┐
+     * │ count            (4 bytes)  number of entries           │
+     * │ offsets          (4 bytes × count)                      │
+     * │                  each is a word offset into the words   │
+     * │                  section                                │
+     * └─────────────────────────────────────────────────────────┘
+     *
+     * Index A — sorted by key length
+     * Index B — sorted by key (for prefix search)
+     * Index C — sorted by key suffix
+     * Index D — other / conversion-related
+     *
+     *
+     * CONVERSION TABLE (optional, v2 only)
+     * ------------------------------------
+     * Located at convTableOffset. Used by specific dictionaries
+     * (KNEJ, KNJE, maybe others too...) to remap page references after lookup.
      */
 
     constexpr uint32_t KEYSTORE_V1 = 0x10000;

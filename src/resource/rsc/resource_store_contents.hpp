@@ -57,30 +57,24 @@ namespace MKD
     * - Example: offset 5MB in a 3MB+4MB file setup points to byte 2MB of 1.rsc
     *
     * Chunk Structure (per chunk in .rsc files):
-    * ┌─────────────────────────────────────────────────────────────────┐
-    * │ Format Marker (4 bytes) - Can have two uses:                    │
-    * │  - 0x00000000: Indicates new encrypted format                   │
-    * │  - Compressed data length (old format)                          │
-    * ├─────────────────────────────────────────────────────────────────┤
-    * │ Compressed/Encrypted Data (variable length)                     │
-    * │  - Old format: Direct zlib compression                          │
-    * │  - New format: encrypted, then zlib compressed                  │
-    * └─────────────────────────────────────────────────────────────────┘
     *
-    * Decompressed Chunk Contents:
-    * ┌─────────────────────────────────────────────────────────────────┐
-    * │ Item 1                                                          │
-    * │  ├─ Header (4 or 8 bytes)                                       │
-    * │  │   - Old format: [4-byte length]                              │
-    * │  │   - New format: [4-byte zero][4-byte length]                 │
-    * │  └─ Content                                                     │
-    * ├─────────────────────────────────────────────────────────────────┤
-    * │ Item 2                                                          │
-    * │  ├─ Header                                                      │
-    * │  └─ Content                                                     │
-    * ├─────────────────────────────────────────────────────────────────┤
-    * │ ... (more items)                                                │
-    * └─────────────────────────────────────────────────────────────────┘
+    * Two formats exist, distinguished by the first 4 bytes:
+    *
+    * OLD FORMAT (unencrypted):
+    * ┌──────────────────────────────────────┐
+    * │ Compressed Length    (4 bytes, > 0)  │
+    * ├──────────────────────────────────────┤
+    * │ Zlib Data            (variable)      │
+    * └──────────────────────────────────────┘
+    *
+    * NEW FORMAT (encrypted):
+    * ┌──────────────────────────────────────┐
+    * │ Zero Marker          (4 bytes, = 0)  │
+    * ├──────────────────────────────────────┤
+    * │ Encrypted Length     (4 bytes)       │
+    * ├──────────────────────────────────────┤
+    * │ Encrypted Data       (variable)      │
+    * └──────────────────────────────────────┘
     *
     * Encryption Details:
     * - Algorithm: XOR based algorithm 'HMDicEncoder::Decode'
