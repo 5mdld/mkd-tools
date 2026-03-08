@@ -14,7 +14,7 @@ namespace MKD
      * Maps arbitrary item IDs to sequential map indices. This indirection
      * allows dictionaries to use non-sequential numbering while keeping the underlying MapRecords sequential.
      */
-    struct IdxRecord : BinaryStruct<IdxRecord>
+    struct ResourceStoreIndexRecord : BinaryStruct<ResourceStoreIndexRecord>
     {
         uint32_t itemId; // Custom item ID
         uint32_t mapIdx; // Index into map file
@@ -41,7 +41,7 @@ namespace MKD
          * Default comparison operators
          * Enables sorting and binary search by all fields
          */
-        auto operator<=>(const IdxRecord&) const noexcept = default;
+        auto operator<=>(const ResourceStoreIndexRecord&) const noexcept = default;
     };
-    static_assert(sizeof(IdxRecord) == 8, "IdxRecord must be 8 bytes");
+    static_assert(sizeof(ResourceStoreIndexRecord) == 8, "IdxRecord must be 8 bytes");
 }

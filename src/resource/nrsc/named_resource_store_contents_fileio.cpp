@@ -3,7 +3,7 @@
 //
 
 #include "MKD/resource/common.hpp"
-#include "nrsc_data.hpp"
+#include "named_resource_store_contents.hpp"
 #include "../detail/zlib_stream.hpp"
 
 #include <algorithm>
@@ -12,23 +12,23 @@
 
 namespace MKD
 {
-    NrscData::NrscData(std::vector<NrscResourceFile>&& files)
+    NamedResourceStoreContents::NamedResourceStoreContents(std::vector<NamedResourceStoreFile>&& files)
         : files_(std::move(files))
     {
     }
 
 
-    Result<NrscData> NrscData::load(const fs::path& directoryPath)
+    Result<NamedResourceStoreContents> NamedResourceStoreContents::load(const fs::path& directoryPath)
     {
         auto files = discoverFiles(directoryPath);
         if (!files) return std::unexpected(files.error());
-        return NrscData{std::move(*files)};
+        return NamedResourceStoreContents{std::move(*files)};
     }
 
 
-    Result<std::vector<NrscResourceFile> > NrscData::discoverFiles(const fs::path& directoryPath)
+    Result<std::vector<NamedResourceStoreFile>> NamedResourceStoreContents::discoverFiles(const fs::path& directoryPath)
     {
-        std::vector<NrscResourceFile> files;
+        std::vector<NamedResourceStoreFile> files;
 
         for (const auto& entry : fs::directory_iterator(directoryPath))
         {
@@ -38,7 +38,7 @@ namespace MKD
             auto seqNum = detail::parseSequenceNumber(entry.path().filename(), ".nrsc");
             if (!seqNum) continue;
 
-            files.push_back(NrscResourceFile{
+            files.push_back(NamedResourceStoreFile{
                 .sequenceNumber = *seqNum,
                 .filePath = entry.path(),
             });
@@ -47,12 +47,12 @@ namespace MKD
         if (files.empty())
             return std::unexpected(std::format("No .nrsc files found in: {}", directoryPath.string()));
 
-        std::ranges::sort(files, {}, &NrscResourceFile::sequenceNumber);
+        std::ranges::sort(files, {}, &NamedResourceStoreFile::sequenceNumber);
         return files;
     }
 
 
-    Result<RetainedSpan> NrscData::get(const NrscIndexRecord& record) const
+    Result<RetainedSpan> NamedResourceStoreContents::get(const NamedResourceStoreIndexRecord& record) const
     {
         if (record.fileSequence >= files_.size())
             return std::unexpected(std::format(
@@ -93,7 +93,7 @@ namespace MKD
     }
 
 
-    Result<RetainedSpan> NrscData::readUncompressed(const NrscResourceFile& file, const NrscIndexRecord& record)
+    Result<RetainedSpan> NamedResourceStoreContents::readUncompressed(const NamedResourceStoreFile& file, const NamedResourceStoreIndexRecord& record)
     {
         auto bytes = readBytesFromFile(file.filePath, record.offset(), record.len());
         if (!bytes) return std::unexpected(bytes.error());
@@ -103,7 +103,7 @@ namespace MKD
     }
 
 
-    Result<RetainedSpan> NrscData::readCompressed(const NrscResourceFile& file, const NrscIndexRecord& record)
+    Result<RetainedSpan> NamedResourceStoreContents::readCompressed(const NamedResourceStoreFile& file, const NamedResourceStoreIndexRecord& record)
     {
         auto bytes = readBytesFromFile(file.filePath, record.offset(), record.len());
         if (!bytes) return std::unexpected(bytes.error());

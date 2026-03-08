@@ -3,7 +3,7 @@
 //
 
 #include "../../platform/read_sequence.hpp"
-#include "nrsc_index.hpp"
+#include "named_resource_store_index.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -13,28 +13,28 @@
 
 namespace MKD
 {
-    void NrscIndexHeader::swapEndianness() noexcept
+    void NamedResourceStoreIndexHeader::swapEndianness() noexcept
     {
         zeroField = std::byteswap(zeroField);
         recordCount = std::byteswap(recordCount);
     }
 
 
-    Result<NrscIndex> NrscIndex::load(const fs::path& directoryPath)
+    Result<NamedResourceStoreIndex> NamedResourceStoreIndex::load(const fs::path& directoryPath)
     {
         auto file = findFileWithExtension(directoryPath, ".nidx")
                                                                 .and_then(BinaryFileReader::open);
         if (!file) return std::unexpected(file.error());
 
         auto seq = file->sequence();
-        auto header = seq.read<NrscIndexHeader>();
-        auto records = seq.readArray<NrscIndexRecord>(header.recordCount);
+        auto header = seq.read<NamedResourceStoreIndexHeader>();
+        auto records = seq.readArray<NamedResourceStoreIndexRecord>(header.recordCount);
         auto idStrings = seq.readString(seq.remaining());
 
         if (!seq)
             return std::unexpected(seq.error());
 
-        return NrscIndex(
+        return NamedResourceStoreIndex(
             std::move(records),
             std::move(idStrings),
             HEADER_SIZE + header.recordCount * RECORD_SIZE
@@ -42,13 +42,13 @@ namespace MKD
     }
 
 
-    Result<NrscIndexRecord> NrscIndex::findById(std::string_view id) const
+    Result<NamedResourceStoreIndexRecord> NamedResourceStoreIndex::findById(std::string_view id) const
     {
         const auto it = std::ranges::lower_bound(records_, id,
                                                  [](std::string_view a, std::string_view b) {
                                                      return a < b;
                                                  },
-                                                 [this](const NrscIndexRecord& record) -> std::string_view {
+                                                 [this](const NamedResourceStoreIndexRecord& record) -> std::string_view {
                                                      const auto result = this->getIdAt(record.idOffset());
                                                      return result ? *result : std::string_view{};
                                                  });
@@ -67,7 +67,7 @@ namespace MKD
     }
 
 
-    Result<std::pair<std::string_view, NrscIndexRecord>> NrscIndex::getByIndex(
+    Result<std::pair<std::string_view, NamedResourceStoreIndexRecord>> NamedResourceStoreIndex::getByIndex(
         const size_t index) const
     {
         if (index >= records_.size())
@@ -82,24 +82,24 @@ namespace MKD
     }
 
 
-    size_t NrscIndex::size() const noexcept
+    size_t NamedResourceStoreIndex::size() const noexcept
     {
         return records_.size();
     }
 
 
-    bool NrscIndex::empty() const noexcept
+    bool NamedResourceStoreIndex::empty() const noexcept
     {
         return size() == 0;
     }
 
 
-    NrscIndex::Iterator::Iterator(const NrscIndex* index, const size_t pos)
+    NamedResourceStoreIndex::Iterator::Iterator(const NamedResourceStoreIndex* index, const size_t pos)
         : index_(index), position_(pos)
     {
     }
 
-    NrscIndex::Iterator::value_type NrscIndex::Iterator::operator*() const
+    NamedResourceStoreIndex::Iterator::value_type NamedResourceStoreIndex::Iterator::operator*() const
     {
         assert(index_ != nullptr && "Dereferencing invalid iterator");
         assert(position_ < index_->size() && "Dereferencing end iterator");
@@ -115,32 +115,32 @@ namespace MKD
         return *result;
     }
 
-    NrscIndex::Iterator::value_type NrscIndex::Iterator::operator[](difference_type n) const
+    NamedResourceStoreIndex::Iterator::value_type NamedResourceStoreIndex::Iterator::operator[](difference_type n) const
     {
         return *(*this + n);
     }
 
 
-    NrscIndex::Iterator& NrscIndex::Iterator::operator++()
+    NamedResourceStoreIndex::Iterator& NamedResourceStoreIndex::Iterator::operator++()
     {
         ++position_;
         return *this;
     }
 
-    NrscIndex::Iterator NrscIndex::Iterator::operator++(int)
+    NamedResourceStoreIndex::Iterator NamedResourceStoreIndex::Iterator::operator++(int)
     {
         const auto temp = *this;
         ++*this;
         return temp;
     }
 
-    NrscIndex::Iterator& NrscIndex::Iterator::operator--()
+    NamedResourceStoreIndex::Iterator& NamedResourceStoreIndex::Iterator::operator--()
     {
         --position_;
         return *this;
     }
 
-    NrscIndex::Iterator NrscIndex::Iterator::operator--(int)
+    NamedResourceStoreIndex::Iterator NamedResourceStoreIndex::Iterator::operator--(int)
     {
         const auto temp = *this;
         --*this;
@@ -148,54 +148,54 @@ namespace MKD
     }
 
     // Arithmetic
-    NrscIndex::Iterator& NrscIndex::Iterator::operator+=(const difference_type n)
+    NamedResourceStoreIndex::Iterator& NamedResourceStoreIndex::Iterator::operator+=(const difference_type n)
     {
         position_ += n;
         return *this;
     }
 
-    NrscIndex::Iterator& NrscIndex::Iterator::operator-=(const difference_type n)
+    NamedResourceStoreIndex::Iterator& NamedResourceStoreIndex::Iterator::operator-=(const difference_type n)
     {
         position_ -= n;
         return *this;
     }
 
-    NrscIndex::Iterator NrscIndex::Iterator::operator+(const difference_type n) const
+    NamedResourceStoreIndex::Iterator NamedResourceStoreIndex::Iterator::operator+(const difference_type n) const
     {
         auto temp = *this;
         temp += n;
         return temp;
     }
 
-    NrscIndex::Iterator NrscIndex::Iterator::operator-(const difference_type n) const
+    NamedResourceStoreIndex::Iterator NamedResourceStoreIndex::Iterator::operator-(const difference_type n) const
     {
         auto temp = *this;
         temp -= n;
         return temp;
     }
 
-    NrscIndex::Iterator operator+(const NrscIndex::Iterator::difference_type n, const NrscIndex::Iterator& it)
+    NamedResourceStoreIndex::Iterator operator+(const NamedResourceStoreIndex::Iterator::difference_type n, const NamedResourceStoreIndex::Iterator& it)
     {
         return it + n;
     }
 
-    NrscIndex::Iterator::difference_type NrscIndex::Iterator::operator-(const Iterator& other) const
+    NamedResourceStoreIndex::Iterator::difference_type NamedResourceStoreIndex::Iterator::operator-(const Iterator& other) const
     {
         return static_cast<difference_type>(position_) - static_cast<difference_type>(other.position_);
     }
 
-    NrscIndex::Iterator NrscIndex::begin() const
+    NamedResourceStoreIndex::Iterator NamedResourceStoreIndex::begin() const
     {
         return Iterator{this, 0};
     }
 
-    NrscIndex::Iterator NrscIndex::end() const
+    NamedResourceStoreIndex::Iterator NamedResourceStoreIndex::end() const
     {
         return Iterator{this, size()};
     }
 
 
-    NrscIndex::NrscIndex(std::vector<NrscIndexRecord>&& records, std::string&& idStrings, const size_t headerSize)
+    NamedResourceStoreIndex::NamedResourceStoreIndex(std::vector<NamedResourceStoreIndexRecord>&& records, std::string&& idStrings, const size_t headerSize)
         : records_(std::move(records))
           , idStrings_(std::move(idStrings))
           , headerSize_(headerSize)
@@ -203,7 +203,7 @@ namespace MKD
     }
 
 
-    Result<std::string_view> NrscIndex::getIdAt(size_t offset) const
+    Result<std::string_view> NamedResourceStoreIndex::getIdAt(size_t offset) const
     {
         const size_t adjustedOffset = offset - headerSize_;
 

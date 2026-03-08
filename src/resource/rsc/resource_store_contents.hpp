@@ -7,8 +7,8 @@
 #include "MKD/result.hpp"
 #include "MKD/resource/retained_span.hpp"
 #include "../../platform/read_sequence.hpp"
-#include "rsc_index.hpp"
-#include "rsc_crypto.hpp"
+#include "resource_store_index.hpp"
+#include "resource_store_crypto.hpp"
 
 #include <array>
 #include <filesystem>
@@ -17,9 +17,9 @@
 #include <vector>
 
 #if defined(__APPLE__) || defined(__linux__)
-    #include "../../platform/mmap_file.hpp"
+#include "../../platform/mmap_file.hpp"
 #include <mutex>
-    #include <unordered_map>
+#include <unordered_map>
 #endif
 
 
@@ -28,7 +28,7 @@ namespace fs = std::filesystem;
 namespace MKD
 {
     /**
-    * RSC Resource File Format (.rsc)
+    * Resource Store Contents file format (.rsc)
     *
     * The .rsc format is the content storage system for XML entry data, audio and fonts.
     * .rsc files contain compressed (and also optionally encrypted) dictionary entries in XML format.
@@ -90,7 +90,7 @@ namespace MKD
     */
 
 #if defined(__APPLE__) || defined(__linux__)
-    struct RscResourceFile
+    struct ResourceStoreContentsFile
     {
         size_t sequenceNumber;
         size_t globalOffset;
@@ -99,7 +99,7 @@ namespace MKD
         MappedFile mapping;
     };
 #else
-    struct RscResourceFile
+    struct ResourceStoreContentsFile
     {
         size_t sequenceNumber;
         size_t globalOffset;
@@ -109,7 +109,7 @@ namespace MKD
 #endif
 
 
-    class RscData
+    class ResourceStoreContents
     {
     public:
         /**
@@ -119,7 +119,8 @@ namespace MKD
          * @param mapVersion Version of the .map file (to determine whether key should be derived or not)
          * @return RscData instance or error string if failure
          */
-        static Result<RscData> load(const fs::path& directoryPath, std::string_view dictId = "", uint32_t mapVersion = 0);
+        static Result<ResourceStoreContents> load(const fs::path& directoryPath, std::string_view dictId = "",
+                                                  uint32_t mapVersion = 0);
 
         /**
          * Retrieve the data for a dictionary entry
@@ -132,13 +133,14 @@ namespace MKD
          * @param record MapRecord specifying the chunk offset and item offset
          * @return Span view of item data, or error string if failure
          */
-        [[nodiscard]] Result<RetainedSpan> get(const MapRecord& record) const;
+        [[nodiscard]] Result<RetainedSpan> get(const ResourceStoreMapRecord& record) const;
 
     private:
         /**
          * Private constructor - use load() to create instances
          */
-        explicit RscData(std::vector<RscResourceFile>&& files, const std::optional<std::array<uint8_t, 32>>& decryptionKey);
+        explicit ResourceStoreContents(std::vector<ResourceStoreContentsFile>&& files,
+                                       const std::optional<std::array<uint8_t, 32>>& decryptionKey);
 
         /**
          * Discover all .rsc files in a directory
@@ -146,7 +148,7 @@ namespace MKD
          * @param directoryPath Directory to scan
          * @return Vector of discovered files or error string
          */
-        static Result<std::vector<RscResourceFile>> discoverFiles(const fs::path& directoryPath);
+        static Result<std::vector<ResourceStoreContentsFile>> discoverFiles(const fs::path& directoryPath);
 
         /**
          * Reads data directly at global offset. Typically used for fonts
@@ -164,7 +166,7 @@ namespace MKD
          */
         static Result<RetainedSpan> parseItemFromChunk(std::shared_ptr<const std::vector<uint8_t>> chunk, size_t offset);
 
-        std::vector<RscResourceFile> files_;
+        std::vector<ResourceStoreContentsFile> files_;
         std::optional<std::array<uint8_t, 32>> decryptionKey_;
 
 #if defined(__APPLE__) || defined(__linux__)
@@ -202,6 +204,7 @@ namespace MKD
             std::mutex mutex;
             std::unordered_map<size_t, std::shared_ptr<const std::vector<uint8_t>>> entries;
         };
+
         std::unique_ptr<ChunkCache> cache_;
         static constexpr size_t MAX_CACHED_CHUNKS = 64;
 #else
@@ -219,7 +222,7 @@ namespace MKD
          * @param globalOffset Offset in global address space
          * @return (file reference, local offset) pair or error string
          */
-        Result<std::pair<const RscResourceFile&, size_t>> findFileByOffset(size_t globalOffset) const;
+        Result<std::pair<const ResourceStoreContentsFile&, size_t>> findFileByOffset(size_t globalOffset) const;
 
         /**
          * Open and seek a reader to the local position for a global offset
@@ -239,7 +242,7 @@ namespace MKD
 
         /**
          * Helper function to read and decrypt chunk data from the new format
-         * - uses RscDecryptor to decrypt the data
+         * - uses ResourceStoreCrypto::decrypt to decrypt the data
          *
          * @param reader Binary file reader for reading the chunk
          * @return Decrypted data, or error string if failure

@@ -6,7 +6,7 @@
 
 #include "MKD/resource/common.hpp"
 #include "MKD/result.hpp"
-#include "nrsc_index_record.hpp"
+#include "named_resource_store_index_record.hpp"
 
 #include <expected>
 #include <filesystem>
@@ -21,7 +21,7 @@ namespace fs = std::filesystem;
 namespace MKD
 {
     /**
-     * NRSC Index File Format (.nidx)
+     * Named Resource Store Index file format (.nidx)
      *
      * The index.nidx file acts as a table of contents for .nrsc resource files.
      * It maps string IDs to their locations in the numbered resource files.
@@ -52,9 +52,9 @@ namespace MKD
 
 
     constexpr size_t HEADER_SIZE = 8;
-    constexpr size_t RECORD_SIZE = sizeof(NrscIndexRecord);
+    constexpr size_t RECORD_SIZE = sizeof(NamedResourceStoreIndexRecord);
 
-    struct NrscIndexHeader : BinaryStruct<NrscIndexHeader>
+    struct NamedResourceStoreIndexHeader : BinaryStruct<NamedResourceStoreIndexHeader>
     {
         uint32_t zeroField;
         uint32_t recordCount;
@@ -64,7 +64,7 @@ namespace MKD
 
 
     // Manages the nrsc index file (index.nidx)
-    class NrscIndex
+    class NamedResourceStoreIndex
     {
     public:
         /**
@@ -72,20 +72,20 @@ namespace MKD
          * @param directoryPath Directory containing the index
          * @return NrscIndex or error string if failure
          */
-        static Result<NrscIndex> load(const fs::path& directoryPath);
+        static Result<NamedResourceStoreIndex> load(const fs::path& directoryPath);
 
         /**
          * Find a record by string ID (binary search)
          * @return NrscIndexRecord or error string if failure
          */
-        [[nodiscard]] Result<NrscIndexRecord> findById(std::string_view id) const;
+        [[nodiscard]] Result<NamedResourceStoreIndexRecord> findById(std::string_view id) const;
 
         /**
          * Get record by index
          * @param index Index of record
          * @return string ID & NrscIndexRecord pair or error string if failure
          */
-        [[nodiscard]] Result<std::pair<std::string_view, NrscIndexRecord>> getByIndex(size_t index) const;
+        [[nodiscard]] Result<std::pair<std::string_view, NamedResourceStoreIndexRecord>> getByIndex(size_t index) const;
 
         /**
          * Get total number of records
@@ -105,12 +105,12 @@ namespace MKD
             using iterator_category = std::random_access_iterator_tag;
             using iterator_concept = std::random_access_iterator_tag;
             using difference_type = std::ptrdiff_t;
-            using value_type = std::pair<std::string_view, NrscIndexRecord>;
+            using value_type = std::pair<std::string_view, NamedResourceStoreIndexRecord>;
             using pointer = const value_type*;
             using reference = value_type; // not reference since we return by value
 
             Iterator() noexcept = default;
-            Iterator(const NrscIndex* index, size_t pos);
+            Iterator(const NamedResourceStoreIndex* index, size_t pos);
 
             value_type operator*() const;
             value_type operator[](difference_type n) const;
@@ -132,7 +132,7 @@ namespace MKD
             bool operator==(const Iterator& other) const = default;
 
         private:
-            const NrscIndex* index_ = nullptr;
+            const NamedResourceStoreIndex* index_ = nullptr;
             size_t position_ = 0;
         };
 
@@ -144,7 +144,7 @@ namespace MKD
 
 
     private:
-        NrscIndex(std::vector<NrscIndexRecord>&& records, std::string&& idStrings, size_t headerSize);
+        NamedResourceStoreIndex(std::vector<NamedResourceStoreIndexRecord>&& records, std::string&& idStrings, size_t headerSize);
 
         /**
          * Get ID string at given offset
@@ -153,7 +153,7 @@ namespace MKD
          */
         [[nodiscard]] Result<std::string_view> getIdAt(size_t offset) const;
 
-        std::vector<NrscIndexRecord> records_;  // All index records, sorted by ID
+        std::vector<NamedResourceStoreIndexRecord> records_;  // All index records, sorted by ID
         std::string idStrings_;                 // Concatenated null-terminated ID strings
         size_t headerSize_;                     // Header + records size (for offset calculations)
     };

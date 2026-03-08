@@ -3,7 +3,7 @@
 //
 
 #include "../../platform/read_sequence.hpp"
-#include "rsc_index.hpp"
+#include "resource_store_index.hpp"
 
 #include <algorithm>
 #include <bit>
@@ -14,14 +14,14 @@
 
 namespace MKD
 {
-    void IdxHeader::swapEndianness() noexcept
+    void ResourceStoreIndexHeader::swapEndianness() noexcept
     {
         length = std::byteswap(length);
         padding = std::byteswap(padding);
     }
 
 
-    Result<RscIndex> RscIndex::load(const fs::path& directoryPath)
+    Result<ResourceStoreIndex> ResourceStoreIndex::load(const fs::path& directoryPath)
     {
         auto idxResult = loadIdxFile(directoryPath);
         if (!idxResult)
@@ -34,11 +34,11 @@ namespace MKD
                                                mapResult.error()));
 
         auto& [records, mapVersion] = *mapResult;
-        return RscIndex(mapVersion, std::move(*idxResult), std::move(records));
+        return ResourceStoreIndex(mapVersion, std::move(*idxResult), std::move(records));
     }
 
 
-    Result<MapRecord> RscIndex::findById(uint32_t itemId) const
+    Result<ResourceStoreMapRecord> ResourceStoreIndex::findById(uint32_t itemId) const
     {
         if (!idxRecords_.has_value())
         {
@@ -78,7 +78,7 @@ namespace MKD
             idxRecords,
             itemId,
             std::less{},
-            [](const IdxRecord& record) { return record.id(); }
+            [](const ResourceStoreIndexRecord& record) { return record.id(); }
         );
 
         if (it == idxRecords.end() || it->id() != itemId)
@@ -92,7 +92,7 @@ namespace MKD
     }
 
 
-    Result<std::pair<uint32_t, MapRecord>> RscIndex::getByIndex(size_t index) const
+    Result<std::pair<uint32_t, ResourceStoreMapRecord>> ResourceStoreIndex::getByIndex(size_t index) const
     {
         if (index >= mapRecords_.size())
             return std::unexpected(std::format("Index {} out of range (size: {})", index, mapRecords_.size()));
@@ -120,38 +120,38 @@ namespace MKD
         return std::pair{itemId, mapRecords_[index]};
     }
 
-    uint32_t RscIndex::mapVersion() const
+    uint32_t ResourceStoreIndex::mapVersion() const
     {
         return mapVersion_;
     }
 
 
-    size_t RscIndex::size() const noexcept
+    size_t ResourceStoreIndex::size() const noexcept
     {
         return mapRecords_.size();
     }
 
 
-    bool RscIndex::empty() const noexcept
+    bool ResourceStoreIndex::empty() const noexcept
     {
         return mapRecords_.empty();
     }
 
 
-    RscIndex::Iterator::Iterator(const RscIndex* index, const size_t pos)
+    ResourceStoreIndex::Iterator::Iterator(const ResourceStoreIndex* index, const size_t pos)
         : index_(index), position_(pos)
     {
     }
 
 
-    RscIndex::RscIndex(const uint32_t mapVersion, std::optional<std::vector<IdxRecord> >&& idxRecords,
-                       std::vector<MapRecord>&& mapRecords)
+    ResourceStoreIndex::ResourceStoreIndex(const uint32_t mapVersion, std::optional<std::vector<ResourceStoreIndexRecord> >&& idxRecords,
+                       std::vector<ResourceStoreMapRecord>&& mapRecords)
         : idxRecords_(std::move(idxRecords)), mapRecords_(std::move(mapRecords)), mapVersion_(mapVersion)
     {
         buildSortedOrder();
     }
 
-    RscIndex::Iterator::value_type RscIndex::Iterator::operator*() const
+    ResourceStoreIndex::Iterator::value_type ResourceStoreIndex::Iterator::operator*() const
     {
         assert(index_ != nullptr && "Dereferencing invalid iterator");
         assert(position_ < index_->size() && "Dereferencing end iterator");
@@ -168,84 +168,84 @@ namespace MKD
         return *result;
     }
 
-    RscIndex::Iterator::value_type RscIndex::Iterator::operator[](const difference_type n) const
+    ResourceStoreIndex::Iterator::value_type ResourceStoreIndex::Iterator::operator[](const difference_type n) const
     {
         return *(*this + n);
     }
 
-    RscIndex::Iterator& RscIndex::Iterator::operator++()
+    ResourceStoreIndex::Iterator& ResourceStoreIndex::Iterator::operator++()
     {
         ++position_;
         return *this;
     }
 
-    RscIndex::Iterator RscIndex::Iterator::operator++(int)
+    ResourceStoreIndex::Iterator ResourceStoreIndex::Iterator::operator++(int)
     {
         const auto temp = *this;
         ++*this;
         return temp;
     }
 
-    RscIndex::Iterator& RscIndex::Iterator::operator--()
+    ResourceStoreIndex::Iterator& ResourceStoreIndex::Iterator::operator--()
     {
         --position_;
         return *this;
     }
 
-    RscIndex::Iterator RscIndex::Iterator::operator--(int)
+    ResourceStoreIndex::Iterator ResourceStoreIndex::Iterator::operator--(int)
     {
         const auto temp = *this;
         --*this;
         return temp;
     }
 
-    RscIndex::Iterator& RscIndex::Iterator::operator+=(const difference_type n)
+    ResourceStoreIndex::Iterator& ResourceStoreIndex::Iterator::operator+=(const difference_type n)
     {
         position_ += n;
         return *this;
     }
 
-    RscIndex::Iterator& RscIndex::Iterator::operator-=(const difference_type n)
+    ResourceStoreIndex::Iterator& ResourceStoreIndex::Iterator::operator-=(const difference_type n)
     {
         position_ -= n;
         return *this;
     }
 
-    RscIndex::Iterator RscIndex::Iterator::operator+(const difference_type n) const
+    ResourceStoreIndex::Iterator ResourceStoreIndex::Iterator::operator+(const difference_type n) const
     {
         auto temp = *this;
         temp += n;
         return temp;
     }
 
-    RscIndex::Iterator RscIndex::Iterator::operator-(const difference_type n) const
+    ResourceStoreIndex::Iterator ResourceStoreIndex::Iterator::operator-(const difference_type n) const
     {
         auto temp = *this;
         temp -= n;
         return temp;
     }
 
-    RscIndex::Iterator operator+(const RscIndex::Iterator::difference_type n, const RscIndex::Iterator& it)
+    ResourceStoreIndex::Iterator operator+(const ResourceStoreIndex::Iterator::difference_type n, const ResourceStoreIndex::Iterator& it)
     {
         return it + n;
     }
 
-    RscIndex::Iterator::difference_type RscIndex::Iterator::operator-(const Iterator& other) const
+    ResourceStoreIndex::Iterator::difference_type ResourceStoreIndex::Iterator::operator-(const Iterator& other) const
     {
         return static_cast<difference_type>(position_) - static_cast<difference_type>(other.position_);
     }
 
-    RscIndex::Iterator RscIndex::begin() const
+    ResourceStoreIndex::Iterator ResourceStoreIndex::begin() const
     {
         return Iterator{this, 0};
     }
 
-    RscIndex::Iterator RscIndex::end() const
+    ResourceStoreIndex::Iterator ResourceStoreIndex::end() const
     {
         return Iterator{this, size()};
     }
 
-    Result<std::pair<std::vector<MapRecord>, uint32_t>> RscIndex::loadMapFile(
+    Result<std::pair<std::vector<ResourceStoreMapRecord>, uint32_t>> ResourceStoreIndex::loadMapFile(
         const fs::path& directoryPath)
     {
         auto file = findFileWithExtension(directoryPath, ".map")
@@ -253,8 +253,8 @@ namespace MKD
         if (!file) return std::unexpected(file.error());
 
         auto seq = file->sequence();
-        auto header = seq.read<MapHeader>();
-        auto records = seq.readArray<MapRecord>(header.recordCount);
+        auto header = seq.read<ResourceStoreMapHeader>();
+        auto records = seq.readArray<ResourceStoreMapRecord>(header.recordCount);
 
         if (!seq)
             return std::unexpected(seq.error());
@@ -263,7 +263,7 @@ namespace MKD
     }
 
 
-    Result<std::optional<std::vector<IdxRecord>>> RscIndex::loadIdxFile(
+    Result<std::optional<std::vector<ResourceStoreIndexRecord>>> ResourceStoreIndex::loadIdxFile(
         const fs::path& directoryPath)
     {
         // index file is optional so no error is returned if it simply isn't found
@@ -272,8 +272,8 @@ namespace MKD
         if (!file) return std::nullopt;
 
         auto seq = file->sequence();
-        auto header = seq.read<IdxHeader>();
-        auto records = seq.readArray<IdxRecord>(header.length);
+        auto header = seq.read<ResourceStoreIndexHeader>();
+        auto records = seq.readArray<ResourceStoreIndexRecord>(header.length);
 
         if (!seq)
             return std::unexpected(seq.error());
@@ -282,7 +282,7 @@ namespace MKD
     }
 
 
-    void RscIndex::buildSortedOrder()
+    void ResourceStoreIndex::buildSortedOrder()
     {
         sortedOrder_.resize(mapRecords_.size());
         std::iota(sortedOrder_.begin(), sortedOrder_.end(), size_t{0});

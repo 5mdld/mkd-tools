@@ -13,7 +13,7 @@ namespace MKD
     /**
      * MapHeader - contents.map File Header
      */
-    struct MapHeader : BinaryStruct<MapHeader>
+    struct ResourceStoreMapHeader : BinaryStruct<ResourceStoreMapHeader>
     {
         uint32_t version; // Format version identifier. 0x01 means the contents have encryption applied
         uint32_t recordCount; // Number of MapRecords in file
@@ -21,7 +21,7 @@ namespace MKD
         void swapEndianness() noexcept;
     };
 
-    struct MapRecord : BinaryStruct<MapRecord>
+    struct ResourceStoreMapRecord : BinaryStruct<ResourceStoreMapRecord>
     {
         uint32_t chunkGlobalOffset; // Global offset to compressed chunk
         uint32_t itemOffset; // Offset within decompressed chunk
@@ -40,14 +40,14 @@ namespace MKD
          * Default comparison operators
          * Enables sorting and binary search by all fields
          */
-        auto operator<=>(const MapRecord&) const noexcept = default;
+        auto operator<=>(const ResourceStoreMapRecord&) const noexcept = default;
     };
 
-    static_assert(sizeof(MapRecord) == 8, "MapRecord must be 8 bytes");
+    static_assert(sizeof(ResourceStoreMapRecord) == 8, "MapRecord must be 8 bytes");
 }
 
 template<>
-struct std::formatter<MKD::MapRecord>
+struct std::formatter<MKD::ResourceStoreMapRecord>
 {
     static constexpr auto parse(const std::format_parse_context& ctx)
     {
@@ -61,7 +61,7 @@ struct std::formatter<MKD::MapRecord>
         return ctx.begin();
     }
 
-    static auto format(const MKD::MapRecord& record, std::format_context& ctx)
+    static auto format(const MKD::ResourceStoreMapRecord& record, std::format_context& ctx)
     {
         return std::format_to(ctx.out(),
                               "chunkGlobalOffset: {:10} | itemOffset: {:6}",

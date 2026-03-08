@@ -17,7 +17,7 @@ namespace MKD
      * to resources stored across multiple numbered .nrsc files. Records are
      * stored sorted by ID string to enable binary search lookups.
      */
-    struct NrscIndexRecord : BinaryStruct<NrscIndexRecord>
+    struct NamedResourceStoreIndexRecord : BinaryStruct<NamedResourceStoreIndexRecord>
     {
         uint16_t format;            // Compression: 0=uncompressed, 1=zlib
         uint16_t fileSequence;      // Which numbered .nrsc file (0.nrsc, 1.nrsc, etc.)
@@ -36,12 +36,12 @@ namespace MKD
         [[nodiscard]] std::string formattedSize() const noexcept;
     };
 
-    static_assert(sizeof(NrscIndexRecord) == 16, "NrscIndexRecord should be 16 bytes long");
+    static_assert(sizeof(NamedResourceStoreIndexRecord) == 16, "NrscIndexRecord should be 16 bytes long");
 }
 
 
 template<>
-struct std::formatter<MKD::NrscIndexRecord>
+struct std::formatter<MKD::NamedResourceStoreIndexRecord>
 {
     static constexpr auto parse(const std::format_parse_context& ctx)
     {
@@ -55,7 +55,7 @@ struct std::formatter<MKD::NrscIndexRecord>
         return ctx.begin();
     }
 
-    static auto format(const MKD::NrscIndexRecord& record, std::format_context& ctx)
+    static auto format(const MKD::NamedResourceStoreIndexRecord& record, std::format_context& ctx)
     {
         const char compression = record.isCompressed() ? 'Z' : 'U';
         return std::format_to(ctx.out(),

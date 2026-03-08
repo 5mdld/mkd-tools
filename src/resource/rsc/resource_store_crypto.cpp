@@ -2,7 +2,7 @@
 // kiwakiwaaにより 2026/01/30 に作成されました。
 //
 
-#include "rsc_crypto.hpp"
+#include "resource_store_crypto.hpp"
 
 #if defined(__APPLE__)
 #include <CommonCrypto/CommonDigest.h>
@@ -72,7 +72,7 @@ namespace MKD
         };
     }
 
-    std::array<uint8_t, 32> RscCrypto::deriveKey(std::string_view dictId)
+    std::array<uint8_t, 32> ResourceStoreCrypto::deriveKey(std::string_view dictId)
     {
         auto key = sha256({
             reinterpret_cast<const uint8_t*>(dictId.data()),
@@ -95,7 +95,7 @@ namespace MKD
     }
 
 
-    Result<std::vector<uint8_t>> RscCrypto::decrypt(
+    Result<std::vector<uint8_t>> ResourceStoreCrypto::decrypt(
         const std::span<const uint8_t> encryptedData, const std::array<uint8_t, 32>& key)
     {
         if (encryptedData.size() < 4)
@@ -127,7 +127,7 @@ namespace MKD
     }
 
 
-    void RscCrypto::permuteData(const std::span<const uint8_t> src, std::span<uint8_t> dst, const uint32_t checksum)
+    void ResourceStoreCrypto::permuteData(const std::span<const uint8_t> src, std::span<uint8_t> dst, const uint32_t checksum)
     {
         constexpr size_t BLOCK_SIZE = 16;
         constexpr size_t TABLE_SIZE = 31;
@@ -150,7 +150,7 @@ namespace MKD
     }
 
 
-    void RscCrypto::applyXorCipher(std::span<uint8_t> data, const std::array<uint8_t, 32>& key, const uint32_t checksum)
+    void ResourceStoreCrypto::applyXorCipher(std::span<uint8_t> data, const std::array<uint8_t, 32>& key, const uint32_t checksum)
     {
         size_t data1Pos = (checksum ^ kChecksumXor) & 0x1F;
         size_t keyPos = 0;
@@ -173,7 +173,7 @@ namespace MKD
     }
 
 
-    std::array<uint8_t, 32> RscCrypto::sha256(const std::span<const uint8_t> data)
+    std::array<uint8_t, 32> ResourceStoreCrypto::sha256(const std::span<const uint8_t> data)
     {
         std::array<uint8_t, 32> digest{};
 
@@ -197,7 +197,7 @@ namespace MKD
     }
 
 
-    std::vector<uint8_t> RscCrypto::encrypt(const std::span<const uint8_t> plaintext, const std::array<uint8_t, 32>& key)
+    std::vector<uint8_t> ResourceStoreCrypto::encrypt(const std::span<const uint8_t> plaintext, const std::array<uint8_t, 32>& key)
     {
         const auto outputLength = static_cast<uint32_t>(plaintext.size());
 
@@ -224,7 +224,7 @@ namespace MKD
     }
 
 
-    void RscCrypto::inversePermuteData(const std::span<const uint8_t> src, std::span<uint8_t> dst, const uint32_t checksum)
+    void ResourceStoreCrypto::inversePermuteData(const std::span<const uint8_t> src, std::span<uint8_t> dst, const uint32_t checksum)
     {
         constexpr size_t BLOCK = 16, TABLE = 31;
         uint32_t ti = (checksum ^ kChecksumXor) % TABLE;

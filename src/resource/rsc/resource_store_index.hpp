@@ -6,8 +6,8 @@
 
 #include "MKD/result.hpp"
 #include "MKD/resource/common.hpp"
-#include "rsc_index_record.hpp"
-#include "rsc_map.hpp"
+#include "resource_store_index_record.hpp"
+#include "resource_store_map.hpp"
 
 #include <expected>
 #include <iterator>
@@ -20,7 +20,7 @@ namespace fs = std::filesystem;
 namespace MKD
 {
     /**
-     * RSC Index File Format (contents.idx + contents.map)
+     * Resource Store Index File Format (contents.idx + contents.map)
      *
      * The RSC index system uses a two files to map item IDs to their
      * locations in .rsc data files. The design separates ID management from
@@ -72,7 +72,7 @@ namespace MKD
      *                  Direct use          via MapRecord
      *
      */
-    struct IdxHeader : BinaryStruct<IdxHeader>
+    struct ResourceStoreIndexHeader : BinaryStruct<ResourceStoreIndexHeader>
     {
         uint32_t length;    // Number of IdxRecords in the file
         uint32_t padding;
@@ -81,14 +81,14 @@ namespace MKD
     };
 
 
-    class RscIndex
+    class ResourceStoreIndex
     {
     public:
-        static Result<RscIndex> load(const fs::path& directoryPath);
+        static Result<ResourceStoreIndex> load(const fs::path& directoryPath);
 
-        [[nodiscard]] Result<MapRecord> findById(uint32_t itemId) const;
+        [[nodiscard]] Result<ResourceStoreMapRecord> findById(uint32_t itemId) const;
 
-        [[nodiscard]] Result<std::pair<uint32_t, MapRecord>> getByIndex(size_t index) const;
+        [[nodiscard]] Result<std::pair<uint32_t, ResourceStoreMapRecord>> getByIndex(size_t index) const;
 
         [[nodiscard]] uint32_t mapVersion() const;
 
@@ -101,13 +101,13 @@ namespace MKD
         public:
             using iterator_category = std::random_access_iterator_tag;
             using difference_type = std::ptrdiff_t;
-            using value_type = std::pair<uint32_t, MapRecord>;
+            using value_type = std::pair<uint32_t, ResourceStoreMapRecord>;
             using pointer = const value_type*;
             using reference = value_type; // not reference since we return by value
 
             Iterator() noexcept = default;
 
-            Iterator(const RscIndex* index, size_t pos);
+            Iterator(const ResourceStoreIndex* index, size_t pos);
 
             value_type operator*() const;
             value_type operator[](difference_type n) const;
@@ -131,7 +131,7 @@ namespace MKD
             bool operator==(const Iterator& other) const = default;
 
         private:
-            const RscIndex* index_ = nullptr;
+            const ResourceStoreIndex* index_ = nullptr;
             size_t position_ = 0;
         };
 
@@ -142,16 +142,16 @@ namespace MKD
         static_assert(std::random_access_iterator<Iterator>);
 
     private:
-        RscIndex(uint32_t mapVersion, std::optional<std::vector<IdxRecord>>&& idxRecords, std::vector<MapRecord>&& mapRecords);
+        ResourceStoreIndex(uint32_t mapVersion, std::optional<std::vector<ResourceStoreIndexRecord>>&& idxRecords, std::vector<ResourceStoreMapRecord>&& mapRecords);
 
-        static Result<std::pair<std::vector<MapRecord>, uint32_t>> loadMapFile(const fs::path& directoryPath);
+        static Result<std::pair<std::vector<ResourceStoreMapRecord>, uint32_t>> loadMapFile(const fs::path& directoryPath);
 
-        static Result<std::optional<std::vector<IdxRecord>>> loadIdxFile(const fs::path& directoryPath);
+        static Result<std::optional<std::vector<ResourceStoreIndexRecord>>> loadIdxFile(const fs::path& directoryPath);
 
         void buildSortedOrder();
 
-        std::optional<std::vector<IdxRecord>> idxRecords_;
-        std::vector<MapRecord> mapRecords_;
+        std::optional<std::vector<ResourceStoreIndexRecord>> idxRecords_;
+        std::vector<ResourceStoreMapRecord> mapRecords_;
         uint32_t mapVersion_ = 0;
 
         std::vector<size_t> sortedOrder_;

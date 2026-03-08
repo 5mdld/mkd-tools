@@ -2,39 +2,39 @@
 // kiwakiwaaにより 2026/01/17 に作成されました。
 //
 
-#include "nrsc_index_record.hpp"
+#include "named_resource_store_index_record.hpp"
 
 #include <bit>
 
 namespace MKD
 {
-    bool NrscIndexRecord::isCompressed() const noexcept
+    bool NamedResourceStoreIndexRecord::isCompressed() const noexcept
     {
         return format == 1;;
     }
 
 
-    size_t NrscIndexRecord::fileSeq() const noexcept
+    size_t NamedResourceStoreIndexRecord::fileSeq() const noexcept
     {
         return fileSequence;
     }
 
-    size_t NrscIndexRecord::idOffset() const noexcept
+    size_t NamedResourceStoreIndexRecord::idOffset() const noexcept
     {
         return idStringOffset;
     }
 
-    uint64_t NrscIndexRecord::offset() const noexcept
+    uint64_t NamedResourceStoreIndexRecord::offset() const noexcept
     {
         return fileOffset;
     }
 
-    size_t NrscIndexRecord::len() const noexcept
+    size_t NamedResourceStoreIndexRecord::len() const noexcept
     {
         return length;
     }
 
-    void NrscIndexRecord::swapEndianness() noexcept
+    void NamedResourceStoreIndexRecord::swapEndianness() noexcept
     {
         format = std::byteswap(format);
         fileSequence = std::byteswap(fileSequence);
@@ -43,7 +43,7 @@ namespace MKD
         length = std::byteswap(length);
     }
 
-    std::string NrscIndexRecord::formattedSize() const noexcept
+    std::string NamedResourceStoreIndexRecord::formattedSize() const noexcept
     {
         const auto bytes = static_cast<double>(length);
 

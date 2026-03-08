@@ -3,7 +3,7 @@
 //
 
 #include "MKD/resource/font.hpp"
-#include "MKD/resource/rsc.hpp"
+#include "MKD/resource/resource_store.hpp"
 
 #include <format>
 
@@ -13,21 +13,21 @@ namespace MKD
     {
         const auto fontName = directoryPath.stem().string();
 
-        auto rscResult = Rsc::open(directoryPath);
+        auto rscResult = ResourceStore::open(directoryPath);
         if (!rscResult)
             return std::unexpected(std::format("Failed to load font '{}': {}", fontName, rscResult.error()));
 
-        const auto& rsc = rscResult.value();
+        const auto& resourceStore = rscResult.value();
 
         size_t totalSize = 0;
-        for (auto&& [itemId, data] : rsc)
+        for (auto&& [itemId, data] : resourceStore)
         {
             totalSize += data.size();
         }
 
         std::vector<uint8_t> fontData;
         fontData.reserve(totalSize);
-        for (const auto& [itemId, data] : rsc)
+        for (const auto& [itemId, data] : resourceStore)
         {
             fontData.insert(fontData.end(), data.begin(), data.end());
         }

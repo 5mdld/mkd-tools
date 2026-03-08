@@ -15,18 +15,18 @@ namespace fs = std::filesystem;
 
 namespace MKD
 {
-    struct RscItem
+    struct ResourceStoreItem
     {
         uint32_t itemId;
         RetainedSpan data;
     };
 
-    class Rsc
+    class ResourceStore
     {
     public:
-        ~Rsc() noexcept;
-        Rsc(Rsc&&) noexcept;
-        Rsc& operator=(Rsc&&) noexcept;
+        ~ResourceStore() noexcept;
+        ResourceStore(ResourceStore&&) noexcept;
+        ResourceStore& operator=(ResourceStore&&) noexcept;
 
         /**
          * Factory method to open .rsc dictionary contents from a dictionary
@@ -35,7 +35,7 @@ namespace MKD
          * @param dictId Needed if the dictionary has encryption applied. The decryption key is derived from the identifier
          * @return
          */
-        static Result<Rsc> open(const fs::path& directoryPath, std::string_view dictId = "");
+        static Result<ResourceStore> open(const fs::path& directoryPath, std::string_view dictId = "");
 
         /**
          * This will basically look up the itemId first with RscIndex, if it finds a
@@ -49,7 +49,7 @@ namespace MKD
          * @param index index
          * @return Rscitem or error string if failure
          */
-        [[nodiscard]] Result<RscItem> getByIndex(size_t index) const;
+        [[nodiscard]] Result<ResourceStoreItem> getByIndex(size_t index) const;
 
         /**
          * Get total number of records
@@ -69,12 +69,12 @@ namespace MKD
             using iterator_category = std::forward_iterator_tag;
             using iterator_concept = std::forward_iterator_tag;
             using difference_type = std::ptrdiff_t;
-            using value_type = RscItem;
+            using value_type = ResourceStoreItem;
             using pointer = value_type*;
             using reference = value_type;
 
             Iterator() noexcept = default;
-            Iterator(const Rsc* rsc, size_t index);
+            Iterator(const ResourceStore* rsc, size_t index);
 
             value_type operator*() const;
 
@@ -85,7 +85,7 @@ namespace MKD
             bool operator!=(const Iterator& other) const;
 
         private:
-            const Rsc* rsc_ = nullptr;
+            const ResourceStore* store_ = nullptr;
             size_t index_ = 0;
         };
 
@@ -98,7 +98,7 @@ namespace MKD
         struct Impl;
         std::unique_ptr<Impl> impl_;
 
-        explicit Rsc(std::unique_ptr<Impl> impl) noexcept;
+        explicit ResourceStore(std::unique_ptr<Impl> impl) noexcept;
     };
 
 

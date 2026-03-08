@@ -6,7 +6,7 @@
 #include <filesystem>
 #include <fstream>
 
-#include "../../src/resource/rsc/rsc_crypto.hpp"
+#include "../../src/resource/rsc/resource_store_crypto.hpp"
 #include "../test_listener.hpp"
 
 using namespace MKD;
@@ -31,7 +31,7 @@ TEST(RscCrypto, TestRoundTrip)
     test::verbosePrint("Plaintext length: {} bytes\n", plaintext.size());
     test::verbosePrint("Plaintext content: \"{}\"\n", plaintext);
 
-    auto key = RscCrypto::deriveKey(dictId);
+    auto key = ResourceStoreCrypto::deriveKey(dictId);
 
     std::cout << "Derived key: ";
     for (unsigned char & i : key)
@@ -45,7 +45,7 @@ TEST(RscCrypto, TestRoundTrip)
         plaintext.size()
     );
 
-    auto encrypted = RscCrypto::encrypt(plaintextBytes, key);
+    auto encrypted = ResourceStoreCrypto::encrypt(plaintextBytes, key);
     test::verbosePrint("Encrypted data size: {} bytes\n", encrypted.size());
 
     std::cout << "Encrypted hex (" << encrypted.size() << " bytes):\n";
@@ -60,7 +60,7 @@ TEST(RscCrypto, TestRoundTrip)
     if (encrypted.size() % 16 != 0)
         std::cout << "\n";
 
-    auto decryptedResult = RscCrypto::decrypt(encrypted, key);
+    auto decryptedResult = ResourceStoreCrypto::decrypt(encrypted, key);
     ASSERT_TRUE(decryptedResult.has_value()) << "Decryption failed: " << decryptedResult.error();
 
     const auto& decrypted = decryptedResult.value();

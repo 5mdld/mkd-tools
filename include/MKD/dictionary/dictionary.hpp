@@ -10,8 +10,8 @@
 #include "MKD/platform/dictionary_source.hpp"
 #include "MKD/output/export_options.hpp"
 #include "MKD/output/resource_exporter.hpp"
-#include "MKD/resource/nrsc.hpp"
-#include "MKD/resource/rsc.hpp"
+#include "MKD/resource/named_resource_store.hpp"
+#include "MKD/resource/resource_store.hpp"
 #include "MKD/resource/font.hpp"
 #include "MKD/resource/keystore.hpp"
 #include "MKD/resource/headline_store.hpp"
@@ -24,9 +24,9 @@ namespace MKD
     {
     public:
         explicit Dictionary(DictionaryContent content,
-                            std::optional<Rsc> entries,
-                            std::optional<Nrsc> graphics,
-                            std::optional<std::variant<Rsc, Nrsc> > audio,
+                            std::optional<ResourceStore> entries,
+                            std::optional<NamedResourceStore> graphics,
+                            std::optional<std::variant<ResourceStore, NamedResourceStore> > audio,
                             std::vector<Font> fonts,
                             std::vector<Keystore> keystores,
                             std::vector<HeadlineStore> headlines);
@@ -35,8 +35,8 @@ namespace MKD
         [[nodiscard]] const DictionaryContent& content() const noexcept;
 
         // returns nullptr if no nrsc resources available
-        [[nodiscard]] Nrsc* graphics() noexcept;
-        [[nodiscard]] const Nrsc* graphics() const noexcept;
+        [[nodiscard]] NamedResourceStore* graphics() noexcept;
+        [[nodiscard]] const NamedResourceStore* graphics() const noexcept;
         [[nodiscard]] std::vector<Font>& fonts() noexcept;
         [[nodiscard]] const std::vector<Font>& fonts() const noexcept;
 
@@ -51,9 +51,9 @@ namespace MKD
         [[nodiscard]] Result<ExportResult> exportHeadlines(const ExportOptions& options) const;
 
         DictionaryContent content_;
-        std::optional<Rsc> entries_;
-        std::optional<Nrsc> graphics_;
-        std::optional<std::variant<Rsc, Nrsc> > audio_;
+        std::optional<ResourceStore> entries_;
+        std::optional<NamedResourceStore> graphics_;
+        std::optional<std::variant<ResourceStore, NamedResourceStore> > audio_;
         std::vector<Font> fonts_;
         std::vector<Keystore> keystores_;
         std::vector<HeadlineStore> headlines_;

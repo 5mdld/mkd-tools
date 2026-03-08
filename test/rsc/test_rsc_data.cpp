@@ -9,9 +9,9 @@
 #include "../test_listener.hpp"
 #include "../../src/platform/macos/fs.hpp"
 #include "MKD/platform/macos/macos_dictionary_source.hpp"
-#include "../../include/MKD/resource/rsc.hpp"
-#include "../../src/resource/rsc/rsc_data.hpp"
-#include "../../src/resource/rsc/rsc_index.hpp"
+#include "../../include/MKD/resource/resource_store.hpp"
+#include "../../src/resource/rsc/resource_store_contents.hpp"
+#include "../../src/resource/rsc/resource_store_index.hpp"
 #include "MKD/resource/xml_view.hpp"
 
 #include <pugixml.h>
@@ -40,7 +40,7 @@ protected:
 
 TEST_F(RscDataTest, LoadValidRscData)
 {
-    auto result = MKD::RscData::load(testDataPath_, dictId_);
+    auto result = MKD::ResourceStoreContents::load(testDataPath_, dictId_);
     ASSERT_TRUE(result.has_value()) << "Failed to load RSC data: " << result.error();
 
     MKD::test::verbosePrint("RSC Data Loaded Successfully from: {}\n", testDataPath_.string());
@@ -50,10 +50,10 @@ TEST_F(RscDataTest, LoadValidRscData)
 
 TEST_F(RscDataTest, GetRecordData)
 {
-    auto indexResult = MKD::RscIndex::load(testDataPath_);
+    auto indexResult = MKD::ResourceStoreIndex::load(testDataPath_);
     ASSERT_TRUE(indexResult.has_value());
 
-    auto dataResult = MKD::RscData::load(testDataPath_, dictId_, indexResult->mapVersion());
+    auto dataResult = MKD::ResourceStoreContents::load(testDataPath_, dictId_, indexResult->mapVersion());
     ASSERT_TRUE(dataResult.has_value());
 
     auto& rscData = dataResult.value();
@@ -84,12 +84,12 @@ TEST_F(RscDataTest, GetRecordData)
 
 TEST_F(RscDataTest, GetAudioData)
 {
-    auto indexResult = MKD::RscIndex::load(testAudioDataPath_);
+    auto indexResult = MKD::ResourceStoreIndex::load(testAudioDataPath_);
     ASSERT_TRUE(indexResult.has_value());
 
     MKD::test::verbosePrint("Amount of audio records: {}\n", indexResult->size());
 
-    auto dataResult = MKD::RscData::load(testAudioDataPath_);
+    auto dataResult = MKD::ResourceStoreContents::load(testAudioDataPath_);
     ASSERT_TRUE(dataResult.has_value());
 
     auto& rscData = dataResult.value();

@@ -13,9 +13,9 @@
 namespace MKD
 {
     Dictionary::Dictionary(DictionaryContent content,
-                           std::optional<Rsc> entries,
-                           std::optional<Nrsc> graphics,
-                           std::optional<std::variant<Rsc, Nrsc> > audio,
+                           std::optional<ResourceStore> entries,
+                           std::optional<NamedResourceStore> graphics,
+                           std::optional<std::variant<ResourceStore, NamedResourceStore> > audio,
                            std::vector<Font> fonts,
                            std::vector<Keystore> keystores,
                            std::vector<HeadlineStore> headlines)
@@ -42,7 +42,7 @@ namespace MKD
     }
 
 
-    Nrsc* Dictionary::graphics() noexcept
+    NamedResourceStore* Dictionary::graphics() noexcept
     {
         if (!graphics_ || graphics_->empty())
             return nullptr;
@@ -51,7 +51,7 @@ namespace MKD
     }
 
 
-    const Nrsc* Dictionary::graphics() const noexcept
+    const NamedResourceStore* Dictionary::graphics() const noexcept
     {
         if (!graphics_ || graphics_->empty())
             return nullptr;

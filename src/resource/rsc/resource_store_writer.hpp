@@ -5,8 +5,8 @@
 #pragma once
 
 #include "MKD/result.hpp"
-#include "rsc_index.hpp"
-#include "rsc_data.hpp"
+#include "resource_store_index.hpp"
+#include "resource_store_contents.hpp"
 #include "../detail/sequential_blob_writer.hpp"
 
 #include <cstdint>
@@ -17,7 +17,7 @@
 
 namespace MKD
 {
-    class RscWriter
+    class ResourceStoreWriter
     {
     public:
         struct Options
@@ -30,10 +30,10 @@ namespace MKD
             std::string dictId {}; // required when using encryption
         };
 
-        static Result<RscWriter> createIndexed(const fs::path& directoryPath, const Options& options);
+        static Result<ResourceStoreWriter> createIndexed(const fs::path& directoryPath, const Options& options);
 
 
-        static Result<RscWriter> createSequential(const fs::path& directoryPath, const Options& options);
+        static Result<ResourceStoreWriter> createSequential(const fs::path& directoryPath, const Options& options);
 
 
         /**
@@ -63,9 +63,9 @@ namespace MKD
     private:
         enum class Mode { Indexed, Sequential };
 
-        explicit RscWriter(Mode mode, const Options& options, detail::SequentialBlobWriter&& blobWriter);
+        explicit ResourceStoreWriter(Mode mode, const Options& options, detail::SequentialBlobWriter&& blobWriter);
 
-        static Result<RscWriter> createImpl(Mode mode, const fs::path& directoryPath, const Options& options);
+        static Result<ResourceStoreWriter> createImpl(Mode mode, const fs::path& directoryPath, const Options& options);
 
         struct PendingItem
         {
@@ -106,8 +106,8 @@ namespace MKD
         std::vector<ChunkResult> pendingChunks_;
         size_t pendingBytes_ = 0;
 
-        std::vector<IdxRecord> idxRecords_;
-        std::vector<MapRecord> mapRecords_;
+        std::vector<ResourceStoreIndexRecord> idxRecords_;
+        std::vector<ResourceStoreMapRecord> mapRecords_;
         std::optional<std::array<uint8_t, 32>> encryptionKey_;
         bool finished_ = false;
     };

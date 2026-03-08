@@ -15,19 +15,19 @@ namespace MKD
     }
 
 
-    std::optional<Rsc> ResourceLoader::loadEntries(std::string_view contentDir, std::string_view dictId) const
+    std::optional<ResourceStore> ResourceLoader::loadEntries(std::string_view contentDir, std::string_view dictId) const
     {
-        return tryLoad<Rsc>(ResourceType::Contents, contentDir, dictId);
+        return tryLoad<ResourceStore>(ResourceType::Contents, contentDir, dictId);
     }
 
 
-    std::optional<Nrsc> ResourceLoader::loadGraphics(std::string_view contentDir, std::string_view dictId) const
+    std::optional<NamedResourceStore> ResourceLoader::loadGraphics(std::string_view contentDir, std::string_view dictId) const
     {
-        return tryLoad<Nrsc>(ResourceType::Graphics, contentDir, dictId);
+        return tryLoad<NamedResourceStore>(ResourceType::Graphics, contentDir, dictId);
     }
 
 
-    std::optional<std::variant<Rsc, Nrsc>> ResourceLoader::loadAudio(std::string_view contentDir, std::string_view dictId) const
+    std::optional<std::variant<ResourceStore, NamedResourceStore>> ResourceLoader::loadAudio(std::string_view contentDir, std::string_view dictId) const
     {
         return tryLoadEither(ResourceType::Audio, contentDir, dictId);
     }
@@ -87,13 +87,13 @@ namespace MKD
     }
 
 
-    std::optional<std::variant<Rsc, Nrsc>> ResourceLoader::tryLoadEither(const ResourceType pathType, std::string_view contentDir, std::string_view dictId) const
+    std::optional<std::variant<ResourceStore, NamedResourceStore>> ResourceLoader::tryLoadEither(const ResourceType pathType, std::string_view contentDir, std::string_view dictId) const
     {
-        if (auto nrsc = tryLoad<Nrsc>(pathType, contentDir, dictId))
-            return std::variant<Rsc, Nrsc>(std::move(*nrsc));
+        if (auto nrsc = tryLoad<NamedResourceStore>(pathType, contentDir, dictId))
+            return std::variant<ResourceStore, NamedResourceStore>(std::move(*nrsc));
 
-        if (auto rsc = tryLoad<Rsc>(pathType, contentDir, dictId))
-            return std::variant<Rsc, Nrsc>(std::move(*rsc));
+        if (auto rsc = tryLoad<ResourceStore>(pathType, contentDir, dictId))
+            return std::variant<ResourceStore, NamedResourceStore>(std::move(*rsc));
 
         return std::nullopt;
     }

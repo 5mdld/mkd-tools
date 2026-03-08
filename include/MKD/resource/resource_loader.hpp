@@ -7,8 +7,8 @@
 #include "MKD/result.hpp"
 #include "MKD/dictionary/paths.hpp"
 #include "MKD/resource/font.hpp"
-#include "MKD/resource/nrsc.hpp"
-#include "MKD/resource/rsc.hpp"
+#include "MKD/resource/named_resource_store.hpp"
+#include "MKD/resource/resource_store.hpp"
 #include "MKD/resource/keystore.hpp"
 #include "MKD/resource/headline_store.hpp"
 
@@ -30,9 +30,9 @@ namespace MKD
 
         explicit ResourceLoader(const DictionaryPaths& paths);
 
-        [[nodiscard]] std::optional<Rsc> loadEntries(std::string_view contentDir, std::string_view dictId) const;
-        [[nodiscard]] std::optional<Nrsc> loadGraphics(std::string_view contentDir, std::string_view dictId) const;
-        [[nodiscard]] std::optional<std::variant<Rsc, Nrsc>> loadAudio(std::string_view contentDir, std::string_view dictId) const;
+        [[nodiscard]] std::optional<ResourceStore> loadEntries(std::string_view contentDir, std::string_view dictId) const;
+        [[nodiscard]] std::optional<NamedResourceStore> loadGraphics(std::string_view contentDir, std::string_view dictId) const;
+        [[nodiscard]] std::optional<std::variant<ResourceStore, NamedResourceStore>> loadAudio(std::string_view contentDir, std::string_view dictId) const;
         [[nodiscard]] std::vector<Keystore> loadKeystores(std::string_view contentDir, std::string_view dictId) const;
         [[nodiscard]] std::vector<HeadlineStore> loadHeadlines(std::string_view contentDir) const;
         [[nodiscard]] std::vector<Font> loadFonts(std::string_view contentDir) const;
@@ -47,7 +47,7 @@ namespace MKD
         template<typename T, typename Predicate, typename Loader>
         std::vector<T> loadCollection(ResourceType type, std::string_view contentDir, Predicate pred, Loader loader) const;
 
-        [[nodiscard]] std::optional<std::variant<Rsc, Nrsc>> tryLoadEither(ResourceType pathType, std::string_view contentDir, std::string_view dictId) const;
+        [[nodiscard]] std::optional<std::variant<ResourceStore, NamedResourceStore>> tryLoadEither(ResourceType pathType, std::string_view contentDir, std::string_view dictId) const;
 
         static bool hasResourceFiles(const fs::path& path);
     };

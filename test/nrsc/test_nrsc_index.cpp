@@ -8,7 +8,7 @@
 #include "../test_listener.hpp"
 #include "../../src/platform/macos/fs.hpp"
 #include "MKD/platform/macos/macos_dictionary_source.hpp"
-#include "../../src/resource/nrsc/nrsc_index.hpp"
+#include "../../src/resource/nrsc/named_resource_store_index.hpp"
 
 class NrscIndexTest : public ::testing::Test
 {
@@ -27,7 +27,7 @@ protected:
 
 TEST_F(NrscIndexTest, LoadValidIndexFile)
 {
-    auto result = MKD::NrscIndex::load(testDataPath_);
+    auto result = MKD::NamedResourceStoreIndex::load(testDataPath_);
     ASSERT_TRUE(result.has_value()) << "Failed to load index: " << result.error();
 
     const auto& index = result.value();
@@ -42,7 +42,7 @@ TEST_F(NrscIndexTest, LoadValidIndexFile)
 
 TEST_F(NrscIndexTest, LoadNonExistentDirectory)
 {
-    auto result = MKD::NrscIndex::load("/path/that/does/not/exist");
+    auto result = MKD::NamedResourceStoreIndex::load("/path/that/does/not/exist");
 
     ASSERT_FALSE(result.has_value()) << "Should fail when directory doesn't exist";
 
@@ -54,7 +54,7 @@ TEST_F(NrscIndexTest, LoadNonExistentDirectory)
 
 TEST_F(NrscIndexTest, GetRecordByIndex)
 {
-    auto indexResult = MKD::NrscIndex::load(testDataPath_);
+    auto indexResult = MKD::NamedResourceStoreIndex::load(testDataPath_);
     ASSERT_TRUE(indexResult.has_value());
 
     const auto& index = indexResult.value();
@@ -72,14 +72,14 @@ TEST_F(NrscIndexTest, GetRecordByIndex)
         MKD::test::verbosePrint("  [{:4}] ID: {:20} | {}\n", i, id, record);
 
         // Validate record fields
-        EXPECT_LE(record.compressionFormat(), MKD::CompressionFormat::Zlib);
+        EXPECT_LE(record.format, 1);
     }
 }
 
 
 TEST_F(NrscIndexTest, GetOutOfBoundsIndex)
 {
-    auto indexResult = MKD::NrscIndex::load(testDataPath_);
+    auto indexResult = MKD::NamedResourceStoreIndex::load(testDataPath_);
     ASSERT_TRUE(indexResult.has_value());
 
     const auto& index = indexResult.value();
@@ -97,7 +97,7 @@ TEST_F(NrscIndexTest, GetOutOfBoundsIndex)
 
 TEST_F(NrscIndexTest, FindRecordById)
 {
-    auto indexResult = MKD::NrscIndex::load(testDataPath_);
+    auto indexResult = MKD::NamedResourceStoreIndex::load(testDataPath_);
     ASSERT_TRUE(indexResult.has_value());
 
     const auto& index = indexResult.value();
@@ -122,13 +122,13 @@ TEST_F(NrscIndexTest, FindRecordById)
     EXPECT_EQ(foundRecord.fileSeq(), expectedRecord.fileSeq());
     EXPECT_EQ(foundRecord.offset(), expectedRecord.offset());
     EXPECT_EQ(foundRecord.len(), expectedRecord.len());
-    EXPECT_EQ(foundRecord.compressionFormat(), expectedRecord.compressionFormat());
+    EXPECT_EQ(foundRecord.format, expectedRecord.format);
 }
 
 
 TEST_F(NrscIndexTest, DisplayIndexStatistics)
 {
-    const auto indexResult = MKD::NrscIndex::load(testDataPath_);
+    const auto indexResult = MKD::NamedResourceStoreIndex::load(testDataPath_);
     ASSERT_TRUE(indexResult.has_value());
 
     const auto& index = indexResult.value();
@@ -143,10 +143,10 @@ TEST_F(NrscIndexTest, DisplayIndexStatistics)
 
     for (const auto record : index | std::views::values)
     {
-        if (record.compressionFormat() == MKD::CompressionFormat::Uncompressed)
-            ++uncompressedCount;
-        else
+        if (record.isCompressed())
             ++zlibCount;
+        else
+            ++uncompressedCount;
 
         totalSize += record.len();
         maxLength = std::max(maxLength, record.len());
@@ -188,7 +188,7 @@ TEST_F(NrscIndexTest, DisplayIndexStatistics)
 
 TEST_F(NrscIndexTest, DisplayLastRecords)
 {
-    auto indexResult = MKD::NrscIndex::load(testDataPath_);
+    auto indexResult = MKD::NamedResourceStoreIndex::load(testDataPath_);
     ASSERT_TRUE(indexResult.has_value());
 
     const auto& index = indexResult.value();

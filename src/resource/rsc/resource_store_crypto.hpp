@@ -21,7 +21,7 @@ namespace MKD
      * - The kData1 and kData2 tables are embedded in the app binary
      * - Each dictionary product uses a unique 32-byte key
      */
-    class RscCrypto
+    class ResourceStoreCrypto
     {
     public:
 
@@ -94,8 +94,6 @@ namespace MKD
          * Inverse of permuteData that scrambles the data after XOR cipher is applied
          */
         static void inversePermuteData(std::span<const uint8_t> src, std::span<uint8_t> dst, uint32_t checksum);
-
-
 
     };
 }

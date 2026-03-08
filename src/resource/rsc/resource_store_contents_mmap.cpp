@@ -2,7 +2,7 @@
 // kiwakiwaaにより 2026/02/28 に作成されました。
 //
 
-#include "rsc_data.hpp"
+#include "resource_store_contents.hpp"
 #include "../detail/zlib_stream.hpp"
 
 #include <algorithm>
@@ -11,13 +11,13 @@
 
 namespace MKD
 {
-    RscData::RscData(std::vector<RscResourceFile>&& files, const std::optional<std::array<uint8_t, 32>>& decryptionKey)
+    ResourceStoreContents::ResourceStoreContents(std::vector<ResourceStoreContentsFile>&& files, const std::optional<std::array<uint8_t, 32>>& decryptionKey)
         : files_(std::move(files)), decryptionKey_(decryptionKey), cache_(std::make_unique<ChunkCache>())
     {
     }
 
 
-    Result<RscData> RscData::load(const fs::path& directoryPath,
+    Result<ResourceStoreContents> ResourceStoreContents::load(const fs::path& directoryPath,
                                   std::string_view dictId,
                                   const uint32_t mapVersion)
     {
@@ -26,15 +26,15 @@ namespace MKD
 
         std::optional<std::array<uint8_t, 32>> key;
         if (mapVersion == 1 && !dictId.empty())
-            key = RscCrypto::deriveKey(dictId);
+            key = ResourceStoreCrypto::deriveKey(dictId);
 
-        return RscData{std::move(*files), key};
+        return ResourceStoreContents{std::move(*files), key};
     }
 
 
-    Result<std::vector<RscResourceFile>> RscData::discoverFiles(const fs::path& directoryPath)
+    Result<std::vector<ResourceStoreContentsFile>> ResourceStoreContents::discoverFiles(const fs::path& directoryPath)
     {
-        std::vector<RscResourceFile> files;
+        std::vector<ResourceStoreContentsFile> files;
 
         for (const auto& entry : fs::directory_iterator(directoryPath))
         {
@@ -47,7 +47,7 @@ namespace MKD
             auto mapping = MappedFile::open(entry.path());
             if (!mapping) return std::unexpected(mapping.error());
 
-            files.push_back(RscResourceFile{
+            files.push_back(ResourceStoreContentsFile{
                 .sequenceNumber = *seqNum,
                 .globalOffset = 0,
                 .length = mapping->size(),
@@ -60,7 +60,7 @@ namespace MKD
             return std::unexpected(std::format(
                 "No .rsc files found in: {}", directoryPath.string()));
 
-        std::ranges::sort(files, {}, &RscResourceFile::sequenceNumber);
+        std::ranges::sort(files, {}, &ResourceStoreContentsFile::sequenceNumber);
 
         size_t offset = 0;
         for (size_t i = 0; i < files.size(); ++i)
@@ -76,11 +76,11 @@ namespace MKD
     }
 
 
-    Result<std::span<const uint8_t>> RscData::resolveGlobal(const size_t offset, const size_t length) const
+    Result<std::span<const uint8_t>> ResourceStoreContents::resolveGlobal(const size_t offset, const size_t length) const
     {
         auto it = std::ranges::upper_bound(
             files_, offset, std::less{},
-            [](const RscResourceFile& f) { return f.globalOffset; });
+            [](const ResourceStoreContentsFile& f) { return f.globalOffset; });
 
         if (it == files_.begin())
             return std::unexpected("Offset before first file");
@@ -90,7 +90,7 @@ namespace MKD
     }
 
 
-    Result<RetainedSpan> RscData::get(const MapRecord& record) const
+    Result<RetainedSpan> ResourceStoreContents::get(const ResourceStoreMapRecord& record) const
     {
         if (record.itemOffset == 0xFFFFFFFF)
             return readDirectData(record.chunkGlobalOffset);
@@ -102,7 +102,7 @@ namespace MKD
     }
 
 
-    Result<RetainedSpan> RscData::readDirectData(const size_t globalOffset) const
+    Result<RetainedSpan> ResourceStoreContents::readDirectData(const size_t globalOffset) const
     {
         auto header = resolveGlobal(globalOffset, sizeof(uint32_t));
         if (!header) return std::unexpected(header.error());
@@ -117,7 +117,7 @@ namespace MKD
     }
 
 
-    Result<std::shared_ptr<const std::vector<uint8_t>>> RscData::getOrLoadChunk(size_t globalOffset) const
+    Result<std::shared_ptr<const std::vector<uint8_t>>> ResourceStoreContents::getOrLoadChunk(size_t globalOffset) const
     {
         {
             std::lock_guard lock(cache_->mutex);
@@ -141,7 +141,7 @@ namespace MKD
     }
 
 
-    Result<std::vector<uint8_t>>RscData::decodeChunkAt(const size_t globalOffset) const
+    Result<std::vector<uint8_t>>ResourceStoreContents::decodeChunkAt(const size_t globalOffset) const
     {
         auto markerSpan = resolveGlobal(globalOffset, sizeof(uint32_t));
         if (!markerSpan) return std::unexpected(markerSpan.error());
@@ -169,7 +169,7 @@ namespace MKD
     }
 
 
-    Result<std::vector<uint8_t>> RscData::readEncryptedRegion(const size_t globalOffset) const
+    Result<std::vector<uint8_t>> ResourceStoreContents::readEncryptedRegion(const size_t globalOffset) const
     {
         if (!decryptionKey_)
             return std::unexpected("Missing decryption key");
@@ -183,11 +183,11 @@ namespace MKD
         auto encrypted = resolveGlobal(globalOffset + sizeof(uint32_t), length);
         if (!encrypted) return std::unexpected(encrypted.error());
 
-        return RscCrypto::decrypt(*encrypted, *decryptionKey_);
+        return ResourceStoreCrypto::decrypt(*encrypted, *decryptionKey_);
     }
 
 
-    Result<RetainedSpan> RscData::parseItemFromChunk(
+    Result<RetainedSpan> ResourceStoreContents::parseItemFromChunk(
         std::shared_ptr<const std::vector<uint8_t>> chunk,
         const size_t offset)
     {

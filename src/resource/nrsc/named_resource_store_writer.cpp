@@ -2,8 +2,8 @@
 // kiwakiwaaにより 2026/03/07 に作成されました。
 //
 
-#include "nrsc_writer.hpp"
-#include "nrsc_index.hpp"
+#include "named_resource_store_writer.hpp"
+#include "named_resource_store_index.hpp"
 #include "../detail/zlib_stream.hpp"
 
 #include <algorithm>
@@ -11,7 +11,7 @@
 
 namespace MKD
 {
-    Result<NrscWriter> NrscWriter::create(const fs::path& directoryPath, const Options& options)
+    Result<NamedResourceStoreWriter> NamedResourceStoreWriter::create(const fs::path& directoryPath, const Options& options)
     {
         if (options.type != ResourceType::Audio && options.type != ResourceType::Graphics)
             return std::unexpected(std::format("Resource type '{}' is not supported by nrsc", resourceTypeName(options.type)));
@@ -22,17 +22,17 @@ namespace MKD
         if (!blobWriter)
             return std::unexpected(blobWriter.error());
 
-        return NrscWriter(std::move(*blobWriter));
+        return NamedResourceStoreWriter(std::move(*blobWriter));
     }
 
 
-    NrscWriter::NrscWriter(detail::SequentialBlobWriter&& blobWriter)
+    NamedResourceStoreWriter::NamedResourceStoreWriter(detail::SequentialBlobWriter&& blobWriter)
         : blobWriter_(std::move(blobWriter))
     {
     }
 
 
-    Result<void> NrscWriter::add(std::string_view id, std::vector<uint8_t> data, const int compressionLevel)
+    Result<void> NamedResourceStoreWriter::add(std::string_view id, std::vector<uint8_t> data, const int compressionLevel)
     {
         if (finished_)
             return std::unexpected("Cannot add entries after finalize()");
@@ -78,7 +78,7 @@ namespace MKD
     }
 
 
-    Result<void> NrscWriter::finalize()
+    Result<void> NamedResourceStoreWriter::finalize()
     {
         if (finished_)
             return std::unexpected("finalize() already called");
@@ -94,19 +94,19 @@ namespace MKD
     }
 
 
-    size_t NrscWriter::size() const noexcept
+    size_t NamedResourceStoreWriter::size() const noexcept
     {
         return entries_.size();
     }
 
 
-    bool NrscWriter::empty() const noexcept
+    bool NamedResourceStoreWriter::empty() const noexcept
     {
         return entries_.empty();
     }
 
 
-    Result<void> NrscWriter::writeIndexFile() const
+    Result<void> NamedResourceStoreWriter::writeIndexFile() const
     {
         const auto directory = blobWriter_.directory();
         const auto idxPath = directory / "index.nidx";
@@ -120,7 +120,7 @@ namespace MKD
 
         // build records array in sorted order
         std::string idStrings;
-        std::vector<NrscIndexRecord> records;
+        std::vector<NamedResourceStoreIndexRecord> records;
         records.reserve(entries_.size());
 
         for (const size_t idx : sortedOrder)
@@ -130,7 +130,7 @@ namespace MKD
             idStrings.append(id);
             idStrings.push_back('\0');
 
-            NrscIndexRecord record {
+            NamedResourceStoreIndexRecord record {
                 .format = format,
                 .fileSequence = fileSequence,
                 .idStringOffset = idOffset,
@@ -149,14 +149,14 @@ namespace MKD
         if (!file)
             return std::unexpected(std::format("Failed to open: {}", idxPath.string()));
 
-        NrscIndexHeader header{
+        NamedResourceStoreIndexHeader header{
             .zeroField = 0,
             .recordCount = static_cast<uint32_t>(records.size())
         };
 
         file.write(reinterpret_cast<const char*>(&header), sizeof(header));
         file.write(reinterpret_cast<const char*>(records.data()),
-                   static_cast<std::streamsize>(records.size() * sizeof(NrscIndexRecord)));
+                   static_cast<std::streamsize>(records.size() * sizeof(NamedResourceStoreIndexRecord)));
         file.write(idStrings.data(), static_cast<std::streamsize>(idStrings.size()));
 
         if (!file)

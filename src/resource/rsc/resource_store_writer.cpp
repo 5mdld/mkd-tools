@@ -2,7 +2,7 @@
 // kiwakiwaaにより 2026/03/06 に作成されました。
 //
 
-#include "rsc_writer.hpp"
+#include "resource_store_writer.hpp"
 #include "../detail/binary_buffer.hpp"
 #include "../detail/zlib_stream.hpp"
 
@@ -10,27 +10,31 @@
 
 namespace MKD
 {
-    Result<RscWriter> RscWriter::createIndexed(const fs::path& directoryPath, const Options& options)
+    Result<ResourceStoreWriter> ResourceStoreWriter::createIndexed(const fs::path& directoryPath,
+                                                                   const Options& options)
     {
         return createImpl(Mode::Indexed, directoryPath, options);
     }
 
 
-    Result<RscWriter> RscWriter::createSequential(const fs::path& directoryPath, const Options& options)
+    Result<ResourceStoreWriter> ResourceStoreWriter::createSequential(const fs::path& directoryPath,
+                                                                      const Options& options)
     {
         return createImpl(Mode::Sequential, directoryPath, options);
     }
 
 
-    RscWriter::RscWriter(const Mode mode, const Options& options, detail::SequentialBlobWriter&& blobWriter)
+    ResourceStoreWriter::ResourceStoreWriter(const Mode mode, const Options& options,
+                                             detail::SequentialBlobWriter&& blobWriter)
         : mode_(mode), options_(options), blobWriter_(std::move(blobWriter))
     {
         if (options_.useEncryption && !options_.dictId.empty())
-            encryptionKey_ = RscCrypto::deriveKey(options_.dictId);
+            encryptionKey_ = ResourceStoreCrypto::deriveKey(options_.dictId);
     }
 
 
-    Result<RscWriter> RscWriter::createImpl(const Mode mode, const fs::path& directoryPath, const Options& options)
+    Result<ResourceStoreWriter> ResourceStoreWriter::createImpl(const Mode mode, const fs::path& directoryPath,
+                                                                const Options& options)
     {
         auto blobWriter = detail::SequentialBlobWriter::create(
             directoryPath, ResourceType::Contents, options.maxFileSize);
@@ -38,11 +42,11 @@ namespace MKD
         if (!blobWriter)
             return std::unexpected(blobWriter.error());
 
-        return RscWriter(mode, options, std::move(*blobWriter));
+        return ResourceStoreWriter(mode, options, std::move(*blobWriter));
     }
 
 
-    Result<void> RscWriter::add(const uint32_t itemId, std::vector<uint8_t> data)
+    Result<void> ResourceStoreWriter::add(const uint32_t itemId, std::vector<uint8_t> data)
     {
         if (finished_)
             return std::unexpected("Cannot add items after finalize()");
@@ -58,7 +62,7 @@ namespace MKD
     }
 
 
-    Result<void> RscWriter::addData(const std::span<const uint8_t> data)
+    Result<void> ResourceStoreWriter::addData(const std::span<const uint8_t> data)
     {
         if (finished_)
             return std::unexpected("Cannot add items after finalize()");
@@ -78,7 +82,7 @@ namespace MKD
     }
 
 
-    Result<void> RscWriter::finalize()
+    Result<void> ResourceStoreWriter::finalize()
     {
         if (finished_)
             return std::unexpected("finalize() already called");
@@ -98,7 +102,7 @@ namespace MKD
     }
 
 
-    size_t RscWriter::size() const noexcept
+    size_t ResourceStoreWriter::size() const noexcept
     {
         return !idxRecords_.empty()
                    ? idxRecords_.size() + pendingItems_.size()
@@ -106,13 +110,13 @@ namespace MKD
     }
 
 
-    bool RscWriter::empty() const noexcept
+    bool ResourceStoreWriter::empty() const noexcept
     {
         return idxRecords_.empty() && mapRecords_.empty() && pendingItems_.empty();
     }
 
 
-    RscWriter::SerializedChunk RscWriter::serializeItems(std::span<const PendingItem> items) const
+    ResourceStoreWriter::SerializedChunk ResourceStoreWriter::serializeItems(std::span<const PendingItem> items) const
     {
         const bool newFormat = encryptionKey_.has_value();
         const size_t headerSize = newFormat ? 8 : 4;
@@ -143,7 +147,7 @@ namespace MKD
     }
 
 
-    Result<void> RscWriter::flushChunk()
+    Result<void> ResourceStoreWriter::flushChunk()
     {
         const auto [serialized, itemOffsets] = serializeItems(pendingItems_);
 
@@ -155,7 +159,7 @@ namespace MKD
         detail::BinaryBuffer buffer;
         if (encryptionKey_)
         {
-            auto encrypted = RscCrypto::encrypt(*compressedSpan, *encryptionKey_);
+            auto encrypted = ResourceStoreCrypto::encrypt(*compressedSpan, *encryptionKey_);
             buffer.writeLE(uint32_t{0}); // new-format marker
             buffer.writeLE(static_cast<uint32_t>(encrypted.size()));
             buffer.writeBytes(encrypted);
@@ -191,7 +195,7 @@ namespace MKD
     }
 
 
-    Result<void> RscWriter::writeIndexFiles() const
+    Result<void> ResourceStoreWriter::writeIndexFiles() const
     {
         const auto directory = blobWriter_.directory();
 
@@ -202,14 +206,14 @@ namespace MKD
             if (!file)
                 return std::unexpected(std::format("Failed to open: {}", mapPath.string()));
 
-            MapHeader header{
+            ResourceStoreMapHeader header{
                 .version = encryptionKey_ ? 0x01u : 0x00u,
                 .recordCount = static_cast<uint32_t>(idxRecords_.size()),
             };
 
             file.write(reinterpret_cast<const char*>(&header), sizeof(header));
             file.write(reinterpret_cast<const char*>(mapRecords_.data()),
-                       static_cast<std::streamsize>(mapRecords_.size() * sizeof(MapRecord)));
+                       static_cast<std::streamsize>(mapRecords_.size() * sizeof(ResourceStoreMapRecord)));
 
             if (!file)
                 return std::unexpected(std::format("Failed to write: {}", mapPath.string()));
@@ -225,15 +229,16 @@ namespace MKD
 
             // Sort idx records by itemId for binary search at read time
             auto sortedIdx = idxRecords_;
-            std::ranges::sort(sortedIdx, {}, &IdxRecord::itemId);
+            std::ranges::sort(sortedIdx, {}, &ResourceStoreIndexRecord::itemId);
 
-            IdxHeader header{};
-            header.length = static_cast<uint32_t>(sortedIdx.size());
-            header.padding = 0;
+            ResourceStoreIndexHeader header{
+                .length = static_cast<uint32_t>(sortedIdx.size()),
+                .padding = 0
+            };
 
             file.write(reinterpret_cast<const char*>(&header), sizeof(header));
             file.write(reinterpret_cast<const char*>(sortedIdx.data()),
-                       static_cast<std::streamsize>(sortedIdx.size() * sizeof(IdxRecord)));
+                       static_cast<std::streamsize>(sortedIdx.size() * sizeof(ResourceStoreIndexRecord)));
 
             if (!file)
                 return std::unexpected(std::format("Failed to write: {}", idxPath.string()));

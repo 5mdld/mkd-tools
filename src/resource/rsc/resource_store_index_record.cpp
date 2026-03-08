@@ -2,21 +2,21 @@
 // kiwakiwaaにより 2026/01/29 に作成されました。
 //
 
-#include "rsc_index_record.hpp"
+#include "resource_store_index_record.hpp"
 
 namespace MKD
 {
-    uint32_t IdxRecord::id() const noexcept
+    uint32_t ResourceStoreIndexRecord::id() const noexcept
     {
         return itemId;
     }
 
-    size_t IdxRecord::mapIndex() const noexcept
+    size_t ResourceStoreIndexRecord::mapIndex() const noexcept
     {
         return mapIdx;
     }
 
-    void IdxRecord::swapEndianness() noexcept
+    void ResourceStoreIndexRecord::swapEndianness() noexcept
     {
         itemId = std::byteswap(itemId);
         mapIdx = std::byteswap(mapIdx);

@@ -6,7 +6,7 @@
 
 #include "MKD/result.hpp"
 #include "MKD/resource/retained_span.hpp"
-#include "nrsc_index.hpp"
+#include "named_resource_store_index.hpp"
 
 #include <expected>
 #include <fstream>
@@ -22,16 +22,11 @@ namespace fs = std::filesystem;
 namespace MKD
 {
     /**
-    * NRSC Resource File Format (.nrsc)
+    * Named Resource Store Contents file format (.nrsc)
     *
     * Resource files store the actual data (images, audio, etc.) referenced by
     * the index. Multiple numbered files (0.nrsc, 1.nrsc, 2.nrsc, ...) are used
     * to split large resource collections into chunks.
-    *
-    * - Load NrscIndex to get the table of contents
-    * - Load NrscData to access the numbered resource files
-    * - Look up a resource ID in the index to get an NrscIndexRecord
-    * - Pass the record to NrscData::get() to retrieve the data
     *
     * Example
     * auto index = NrscIndex::load("dict/graphics");
@@ -42,21 +37,21 @@ namespace MKD
     */
 
 #if defined(__APPLE__) || defined(__linux__)
-    struct NrscResourceFile
+    struct NamedResourceStoreFile
     {
         uint32_t sequenceNumber; // Which numbered .nrsc file (0.nrsc, 1.nrsc, etc.)
         fs::path filePath;       // Path to .nrsc file
         MappedFile mapping;
     };
 #else
-    struct NrscResourceFile
+    struct NamedResourceStoreFile
     {
         uint32_t sequenceNumber;
         fs::path filePath;
     };
 #endif
 
-    class NrscData
+    class NamedResourceStoreContents
     {
     public:
         /**
@@ -65,7 +60,7 @@ namespace MKD
          * @param directoryPath Path to directory
          * @return NrscData class or string if failure
          */
-        static Result<NrscData> load(const fs::path& directoryPath);
+        static Result<NamedResourceStoreContents> load(const fs::path& directoryPath);
 
         /**
          * Gets span view of the data for a given index record
@@ -74,11 +69,11 @@ namespace MKD
          * @param record
          * @return Span view of the data, or error string if failure
          */
-        [[nodiscard]] Result<RetainedSpan> get(const NrscIndexRecord& record) const;
+        [[nodiscard]] Result<RetainedSpan> get(const NamedResourceStoreIndexRecord& record) const;
 
 
     private:
-        explicit NrscData(std::vector<NrscResourceFile>&& files);
+        explicit NamedResourceStoreContents(std::vector<NamedResourceStoreFile>&& files);
 
         /**
          * Collects all .nrsc files in the directory and sorts them by sequence number
@@ -86,7 +81,7 @@ namespace MKD
          * @param directoryPath Path to directory
          * @return Vector of Nrsc resource files
          */
-        static Result<std::vector<NrscResourceFile>> discoverFiles(const fs::path& directoryPath);
+        static Result<std::vector<NamedResourceStoreFile>> discoverFiles(const fs::path& directoryPath);
 
         /**
          * Reads raw bytes from the .nrsc file into readBuffer_
@@ -95,7 +90,7 @@ namespace MKD
          * @param record NrscIndexRecord specifying the global offset and length to read
          * @return void on success, or error string if failure
          */
-        static Result<RetainedSpan> readUncompressed(const NrscResourceFile& file, const NrscIndexRecord& record);
+        static Result<RetainedSpan> readUncompressed(const NamedResourceStoreFile& file, const NamedResourceStoreIndexRecord& record);
 
 
         /**
@@ -104,9 +99,9 @@ namespace MKD
          * @param record rscIndexRecord specifying compression format and expected decompressed length
          * @return Span view of the decompressed data, or error string if failure
          */
-        static Result<RetainedSpan> readCompressed(const NrscResourceFile& file, const NrscIndexRecord& record);
+        static Result<RetainedSpan> readCompressed(const NamedResourceStoreFile& file, const NamedResourceStoreIndexRecord& record);
 
-        std::vector<NrscResourceFile> files_;
+        std::vector<NamedResourceStoreFile> files_;
     };
 
 }

@@ -18,25 +18,25 @@ namespace MKD
 {
 
     // Resource item that can be returned to users
-    struct NrscItem
+    struct NamedResourceStoreItem
     {
         std::string_view id;
         RetainedSpan data;
     };
 
-    class Nrsc
+    class NamedResourceStore
     {
     public:
-        ~Nrsc();
-        Nrsc(Nrsc&&) noexcept;
-        Nrsc& operator=(Nrsc&&) noexcept;
+        ~NamedResourceStore();
+        NamedResourceStore(NamedResourceStore&&) noexcept;
+        NamedResourceStore& operator=(NamedResourceStore&&) noexcept;
 
         /**
          * Factory method to open a .nrsc resource from a directory
          * @param directoryPath Directory path containing the resources
          * @return Nrsc resource class or error string if failure
          */
-        static Result<Nrsc> open(const fs::path& directoryPath);
+        static Result<NamedResourceStore> open(const fs::path& directoryPath);
 
         /**
          * Get resource by string ID
@@ -52,7 +52,7 @@ namespace MKD
          * @param index
          * @return
          */
-        [[nodiscard]] Result<NrscItem> getByIndex(size_t index) const;
+        [[nodiscard]] Result<NamedResourceStoreItem> getByIndex(size_t index) const;
 
         /**
          * Get total number of resources
@@ -72,12 +72,12 @@ namespace MKD
             using iterator_category = std::forward_iterator_tag;
             using iterator_concept = std::forward_iterator_tag;
             using difference_type = std::ptrdiff_t;
-            using value_type = NrscItem;
+            using value_type = NamedResourceStoreItem;
             using pointer = value_type*;
             using reference = value_type;
 
             Iterator() noexcept = default;
-            Iterator(const Nrsc* nrsc, size_t index);
+            Iterator(const NamedResourceStore* nrsc, size_t index);
 
             value_type operator*() const;
 
@@ -89,7 +89,7 @@ namespace MKD
 
 
         private:
-            const Nrsc* nrsc_ = nullptr;
+            const NamedResourceStore* store_ = nullptr;
             size_t index_ = 0;
 
         };
@@ -102,7 +102,7 @@ namespace MKD
     private:
         struct Impl;
         std::unique_ptr<Impl> impl_;
-        explicit Nrsc(std::unique_ptr<Impl> impl) noexcept;
+        explicit NamedResourceStore(std::unique_ptr<Impl> impl) noexcept;
 
     };
 

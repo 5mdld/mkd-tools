@@ -27,12 +27,24 @@ namespace MKD
                 return options.outputDirectory / resourceTypeName(type);
             return options.outputDirectory;
         }
+
+        template<typename F>
+        void forEachItem(const size_t count, F&& fn)
+        {
+#if defined(__APPLE__) || defined(__linux__)
+            parallelFor(count, std::forward<F>(fn));
+#else
+            for (size_t i = 0; i < count; ++i)
+                fn(i);
+#endif
+        }
     }
 
 
-    Result<ExportResult> ResourceExporter::exportAll(const Rsc& rsc, const ExportOptions& options, const ResourceType type)
+    Result<ExportResult> ResourceExporter::exportAll(const ResourceStore& resourceStore, const ExportOptions& options,
+                                                     const ResourceType type)
     {
-        if (rsc.empty())
+        if (resourceStore.empty())
             return ExportResult{};
 
         if (const auto ec = createOutputDirs(options, type))
@@ -40,11 +52,11 @@ namespace MKD
 
         const auto ext = type == ResourceType::Contents ? ".xml" : ".aac";
         const auto baseDir = buildOutputDir(options, type);
-        ExportAccumulator acc(rsc.size(), type, options.progressCallback);
+        const bool shouldFormat = type == ResourceType::Contents && options.prettyPrintXml;
+        ExportAccumulator acc(resourceStore.size(), type, options.progressCallback);
 
-#if defined(__APPLE__) || defined(__linux__)
-        parallelFor(rsc.size(), [&](const size_t i) {
-            auto item = rsc.getByIndex(i);
+        forEachItem(resourceStore.size(), [&](const size_t i) {
+            auto item = resourceStore.getByIndex(i);
             if (!item)
             {
                 acc.recordFailure(item.error());
@@ -52,74 +64,55 @@ namespace MKD
             }
 
             const auto filename = std::format("{:06}{}", item->itemId, ext);
-            if (const auto path = baseDir / filename; shouldSkipExisting(path, options.overwriteExisting))
+            const auto path = baseDir / filename;
+            if (shouldSkipExisting(path, options.overwriteExisting))
+            {
                 acc.recordSkip();
-            else if (auto r = writeData(item->data, path))
-                acc.recordExport(item->data.size());
+                return;
+            }
+
+            std::vector<uint8_t> buf;
+            const auto output = formatIfNeeded(item->data.span(), buf, shouldFormat);
+
+            if (auto r = writeData(output, path))
+                acc.recordExport(output.size());
             else
                 acc.recordFailure(std::format("Entry {}: {}", item->itemId, r.error()));
         });
-#else
-        for (const auto [itemId, data] : rsc)
-        {
-            const auto filename = std::format("{:06}{}", itemId, ext);
-            if (const auto path = baseDir / filename; shouldSkipExisting(path, options.overwriteExisting))
-                acc.recordSkip();
-            else if (auto r = writeData(data, path))
-                acc.recordExport(data.size());
-            else
-                acc.recordFailure(std::format("Entry {}: {}", itemId, r.error()));
-        }
-#endif
 
         return acc.finalize();
     }
 
 
     Result<ExportResult> ResourceExporter::exportAll(
-        const Nrsc& nrsc, const ExportOptions& options, const ResourceType type)
+        const NamedResourceStore& namedResourceStore, const ExportOptions& options, const ResourceType type)
     {
-        if (nrsc.empty())
+        if (namedResourceStore.empty())
             return ExportResult{};
 
         if (const auto ec = createOutputDirs(options, type))
             return std::unexpected(std::format("Failed to create output directories: {}", ec.message()));
 
         const auto baseDir = buildOutputDir(options, type);
-        ExportAccumulator acc(nrsc.size(), type, options.progressCallback);
+        ExportAccumulator acc(namedResourceStore.size(), type, options.progressCallback);
 
-#if defined(__APPLE__) || defined(__linux__)
-        parallelFor(nrsc.size(), [&](const size_t i) {
-            auto item = nrsc.getByIndex(i);
+        forEachItem(namedResourceStore.size(), [&](const size_t i) {
+            auto item = namedResourceStore.getByIndex(i);
             if (!item)
             {
                 acc.recordFailure(std::format("Index {}: {}", i, item.error()));
                 return;
             }
 
-            // nrsc items with no extension in their ID are audio files
             const bool isAudio = item->id.find('.') == std::string::npos;
             const auto filename = isAudio ? std::format("{}.aac", item->id) : std::string(item->id);
             if (const auto outputPath = baseDir / filename; shouldSkipExisting(outputPath, options.overwriteExisting))
                 acc.recordSkip();
-            else if (auto result = writeData(item->data, outputPath))
+            else if (auto result = writeData(item->data.span(), outputPath))
                 acc.recordExport(item->data.size());
             else
                 acc.recordFailure(std::format("{}: {}", item->id, result.error()));
         });
-#else
-        for (const auto [itemId, data] : nrsc)
-        {
-            const bool isAudio = itemId.find('.') == std::string::npos;
-            const auto filename = isAudio ? std::format("{}.aac", itemId) : std::string(itemId);
-            if (const auto path = baseDir / filename; shouldSkipExisting(path, options.overwriteExisting))
-                acc.recordSkip();
-            else if (auto r = writeData(data, path))
-                acc.recordExport(data.size());
-            else
-                acc.recordFailure(std::format("Entry {}: {}", itemId, r.error()));
-        }
-#endif
 
         return acc.finalize();
     }
@@ -168,6 +161,19 @@ namespace MKD
         }
 
         return result;
+    }
+
+
+    std::span<const uint8_t> ResourceExporter::formatIfNeeded(const std::span<const uint8_t> data,
+                                                              std::vector<uint8_t>& buf, bool shouldFormat)
+    {
+        if (shouldFormat)
+        {
+            buf = prettyPrintXml(data);
+            if (!buf.empty())
+                return buf;
+        }
+        return data;
     }
 
 

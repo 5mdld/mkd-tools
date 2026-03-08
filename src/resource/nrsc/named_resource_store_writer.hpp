@@ -12,7 +12,7 @@
 
 namespace MKD
 {
-    class NrscWriter
+    class NamedResourceStoreWriter
     {
     public:
         struct Options
@@ -23,7 +23,7 @@ namespace MKD
         };
 
 
-        static Result<NrscWriter> create(const fs::path& directoryPath, const Options& options);
+        static Result<NamedResourceStoreWriter> create(const fs::path& directoryPath, const Options& options);
 
         Result<void> add(std::string_view id, std::vector<uint8_t> data, int compressionLevel = 0);
 
@@ -34,7 +34,7 @@ namespace MKD
         [[nodiscard]] bool empty() const noexcept;
 
     private:
-        explicit NrscWriter(detail::SequentialBlobWriter&& blobWriter);
+        explicit NamedResourceStoreWriter(detail::SequentialBlobWriter&& blobWriter);
 
         Result<void> writeIndexFile() const;
 

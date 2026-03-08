@@ -2,17 +2,17 @@
 // kiwakiwaaにより 2026/01/29 に作成されました。
 //
 
-#include "rsc_map.hpp"
+#include "resource_store_map.hpp"
 
 namespace MKD
 {
-    void MapHeader::swapEndianness() noexcept
+    void ResourceStoreMapHeader::swapEndianness() noexcept
     {
         version = std::byteswap(version);
         recordCount = std::byteswap(recordCount);
     }
 
-    void MapRecord::swapEndianness() noexcept
+    void ResourceStoreMapRecord::swapEndianness() noexcept
     {
         chunkGlobalOffset = std::byteswap(chunkGlobalOffset);
         itemOffset = std::byteswap(itemOffset);

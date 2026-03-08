@@ -8,8 +8,8 @@
 #include "../test_listener.hpp"
 #include "../../src/platform/macos/fs.hpp"
 #include "MKD/platform/macos/macos_dictionary_source.hpp"
-#include "../../src/resource/rsc/rsc_index.hpp"
-#include "../../src/resource/rsc/rsc_data.hpp"
+#include "../../src/resource/rsc/resource_store_index.hpp"
+#include "../../src/resource/rsc/resource_store_contents.hpp"
 
 class RscIndexTest : public ::testing::Test
 {
@@ -28,7 +28,7 @@ protected:
 
 TEST_F(RscIndexTest, LoadValidIndexFile)
 {
-    auto result = MKD::RscIndex::load(testDataPath_);
+    auto result = MKD::ResourceStoreIndex::load(testDataPath_);
     ASSERT_TRUE(result.has_value()) << "Failed to load index: " << result.error();
     const auto& index = result.value();
     const size_t recordCount = index.size();
@@ -42,7 +42,7 @@ TEST_F(RscIndexTest, LoadValidIndexFile)
 
 TEST_F(RscIndexTest, GetRecordByIndex)
 {
-    const auto indexResult = MKD::RscIndex::load(testDataPath_);
+    const auto indexResult = MKD::ResourceStoreIndex::load(testDataPath_);
     ASSERT_TRUE(indexResult.has_value());
 
     const auto& index = indexResult.value();
@@ -67,7 +67,7 @@ TEST_F(RscIndexTest, GetRecordByIndex)
 
 TEST_F(RscIndexTest, GetOutOfBoundsIndex)
 {
-    const auto indexResult = MKD::RscIndex::load(testDataPath_);
+    const auto indexResult = MKD::ResourceStoreIndex::load(testDataPath_);
     ASSERT_TRUE(indexResult.has_value());
 
     const auto& index = indexResult.value();
@@ -85,7 +85,7 @@ TEST_F(RscIndexTest, GetOutOfBoundsIndex)
 
 TEST_F(RscIndexTest, FindRecordById)
 {
-    auto indexResult = MKD::RscIndex::load(testDataPath_);
+    auto indexResult = MKD::ResourceStoreIndex::load(testDataPath_);
     ASSERT_TRUE(indexResult.has_value());
 
     const auto& index = indexResult.value();
