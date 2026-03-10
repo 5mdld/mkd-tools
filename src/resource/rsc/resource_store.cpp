@@ -93,8 +93,8 @@ namespace MKD
 
     ResourceStore::Iterator::value_type ResourceStore::Iterator::operator*() const
     {
-        assert(rsc_ != nullptr && "Dereferencing invalid iterator");
-        assert(index_ < rsc_->size() && "Dereferencing end iterator");
+        assert(store_ != nullptr && "Dereferencing invalid iterator");
+        assert(index_ < store_->size() && "Dereferencing end iterator");
 
         auto result = store_->getByIndex(index_);
         if (!result)

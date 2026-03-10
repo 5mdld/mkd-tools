@@ -167,7 +167,7 @@ namespace MKD
         ));
     }
 
-
+    // todo: add light version maybe that doesnt decode pages (for search)
     Result<KeystoreLookupResult> Keystore::getByIndex(const KeystoreIndex indexType, const size_t index) const
     {
         const auto* arr = getIndexArray(indexType);

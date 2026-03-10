@@ -92,8 +92,8 @@ namespace MKD
 
     NamedResourceStore::Iterator::value_type NamedResourceStore::Iterator::operator*() const
     {
-        assert(nrsc_ != nullptr && "Dereferencing invalid iterator");
-        assert(index_ < nrsc_->size() && "Dereferencing end iterator");
+        assert(store_ != nullptr && "Dereferencing invalid iterator");
+        assert(index_ < store_->size() && "Dereferencing end iterator");
 
         auto result = store_->getByIndex(index_);
         if (!result)
