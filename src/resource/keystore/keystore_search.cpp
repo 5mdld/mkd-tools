@@ -5,9 +5,10 @@
 #include "keystore_search.hpp"
 #include "keystore_compare.hpp"
 
-#include <algorithm>
 #include "utf8.h"
 
+#include <algorithm>
+#include <utility>
 
 namespace MKD
 {
