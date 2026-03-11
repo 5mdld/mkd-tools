@@ -40,20 +40,6 @@ namespace MKD
     };
 
 
-    enum class CompareMode
-    {
-        Forward, // prefix
-        Backward, // suffix
-        Length
-    };
-
-
-    /**
-     * Compare two UTF-8 dictionary keys
-     * @return <0 if a < b, 0 if equal, >0 if a > b
-     */
-    [[nodiscard]] int keystoreCompare(std::string_view a, std::string_view b, CompareMode mode);
-
     /**
      * Seach a keystore index, returning the range of matching positions. Reversed from HMDicKeyIndexSearch
      * - Performs two lower bound searches
@@ -79,5 +65,3 @@ namespace MKD
     [[nodiscard]] Result<std::vector<KeystoreLookupResult>> keystoreSearchResults(const Keystore& keystore, std::string_view query, SearchMode mode);
 
 }
-
-

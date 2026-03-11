@@ -2,9 +2,9 @@
 // kiwakiwaaにより 2026/03/07 に作成されました。
 //
 #include "keystore_writer.hpp"
+#include "keystore_compare.hpp"
 #include "../detail/binary_buffer.hpp"
 #include "../detail/unicode/unicode_utils.hpp"
-#include "../detail/unicode/unicode_case_map.hpp"
 
 #include <algorithm>
 #include <format>
@@ -25,39 +25,6 @@ namespace MKD
                 if (std::ranges::find(existing, ref) == existing.end())
                     existing.push_back(ref);
             }
-        }
-
-        /**
-         * Normalises a key for case-insensitive comparison.
-         *
-         * The resulting normalized string can be used for:
-         *   - Building sorted indices
-         *   - Binary search during lookup
-         *   - Comparing keys regardless of case and ignorable characters
-         *
-         * @param utf8Key Original UTF-8 encoded key
-         * @return Normalized UTF-32 string for comparison
-         */
-        std::u32string normalizeForPrefixCompare(const std::string& utf8Key)
-        {
-            std::u32string result;
-            result.reserve(utf8Key.size());
-
-            for (const std::u32string codepoints = detail::unicode::toUtf32(utf8Key); const char32_t cp : codepoints)
-            {
-                // Skip spaces and hyphens
-                if (cp == 0x20 || cp == 0x2D)
-                    continue;
-
-                if (cp >= 0x41 && cp <= 0x5A) // ASCII
-                    result.push_back(cp | 0x20);
-                else if (cp >= 0x3000 && cp < 0xA000)
-                    result.push_back(cp); // skip CJK/kana range
-                else
-                    result.push_back(detail::unicode::toLowercase(cp)); // everything else goes through the case map
-            }
-
-            return result;
         }
     }
 
@@ -366,7 +333,7 @@ namespace MKD
 
         std::vector<std::u32string> normalized(n);
         for (size_t i = 0; i < n; ++i)
-            normalized[i] = detail::normalizeForPrefixCompare(entries[i].key);
+            normalized[i] = detail::keystore::normalizeKeyToUTF32(entries[i].key, false);
 
         // Index A sorted by codepoint count, then case-folded comparison
         {
