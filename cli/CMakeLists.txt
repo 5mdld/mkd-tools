@@ -17,5 +17,8 @@ target_include_directories(mkd-cli PRIVATE
 target_link_libraries(mkd-cli PRIVATE mkd)
 target_compile_features(mkd-cli PRIVATE cxx_std_23)
 set_target_properties(mkd-cli PROPERTIES
-        OUTPUT_NAME mkd
+        OUTPUT_NAME mkd-tools
 )
+
+include(GNUInstallDirs)
+install(TARGETS mkd-cli RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})

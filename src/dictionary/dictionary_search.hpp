@@ -15,6 +15,23 @@ namespace MKD
 {
     class Dictionary;
 
+
+    enum class SearchScope : uint8_t
+    {
+        Headword = 0,
+        Idiom = 1,
+        Example = 2,
+        English = 3,
+        Sense = 4,
+        Kanji = 6,
+        Collocation = 7,
+        Fulltext = 10,
+        Category = 11,
+        Compound = 100,
+        Numeral = 101
+    };
+
+
     struct SearchOptions
     {
         SearchMode type = SearchMode::Prefix;

@@ -34,6 +34,8 @@ FetchContent_Declare(zlib
         GIT_TAG v1.3.1
         GIT_SHALLOW TRUE
 )
+
+set(ZLIB_BUILD_EXAMPLES OFF)
 FetchContent_MakeAvailable(glaze zlib)
 
 if (NOT TARGET ZLIB::ZLIB)
@@ -136,7 +138,10 @@ if (BUILD_TESTING)
 
     file(GLOB_RECURSE TEST_SOURCES test/*.cpp)
     add_executable(mkd-tests ${TEST_SOURCES})
-    target_include_directories(mkd-tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/third_party/pugixml)
+    target_include_directories(mkd-tests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/src
+            ${CMAKE_CURRENT_SOURCE_DIR}/third_party/pugixml
+    )
     target_link_libraries(mkd-tests PRIVATE mkd GTest::gtest)
 
     include(GoogleTest)

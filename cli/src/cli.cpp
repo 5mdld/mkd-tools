@@ -56,7 +56,7 @@ namespace MKDCLI
     std::expected<CLIApp, std::string> CLIApp::parse(int argc, char* argv[])
     {
         CLIOptions opts;
-        std::string program = argc > 0 ? fs::path(argv[0]).filename().string() : "mkd";
+        std::string program = argc > 0 ? fs::path(argv[0]).filename().string() : "mkd-tools";
 
         auto args = std::span(argv, static_cast<size_t>(argc));
         bool commandParsed = false;
@@ -272,7 +272,7 @@ namespace MKDCLI
 
                 << Colour::bold("GLOBAL OPTIONS:\n")
                 << "  -d, --dir <path>                Use a directory as dictionary source\n"
-                << "  --no-u                          Disable coloured output\n\n"
+                << "  --no-colour                     Disable coloured output\n\n"
 
                 << Colour::bold("EXPORT OPTIONS:\n")
                 << "  -o, --output <path>             Output directory "
