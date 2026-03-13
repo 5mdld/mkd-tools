@@ -32,6 +32,10 @@ Use `--only` to limit export to specific resource types (`audio`, `entries`, `gr
 
 Output goes to `~/Documents/mkd-export` by default, configurable with `-o`.
 
+### Acknowledgements
+This work benefited greatly from the use of [Hopper Disassembler](https://www.hopperapp.com) and [Frida](https://frida.re). 
+Their capabilities made the analysis of the dictionary formats substantially more tractable.
+
 > ### Notice
 >
 > This software was developed by means of independent reverse engineering. No source code, decompiled output, or other copyrightable material has been incorporated. The implementation is an original work, informed solely by observation and analysis of the binary formats. \
