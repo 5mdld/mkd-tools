@@ -53,9 +53,11 @@ namespace MKD
      * Decode all entry ids from a counted block.
      *
      * Block format: uint16_le count | encoded entries...
+     * When wideCount is true: uint32_le count | encoded entries...
      *
-     * @param data  Span starting at the uint16 count field
+     * @param data  Span starting at the count field
+     * @param wideCount  If true, count field is uint32 instead of uint16
      * @return Decoded entry ids, or an error
      */
-    [[nodiscard]] Result<std::vector<EntryId>> decodeEntryIds(std::span<const uint8_t> data);
+    [[nodiscard]] Result<std::vector<EntryId>> decodeEntryIds(std::span<const uint8_t> data, bool wideCount = false);
 }

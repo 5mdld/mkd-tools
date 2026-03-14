@@ -44,6 +44,10 @@ namespace MKD
 
         [[nodiscard]] ExportResult exportWithOptions(const ExportOptions& options) const;
 
+        [[nodiscard]] Result<std::string> headlineForEntryId(const EntryId& entryId) const;
+
+        [[nodiscard]] const std::vector<Keystore>& keystores() const noexcept;
+
     private:
         [[nodiscard]] Result<ExportResult> exportAudio(const ExportOptions& options) const;
         [[nodiscard]] Result<ExportResult> exportFonts(const ExportOptions& options) const;

@@ -15,7 +15,6 @@ namespace MKD
 {
     class Dictionary;
 
-
     enum class SearchScope : uint8_t
     {
         Headword = 0,
@@ -34,27 +33,22 @@ namespace MKD
 
     struct SearchOptions
     {
+        SearchScope scope = SearchScope::Headword;
         SearchMode type = SearchMode::Prefix;
         size_t limit = 0; // 0 = no limit
 
-        bool enableScopeFallback = true; // try broader scopes on empty result
-        bool enableStopWords = true; // remove stop words and retry
-        bool enableLemmaLookup = true; // union lemma results at scope 1
-        bool enableRomajiFallback = true; // Convert to romaji and retry
-        bool enableJapaneseCompound = true; // jp compound decomposition
-        bool enableCollocation = false; // when true, also searches collocation keystore on empty result
+        bool enableScopeFallback = true;
+        bool enableStopWords = true;
+        bool enableJapaneseCompound = true;
     };
 
     struct SearchResult
     {
         std::vector<EntryId> entries;
-
         //   0 = direct match
         //   4 = scope fallback
         //   8 = jp fallback
         uint32_t flags = 0;
-
-        // keys that actually matched
         std::vector<std::string> matchedKeys;
 
         [[nodiscard]] size_t size() const noexcept { return entries.size(); }
@@ -81,30 +75,31 @@ namespace MKD
         DictionarySearch(const DictionarySearch&) = delete;
         DictionarySearch& operator=(const DictionarySearch&) = delete;
 
-        [[nodiscard]] Result<SearchResult> search(std::string_view query, const SearchOptions& options = {});
+        [[nodiscard]] Result<SearchResult> search(std::string_view query, const SearchOptions& options = {}) const;
 
         // cancel in progress search
-        void cancel() noexcept;
+        void cancel() const noexcept;
 
         // reset cancellation
-        void reset() noexcept;
+        void reset() const noexcept;
 
-        [[nodiscard]] bool isCanccelled() const noexcept;
+        [[nodiscard]] bool isCancelled() const noexcept;
 
     private:
-        // cascading fallback across scopes
-        [[nodiscard]] Result<SearchResult> searchWithKeys(const std::vector<std::string>& keys, size_t limit);
+        // search keys at current scope with cascading scope fallback
+        [[nodiscard]] Result<SearchResult> searchWithKeys(const std::vector<std::string>& keys, size_t limit) const;
 
-        // iterate keys, search each, intersect
-        [[nodiscard]] Result<SearchResult> searchWithKeysAndFlags(const std::vector<std::string>& keys, size_t limit, uint32_t flags);
+        // iterate keys, search each, intersect results. sets flags on result.
+        [[nodiscard]] Result<SearchResult> searchWithKeysAndFlags(const std::vector<std::string>& keys, size_t limit, uint32_t flags) const;
 
-        // dispatch by SearchType
-        [[nodiscard]] Result<SearchResult> searchSingleKey(std::string_view key, size_t limit);
-
-        [[nodiscard]] Result<SearchResult> simpleSearch(std::string_view key, SearchMode type);
+        // dispatch compound search for Japanese keys at eligible scopes, otherwise simple
+        [[nodiscard]] Result<SearchResult> searchSingleKey(std::string_view key, size_t limit) const;
 
         // compound word decomposition with front/back stripping
-        [[nodiscard]] Result<SearchResult> japaneseCompoundSearch(std::string_view key);
+        [[nodiscard]] Result<SearchResult> japaneseCompoundSearch(std::string_view key) const;
+
+        // binary search across keystores for the current scope
+        [[nodiscard]] Result<SearchResult> simpleSearch(std::string_view key, SearchMode type) const;
 
         struct Impl;
         std::unique_ptr<Impl> impl;

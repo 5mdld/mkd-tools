@@ -127,6 +127,7 @@ namespace MKD
         {
             std::string_view key;
             size_t pagesOffset;
+            uint8_t flags;
         };
 
         [[nodiscard]] Result<uint32_t> wordOffset(KeystoreIndex type, size_t index) const
@@ -157,6 +158,8 @@ namespace MKD
             uint32_t pagesOffset;
             std::memcpy(&pagesOffset, ptr, sizeof(uint32_t));
 
+            const uint8_t flags = ptr[4];
+
             const auto* strBegin = reinterpret_cast<const char*>(ptr + 5);
             const size_t maxLen = file.size() - (abs + 5);
 
@@ -167,18 +170,21 @@ namespace MKD
             return WordEntry{
                 .key = std::string_view(strBegin, static_cast<size_t>(nullPos - strBegin)),
                 .pagesOffset = pagesOffset,
+                .flags = flags,
             };
         }
 
-        [[nodiscard]] Result<std::vector<EntryId>> decodeEntryIds(const size_t pagesOffset) const
+        [[nodiscard]] Result<std::vector<EntryId>> decodeEntryIds(const size_t pagesOffset, const uint8_t wordFlags) const
         {
+            const bool wideCount = (wordFlags & 0x04) != 0;
+            const size_t countSize = wideCount ? 4 : 2;
             const size_t abs = wordsOffset + pagesOffset;
 
-            if (abs + 2 > file.size())
+            if (abs + countSize > file.size())
                 return std::unexpected(std::format(
-                    "Pages offset out of bounds: {} + 2 > {}", abs, file.size()));
+                    "Pages offset out of bounds: {} + {} > {}", abs, countSize, file.size()));
 
-            return MKD::decodeEntryIds(file.data().subspan(abs));
+            return MKD::decodeEntryIds(file.data().subspan(abs), wideCount);
         }
 
         [[nodiscard]] bool needsConversion() const noexcept
@@ -331,6 +337,7 @@ namespace MKD
         return KeystoreEntry{
             .key = entry->key,
             .index = index,
+            .flags = entry->flags,
         };
     }
 
@@ -349,7 +356,7 @@ namespace MKD
         auto entry = impl_->parseWordEntry(*off);
         if (!entry) return std::unexpected(entry.error());
 
-        auto entryIds = impl_->decodeEntryIds(entry->pagesOffset);
+        auto entryIds = impl_->decodeEntryIds(entry->pagesOffset, entry->flags);
         if (!entryIds) return std::unexpected(entryIds.error());
 
         if (impl_->needsConversion())

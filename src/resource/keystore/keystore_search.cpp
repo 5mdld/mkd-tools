@@ -149,6 +149,11 @@ namespace MKD
             auto entry = keystore.entryAt(range->indexType, i);
             if (!entry) continue; // shouldnt happen
 
+            // Flag 0x08 on the word entry marks exact-search-only keys.
+            // For non-exact searches, skip these entries.
+            if (mode != SearchMode::Exact && (entry->flags & 0x08))
+                continue;
+
             if (mode == SearchMode::Exact)
             {
                 auto entryNorm = detail::keystore::normalizeKeyToUTF32(entry->key, false);

@@ -64,7 +64,8 @@ namespace MKD
      * Word entry:
      * ┌─────────────────────────────────────────────────────────┐
      * │ pagesOffset      (4 bytes)  words-section-relative      │
-     * │ separator         (1 byte)   0x00                       │
+     * │ flags            (1 byte)   bit 2: uint32 entry count   │
+     * │                             bit 3: exact-search-only    │
      * │ key               (variable) null-terminated UTF-8      │
      * └─────────────────────────────────────────────────────────┘
      *
@@ -126,6 +127,7 @@ namespace MKD
     {
         std::string_view key;
         size_t index = 0;
+        uint8_t flags = 0; // Word entry flags byte (bit 2 = uint32 count, bit 3 = exact-only)
 
         [[nodiscard]] bool empty() const noexcept { return key.empty(); }
     };

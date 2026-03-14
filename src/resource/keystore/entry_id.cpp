@@ -89,20 +89,31 @@ namespace MKD
         return entry;
     }
 
-    Result<std::vector<EntryId>> decodeEntryIds(const std::span<const uint8_t> data)
+    Result<std::vector<EntryId>> decodeEntryIds(const std::span<const uint8_t> data, const bool wideCount)
     {
-        if (data.size() < 2)
+        const size_t countSize = wideCount ? 4 : 2;
+
+        if (data.size() < countSize)
             return std::unexpected(std::format(
                 "Entry id block too small: {} bytes", data.size()));
 
-        uint16_t count;
-        std::memcpy(&count, data.data(), sizeof(uint16_t));
+        uint32_t count;
+        if (wideCount)
+        {
+            std::memcpy(&count, data.data(), sizeof(uint32_t));
+        }
+        else
+        {
+            uint16_t count16;
+            std::memcpy(&count16, data.data(), sizeof(uint16_t));
+            count = count16;
+        }
 
-        auto remaining = data.subspan(2);
+        auto remaining = data.subspan(countSize);
         std::vector<EntryId> refs;
         refs.reserve(count);
 
-        for (uint16_t i = 0; i < count; ++i)
+        for (uint32_t i = 0; i < count; ++i)
         {
             auto decoded = decodeKeystoreEntry(remaining);
             if (!decoded)

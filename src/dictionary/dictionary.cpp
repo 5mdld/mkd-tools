@@ -15,7 +15,7 @@ namespace MKD
     Dictionary::Dictionary(DictionaryContent content,
                            std::optional<ResourceStore> entries,
                            std::optional<NamedResourceStore> graphics,
-                           std::optional<std::variant<ResourceStore, NamedResourceStore> > audio,
+                           std::optional<std::variant<ResourceStore, NamedResourceStore>> audio,
                            std::vector<Font> fonts,
                            std::vector<Keystore> keystores,
                            std::vector<HeadlineStore> headlines)
@@ -71,6 +71,7 @@ namespace MKD
         return fonts_;
     }
 
+
     size_t Dictionary::resourceCount(const ResourceType type) const noexcept
     {
         switch (type)
@@ -95,6 +96,47 @@ namespace MKD
             }
         }
         std::unreachable();
+    }
+
+
+    Result<std::string> Dictionary::headlineForEntryId(const EntryId& entryId) const
+    {
+        if (headlines_.empty())
+            return std::unexpected("no headlines");
+
+        const EntryId id{
+            .pageId = entryId.pageId,
+            .itemId = entryId.itemId,
+        };
+
+        const auto compareEntryId = [](const EntryId& lhs, const EntryId& rhs) {
+            if (lhs.pageId != rhs.pageId)
+                return lhs.pageId < rhs.pageId;
+            return lhs.itemId < rhs.itemId;
+        };
+
+        const auto equalEntryId = [](const EntryId& lhs, const EntryId& rhs) {
+            return lhs.pageId == rhs.pageId && lhs.itemId == rhs.itemId;
+        };
+
+        for (const auto& store : headlines_)
+        {
+            auto it = std::lower_bound(store.begin(), store.end(), id,
+                                       [&](const HeadlineComponents& components, const EntryId& target) {
+                                           return compareEntryId(components.entryId, target);
+                                       });
+
+            if (it != store.end() && equalEntryId((*it).entryId, id))
+                return (*it).fullUtf8();
+        }
+
+        return std::unexpected("headline not found");
+    }
+
+
+    const std::vector<Keystore>& Dictionary::keystores() const noexcept
+    {
+        return keystores_;
     }
 
 
@@ -169,6 +211,7 @@ namespace MKD
             return ResourceExporter::exportAll(audioResource, options, ResourceType::Audio);
         }, *audio_);
     }
+
 
     Result<ExportResult> Dictionary::exportFonts(const ExportOptions& options) const
     {
