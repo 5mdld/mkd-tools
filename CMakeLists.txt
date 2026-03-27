@@ -94,6 +94,9 @@ if (CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDeb
     endif ()
 endif ()
 
+# third-party dependencies
+add_subdirectory(third_party)
+
 # platform libraries
 if (APPLE)
     target_link_libraries(mkd PRIVATE
@@ -128,6 +131,7 @@ if (BUILD_TESTING)
     enable_testing()
 
     file(GLOB_RECURSE TEST_SOURCES test/*.cpp)
+    list(FILTER TEST_SOURCES EXCLUDE REGEX "test/crypto/test_chacha_poly\\.cpp$")
     add_executable(mkd-tests ${TEST_SOURCES})
     target_include_directories(mkd-tests PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/src
@@ -137,4 +141,10 @@ if (BUILD_TESTING)
 
     include(GoogleTest)
     gtest_discover_tests(mkd-tests DISCOVERY_TIMEOUT 300)
+
+    if (APPLE)
+        add_executable(cryptokit-tests test/crypto/test_chacha_poly.cpp)
+        target_link_libraries(cryptokit-tests PRIVATE CRYPTOKIT_CPP GTest::gtest GTest::gtest_main)
+        gtest_discover_tests(cryptokit-tests DISCOVERY_TIMEOUT 300)
+    endif ()
 endif ()
