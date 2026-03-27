@@ -367,6 +367,11 @@ namespace MKD
                 if (!purchase->purchase_date.empty())
                     status.purchaseDate = purchase->purchase_date;
             }
+            else if (contains(payload->unitedPurchases, std::string(productId)))
+            {
+                // the app may compact generated purchases by keeping only unitedPurchases
+                status.hasReceipt = true;
+            }
             else
             {
                 inspection.missingReceiptCount++;
