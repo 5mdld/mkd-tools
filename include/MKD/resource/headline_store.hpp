@@ -5,9 +5,9 @@
 #pragma once
 
 #include "MKD/result.hpp"
+#include "MKD/platform/mmap_file.hpp"
 #include "MKD/resource/common.hpp"
 #include "MKD/resource/headline_record.hpp"
-#include "platform/mmap_file.hpp"
 
 #include <expected>
 #include <iterator>
