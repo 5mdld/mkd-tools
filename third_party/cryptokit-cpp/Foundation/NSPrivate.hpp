@@ -46,9 +46,14 @@
 
 namespace NS::Private::Class
 {
+    _NS_PRIVATE_DEF_CLS(NSError);
     _NS_PRIVATE_DEF_CLS(NSAutoreleasePool);
     _NS_PRIVATE_DEF_CLS(NSData);
+    _NS_PRIVATE_DEF_CLS(NSFileManager);
     _NS_PRIVATE_DEF_CLS(NSObject);
+    _NS_PRIVATE_DEF_CLS(NSString);
+    _NS_PRIVATE_DEF_CLS(NSURL);
+    _NS_PRIVATE_DEF_CLS(NSUserDefaults);
 }
 
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -57,22 +62,38 @@ namespace NS::Private::Selector
 {
     _NS_PRIVATE_DEF_SEL(alloc, "alloc");
     _NS_PRIVATE_DEF_SEL(autorelease, "autorelease");
+    _NS_PRIVATE_DEF_SEL(bookmarkDataWithOptions_includingResourceValuesForKeys_relativeToURL_error_, "bookmarkDataWithOptions:includingResourceValuesForKeys:relativeToURL:error:");
     _NS_PRIVATE_DEF_SEL(bytes, "bytes");
+    _NS_PRIVATE_DEF_SEL(containerURLForSecurityApplicationGroupIdentifier_, "containerURLForSecurityApplicationGroupIdentifier:");
     _NS_PRIVATE_DEF_SEL(copy, "copy");
     _NS_PRIVATE_DEF_SEL(dataWithBytes_length_, "dataWithBytes:length:");
+    _NS_PRIVATE_DEF_SEL(dataForKey_, "dataForKey:");
+    _NS_PRIVATE_DEF_SEL(defaultManager, "defaultManager");
     _NS_PRIVATE_DEF_SEL(debugDescription, "debugDescription");
     _NS_PRIVATE_DEF_SEL(description, "description");
     _NS_PRIVATE_DEF_SEL(drain, "drain");
+    _NS_PRIVATE_DEF_SEL(fileURLWithPath_, "fileURLWithPath:");
     _NS_PRIVATE_DEF_SEL(hash, "hash");
     _NS_PRIVATE_DEF_SEL(init, "init");
+    _NS_PRIVATE_DEF_SEL(initWithBytes_length_encoding_, "initWithBytes:length:encoding:");
     _NS_PRIVATE_DEF_SEL(isEqual_, "isEqual:");
     _NS_PRIVATE_DEF_SEL(length, "length");
+    _NS_PRIVATE_DEF_SEL(localizedDescription, "localizedDescription");
     _NS_PRIVATE_DEF_SEL(methodSignatureForSelector_, "methodSignatureForSelector:");
     _NS_PRIVATE_DEF_SEL(mutableBytes, "mutableBytes");
+    _NS_PRIVATE_DEF_SEL(path, "path");
+    _NS_PRIVATE_DEF_SEL(removeObjectForKey_, "removeObjectForKey:");
     _NS_PRIVATE_DEF_SEL(release, "release");
     _NS_PRIVATE_DEF_SEL(respondsToSelector_, "respondsToSelector:");
     _NS_PRIVATE_DEF_SEL(retain, "retain");
     _NS_PRIVATE_DEF_SEL(retainCount, "retainCount");
+    _NS_PRIVATE_DEF_SEL(setObject_forKey_, "setObject:forKey:");
+    _NS_PRIVATE_DEF_SEL(standardUserDefaults, "standardUserDefaults");
+    _NS_PRIVATE_DEF_SEL(startAccessingSecurityScopedResource, "startAccessingSecurityScopedResource");
+    _NS_PRIVATE_DEF_SEL(stopAccessingSecurityScopedResource, "stopAccessingSecurityScopedResource");
+    _NS_PRIVATE_DEF_SEL(stringWithUTF8String_, "stringWithUTF8String:");
+    _NS_PRIVATE_DEF_SEL(URLByResolvingBookmarkData_options_relativeToURL_bookmarkDataIsStale_error_, "URLByResolvingBookmarkData:options:relativeToURL:bookmarkDataIsStale:error:");
+    _NS_PRIVATE_DEF_SEL(UTF8String, "UTF8String");
 }
 
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------

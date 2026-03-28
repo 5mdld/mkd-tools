@@ -51,7 +51,7 @@ endif ()
 file(GLOB_RECURSE MKD_SOURCES src/*.cpp)
 
 if (APPLE)
-    list(FILTER MKD_SOURCES EXCLUDE REGEX ".*parallel\\.cpp$")
+    list(FILTER MKD_SOURCES EXCLUDE REGEX ".*/src/platform/parallel\\.cpp$")
     file(GLOB_RECURSE MKD_OBJCXX_SOURCES src/*.mm)
     list(APPEND MKD_SOURCES ${MKD_OBJCXX_SOURCES})
     set_source_files_properties(${MKD_OBJCXX_SOURCES} PROPERTIES COMPILE_FLAGS "-fno-objc-arc")
@@ -70,7 +70,7 @@ target_include_directories(mkd PRIVATE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/third_party/utfcpp>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/third_party/pugixml>
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/third_party/indicators>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/third_party/indiqcators>
 )
 
 target_link_libraries(mkd PUBLIC glaze::glaze ZLIB::ZLIB)
@@ -138,6 +138,7 @@ if (BUILD_TESTING)
 
     file(GLOB_RECURSE TEST_SOURCES test/*.cpp)
     list(FILTER TEST_SOURCES EXCLUDE REGEX "test/crypto/test_chacha_poly\\.cpp$")
+    list(FILTER TEST_SOURCES EXCLUDE REGEX "test/platform/macos/test_cpp_bindings\\.cpp$")
     add_executable(mkd-tests ${TEST_SOURCES})
     target_include_directories(mkd-tests PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/src
@@ -149,7 +150,10 @@ if (BUILD_TESTING)
     gtest_discover_tests(mkd-tests DISCOVERY_TIMEOUT 300)
 
     if (APPLE)
-        add_executable(cryptokit-tests test/crypto/test_chacha_poly.cpp)
+        add_executable(cryptokit-tests
+            test/crypto/test_chacha_poly.cpp
+            test/platform/macos/test_cpp_bindings.cpp
+        )
         target_link_libraries(cryptokit-tests PRIVATE CRYPTOKIT_CPP GTest::gtest GTest::gtest_main)
         gtest_discover_tests(cryptokit-tests DISCOVERY_TIMEOUT 300)
     endif ()

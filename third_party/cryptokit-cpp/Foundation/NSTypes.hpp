@@ -22,6 +22,7 @@
 
 namespace NS
 {
+    using Boolean = signed char;
     using Integer = std::intptr_t;
     using UInteger = std::uintptr_t;
 }

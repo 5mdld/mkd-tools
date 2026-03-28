@@ -20,5 +20,10 @@
 #include "NSObject.hpp"
 #include "NSData.hpp"
 #include "NSAutoreleasePool.hpp"
+#include "NSString.hpp"
+#include "NSError.hpp"
+#include "NSURL.hpp"
+#include "NSUserDefaults.hpp"
+#include "NSFileManager.hpp"
 
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
