@@ -6,6 +6,7 @@ private final class FlippedView: NSView {
 
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private let bridge = MKDReceiptBridge()
+    private let workQueue = DispatchQueue(label: "mkd.receipt.bridge", qos: .userInitiated)
 
     private var window: NSWindow!
     private var summaryLabel: NSTextField!
@@ -35,7 +36,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
         buildMenu()
         buildUI()
-        refresh()
+        refreshAsync()
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
@@ -157,41 +158,75 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     @objc private func refreshTapped() {
-        refresh()
+        refreshAsync()
     }
 
     @objc private func generateTapped() {
-        var nsError: NSError?
-        let count = bridge.generateMissingPurchasesWithError(&nsError)
-        if let nsError {
-            presentErrorAlert(message: nsError.localizedDescription)
-            return
-        }
+        setControlsEnabled(false)
+        workQueue.async { [weak self] in
+            guard let self else { return }
 
-        if count == 0 {
-            summaryLabel.stringValue = "No missing records were generated."
+            var nsError: NSError?
+            let count = self.bridge.generateMissingPurchasesWithError(&nsError)
+            if let nsError {
+                DispatchQueue.main.async {
+                    self.setControlsEnabled(true)
+                    self.presentErrorAlert(message: nsError.localizedDescription)
+                }
+                return
+            }
+
+            let prefix = count == 0
+                ? "No missing records were generated."
+                : "Generated \(count) missing receipt record\(count == 1 ? "" : "s")."
+            self.refreshAsync(summaryPrefix: prefix)
         }
-        refresh()
     }
 
-    private func refresh() {
-        let snapshot: MKDReceiptSnapshot
-        do {
-            snapshot = try bridge.loadSnapshot()
-        } catch {
-            rows = []
-            renderRows()
-            summaryLabel.stringValue = error.localizedDescription
+    private func refreshAsync(summaryPrefix: String? = nil) {
+        setControlsEnabled(false)
+        workQueue.async { [weak self] in
+            guard let self else { return }
+
+            let snapshot: MKDReceiptSnapshot
+            do {
+                snapshot = try self.bridge.loadSnapshot()
+            } catch {
+                DispatchQueue.main.async {
+                    self.rows = []
+                    self.renderRows()
+                    self.summaryLabel.stringValue = error.localizedDescription
+                    self.setControlsEnabled(true)
+                }
+                return
+            }
+
+            let sortedRows = snapshot.items.sorted { lhs, rhs in
+                if lhs.hasReceipt != rhs.hasReceipt { return lhs.hasReceipt && !rhs.hasReceipt }
+                return lhs.dictionaryTitle.localizedStandardCompare(rhs.dictionaryTitle) == .orderedAscending
+            }
+
+            let baseSummary = "\(sortedRows.count) dictionaries · \(snapshot.missingCount) missing receipt records"
+            let summary = summaryPrefix.map { "\($0) \(baseSummary)" } ?? baseSummary
+
+            DispatchQueue.main.async {
+                self.rows = sortedRows
+                self.summaryLabel.stringValue = summary
+                self.renderRows()
+                self.setControlsEnabled(true)
+            }
+        }
+    }
+
+    private func setControlsEnabled(_ enabled: Bool) {
+        if !Thread.isMainThread {
+            DispatchQueue.main.async { [weak self] in
+                self?.setControlsEnabled(enabled)
+            }
             return
         }
-
-        rows = snapshot.items.sorted { lhs, rhs in
-            if lhs.hasReceipt != rhs.hasReceipt { return lhs.hasReceipt && !rhs.hasReceipt }
-            return lhs.dictionaryTitle.localizedStandardCompare(rhs.dictionaryTitle) == .orderedAscending
-        }
-
-        summaryLabel.stringValue = "\(rows.count) dictionaries · \(snapshot.missingCount) missing receipt records"
-        renderRows()
+        refreshButton.isEnabled = enabled
+        generateButton.isEnabled = enabled
     }
 
     private func renderRows() {
@@ -253,10 +288,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         dateLabel.alignment = .right
         row.addSubview(dateLabel)
 
-        let separator = NSBox()
+        let separator = NSView()
         separator.translatesAutoresizingMaskIntoConstraints = false
-        separator.boxType = .separator
-        separator.alphaValue = 0.35
+        separator.wantsLayer = true
+        separator.layer?.backgroundColor = NSColor.separatorColor.withAlphaComponent(0.12).cgColor
         row.addSubview(separator)
 
         NSLayoutConstraint.activate([
@@ -275,7 +310,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
             separator.leadingAnchor.constraint(equalTo: row.leadingAnchor, constant: 8),
             separator.trailingAnchor.constraint(equalTo: row.trailingAnchor, constant: -8),
-            separator.bottomAnchor.constraint(equalTo: row.bottomAnchor)
+            separator.bottomAnchor.constraint(equalTo: row.bottomAnchor),
+            separator.heightAnchor.constraint(equalToConstant: 1)
         ])
 
         if !item.hasReceipt {

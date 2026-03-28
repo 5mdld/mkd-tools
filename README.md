@@ -44,7 +44,7 @@ cmake --build build-xcode --target MKDReceiptApp --config Release
 The built app bundle will be under:
 
 ```
-build-xcode/apps/monokakido-receipt-ui/Debug/MKDReceiptApp.app
+build-xcode/apps/monokakido-receipt-ui/Release/MKDReceiptApp.app
 ```
 
 

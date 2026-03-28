@@ -91,7 +91,6 @@ namespace
 
 @implementation MKDReceiptBridge
 {
-    MKD::MonokakidoReceiptService _service;
     MKD::MacOSDictionarySource _source;
 }
 
