@@ -10,7 +10,7 @@
 #include "MKD/resource/keystore.hpp"
 #include "MKD/platform/macos/macos_dictionary_source.hpp"
 #include "../../src/platform/macos/fs.hpp"
-#include "../../src/resource/keystore/keystore_search.hpp"
+#include "MKD/resource/keystore_search.hpp"
 
 class KeystoreSearchTest : public ::testing::Test
 {
@@ -210,4 +210,20 @@ TEST_F(KeystoreSearchTest, RetrievedEntriesHaveValidPageReferences)
             MKD::test::verbosePrint("Page: {}, Item: {}\n", pageId, itemId);
         }
     }
+}
+
+TEST_F(KeystoreSearchTest, KeysForEntryFindsInverseMappings)
+{
+    auto results = MKD::keystoreSearchResults(*keystore_, "愛情", MKD::SearchMode::Exact);
+    ASSERT_TRUE(results.has_value());
+    ASSERT_FALSE(results->empty());
+    ASSERT_FALSE(results->front().entryIds.empty());
+
+    const auto entryId = results->front().entryIds.front();
+    const auto keys = keystore_->keysForEntry(entryId);
+
+    EXPECT_FALSE(keys.empty()) << "Expected at least one inverse key for entry id";
+    EXPECT_TRUE(std::ranges::any_of(keys, [&](std::string_view key) {
+        return key == results->front().key;
+    })) << "Inverse keys should include the original key hit";
 }

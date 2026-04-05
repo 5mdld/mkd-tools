@@ -10,7 +10,7 @@
 #include "../test_listener.hpp"
 #include "MKD/dictionary/dictionary_product.hpp"
 #include "MKD/platform/macos/macos_dictionary_source.hpp"
-#include "dictionary/dictionary_search.hpp"
+#include "MKD/dictionary/dictionary_search.hpp"
 #include "platform/macos/fs.hpp"
 
 using namespace MKD;
@@ -118,10 +118,10 @@ TEST_F(DictionarySearchTest, KANKENKJ2_PrefixSearch)
 
 TEST_F(DictionarySearchTest, OKO12_HeadwordSearch)
 {
-    auto dict = loadDictionary("OKO12");
+    auto dict = loadDictionary("KOGO3");
     DictionarySearch search(dict);
 
-    auto result = measureSearchTime("OKO12 headword", [&]() {
+    auto result = measureSearchTime("KOGO3 headword", [&]() {
         return search.search("学生");
     });
 
@@ -132,13 +132,13 @@ TEST_F(DictionarySearchTest, OKO12_HeadwordSearch)
 
 TEST_F(DictionarySearchTest, OKO12_IdiomScopeFallback)
 {
-    auto dict = loadDictionary("OKO12");
+    auto dict = loadDictionary("KOGO3");
     DictionarySearch search(dict);
 
     SearchOptions options;
     options.scope = SearchScope::Headword;
 
-    auto result = measureSearchTime("OKO12 idiom fallback", [&]() {
+    auto result = measureSearchTime("KOGO3 idiom fallback", [&]() {
         return search.search("気に掛かる", options);
     });
 
@@ -152,10 +152,10 @@ TEST_F(DictionarySearchTest, OKO12_IdiomScopeFallback)
 
 TEST_F(DictionarySearchTest, OKO12_JoinedQueryFallback)
 {
-    auto dict = loadDictionary("OKO12");
+    auto dict = loadDictionary("KOGO3");
     DictionarySearch search(dict);
 
-    auto result = measureSearchTime("OKO12 joined query", [&]() {
+    auto result = measureSearchTime("KOGO3 joined query", [&]() {
         return search.search("取り 扱い");
     });
 
@@ -179,7 +179,7 @@ TEST_F(DictionarySearchTest, KOGO3_HeadwordSearch)
 
 TEST_F(DictionarySearchTest, SearchCancellation)
 {
-    auto dict = loadDictionary("OKO12");
+    auto dict = loadDictionary("KOGO3");
     DictionarySearch search(dict);
 
     search.cancel();
@@ -189,4 +189,25 @@ TEST_F(DictionarySearchTest, SearchCancellation)
     });
 
     ASSERT_FALSE(result.has_value());
+}
+
+TEST_F(DictionarySearchTest, DictionaryEntryAccessHelpers)
+{
+    auto dict = loadDictionary("KOGO3");
+    ASSERT_TRUE(dict.hasEntries());
+
+    auto firstEntry = dict.entryByIndex(0);
+    ASSERT_TRUE(firstEntry.has_value());
+    EXPECT_FALSE(firstEntry->data.empty());
+
+    auto utf8View = firstEntry->asUtf8StringView();
+    ASSERT_TRUE(utf8View.has_value());
+    EXPECT_FALSE(utf8View->empty());
+
+    auto sameEntry = dict.entryById(firstEntry->itemId);
+    ASSERT_TRUE(sameEntry.has_value());
+
+    auto utf8ById = dict.entryUtf8ById(firstEntry->itemId);
+    ASSERT_TRUE(utf8ById.has_value());
+    EXPECT_FALSE(utf8ById->empty());
 }

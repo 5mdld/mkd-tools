@@ -12,7 +12,6 @@
 #include "../../include/MKD/resource/resource_store.hpp"
 #include "../../src/resource/rsc/resource_store_contents.hpp"
 #include "../../src/resource/rsc/resource_store_index.hpp"
-#include "MKD/resource/xml_view.hpp"
 
 #include <pugixml.h>
 
@@ -71,7 +70,12 @@ TEST_F(RscDataTest, GetRecordData)
     const auto& data = dataSpan.value();
     EXPECT_GT(data.size(), 0) << "Retrieved data should not be empty";
 
-    const auto xmlResult = MKD::XmlView{data.span()}.asStringView();
+    const MKD::ResourceStoreItem xmlItem{
+        .itemId = itemId,
+        .data = data,
+    };
+
+    const auto xmlResult = xmlItem.asUtf8StringView();
     ASSERT_TRUE(xmlResult.has_value()) << "Data contains invalid UTF-8 sequence: " << xmlResult.error();
 
     MKD::test::verbosePrint("Beginning of xml: {}\n", xmlResult.value().substr(0, 50));

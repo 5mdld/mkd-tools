@@ -134,7 +134,7 @@ namespace
     productIds.reserve(dictionaries->size());
 
     for (const auto &dictionary : *dictionaries) {
-        auto product = MKD::DictionaryProduct::openAtPath(dictionary.path);
+        auto product = MKD::DictionaryProduct::loadMetadata(dictionary.path);
         if (!product) {
             if (error) {
                 *error = MakeError(product.error());
@@ -205,7 +205,7 @@ namespace
     std::vector<std::string> productIds;
     productIds.reserve(dictionaries->size());
     for (const auto &dictionary : *dictionaries) {
-        auto product = MKD::DictionaryProduct::openAtPath(dictionary.path);
+        auto product = MKD::DictionaryProduct::loadMetadata(dictionary.path);
         if (!product) {
             if (error) {
                 *error = MakeError(product.error());
