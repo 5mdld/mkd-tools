@@ -11,7 +11,7 @@ endif ()
 
 option(BUILD_TESTING "Build tests" OFF)
 option(MKD_BUILD_CLI "Build command-line interface" ON)
-option(MKD_BUILD_RECEIPT_APP "Build macOS receipt app" ON)
+option(MKD_BUILD_RECEIPT_APP "Build macOS receipt app" OFF)
 
 # release optimisations
 if (CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
