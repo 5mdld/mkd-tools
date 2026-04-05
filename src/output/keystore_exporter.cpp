@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <format>
 #include <fstream>
-#include <unordered_map>
+#include <unordered_set>
 
 namespace MKD
 {
@@ -47,7 +47,7 @@ namespace MKD
             {
                 combined.skipped++;
             }
-            else if (auto r = writeInverse(*entries, path))
+            else if (auto r = writeInverse(keystore, *entries, path))
             {
                 combined += *r;
             }
@@ -118,7 +118,7 @@ namespace MKD
     }
 
 
-    Result<ExportResult> KeystoreExporter::writeInverse(std::span<const ForwardEntry> entries, const fs::path& path)
+    Result<ExportResult> KeystoreExporter::writeInverse(const Keystore& keystore, std::span<const ForwardEntry> entries, const fs::path& path)
     {
         std::error_code ec;
         fs::create_directories(path.parent_path(), ec);
@@ -130,22 +130,21 @@ namespace MKD
             return (static_cast<uint64_t>(ref.pageId) << 16) | ref.itemId;
         };
 
-        std::unordered_map<uint64_t, std::vector<std::string_view> > inverse;
-        inverse.reserve(entries.size());
+        std::unordered_set<uint64_t> seen;
+        seen.reserve(entries.size());
+        std::vector<uint64_t> sorted;
+        sorted.reserve(entries.size());
 
-        for (const auto& [key, entryIds] : entries)
+        for (const auto& entry : entries)
         {
-            for (const auto& ref : entryIds)
-                inverse[pack(ref)].push_back(key);
+            for (const auto& ref : entry.entryIds)
+            {
+                if (const auto packed = pack(ref); seen.insert(packed).second)
+                    sorted.push_back(packed);
+            }
         }
 
-        // page-major order
-        std::vector<std::pair<uint64_t, std::vector<std::string_view>*> > sorted;
-        sorted.reserve(inverse.size());
-        for (auto& [packed, keys] : inverse)
-            sorted.emplace_back(packed, &keys);
-
-        std::ranges::sort(sorted, [](const auto& a, const auto& b) { return a.first < b.first; });
+        std::ranges::sort(sorted);
 
         std::ofstream out(path, std::ios::binary);
         if (!out)
@@ -154,16 +153,18 @@ namespace MKD
         ExportResult result;
         result.totalResources = sorted.size();
 
-        for (const auto& [packed, keys] : sorted)
+        for (const auto packed : sorted)
         {
             const auto page = static_cast<uint32_t>(packed >> 16);
             const auto entry = static_cast<uint16_t>(packed & 0xFFFF);
+            const EntryId id{.pageId = page, .itemId = entry};
+            const auto keys = keystore.keysForEntry(id);
 
             out << std::format("{:06}-{:04X}", page, entry) <<'\t';
-            for (size_t i = 0; i < keys->size(); ++i)
+            for (size_t i = 0; i < keys.size(); ++i)
             {
                 if (i > 0) out << '\t';
-                out << (*keys)[i];
+                out << keys[i];
             }
             out << '\n';
             result.exported++;

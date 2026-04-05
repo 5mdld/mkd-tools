@@ -34,8 +34,8 @@ namespace MKD
          * Inverse format (one line per entry id):
          *   <page>-<entry>\t<key>[,<key>,...]
          *
-         * The inverse map is built with a hash map over packed
-         * entry ids, then sorted by page ID
+         * Inverse key lookup uses Keystore::keysForEntry(),
+         * which lazily builds the inverse prefix map once.
          */
         static Result<ExportResult> exportKeystore(const Keystore& keystore, const ExportOptions& options);
 
@@ -50,6 +50,6 @@ namespace MKD
 
         static Result<ExportResult> writeForward(std::span<const ForwardEntry> entries, const fs::path& path);
 
-        static Result<ExportResult> writeInverse(std::span<const ForwardEntry> entries, const fs::path& path);
+        static Result<ExportResult> writeInverse(const Keystore& keystore, std::span<const ForwardEntry> entries, const fs::path& path);
     };
 }
