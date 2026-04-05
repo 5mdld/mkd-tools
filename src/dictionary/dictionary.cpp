@@ -16,6 +16,8 @@ namespace MKD
                            std::optional<ResourceStore> entries,
                            std::optional<NamedResourceStore> graphics,
                            std::optional<std::variant<ResourceStore, NamedResourceStore>> audio,
+                           std::optional<Stylesheet> stylesheet,
+                           std::optional<Stylesheet> nightmodeStylesheet,
                            std::vector<Font> fonts,
                            std::vector<Keystore> keystores,
                            std::vector<HeadlineStore> headlines)
@@ -23,6 +25,8 @@ namespace MKD
           entries_(std::move(entries)),
           graphics_(std::move(graphics)),
           audio_(std::move(audio)),
+          stylesheet_(std::move(stylesheet)),
+          nightmodeStylesheet_(std::move(nightmodeStylesheet)),
           fonts_(std::move(fonts)),
           keystores_(std::move(keystores)),
           headlines_(std::move(headlines))
@@ -57,6 +61,29 @@ namespace MKD
             return nullptr;
 
         return &*graphics_;
+    }
+
+    Stylesheet* Dictionary::stylesheet() noexcept
+    {
+        return stylesheet_ ? &*stylesheet_ : nullptr;
+    }
+
+
+    const Stylesheet* Dictionary::stylesheet() const noexcept
+    {
+        return stylesheet_ ? &*stylesheet_ : nullptr;
+    }
+
+
+    Stylesheet* Dictionary::nightmodeStylesheet() noexcept
+    {
+        return nightmodeStylesheet_ ? &*nightmodeStylesheet_ : nullptr;
+    }
+
+
+    const Stylesheet* Dictionary::nightmodeStylesheet() const noexcept
+    {
+        return nightmodeStylesheet_ ? &*nightmodeStylesheet_ : nullptr;
     }
 
 

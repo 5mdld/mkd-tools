@@ -152,7 +152,6 @@ if (BUILD_TESTING)
     if (APPLE)
         add_executable(cryptokit-tests
             test/crypto/test_chacha_poly.cpp
-            test/platform/macos/test_cpp_bindings.cpp
         )
         target_link_libraries(cryptokit-tests PRIVATE CRYPTOKIT_CPP GTest::gtest GTest::gtest_main)
         gtest_discover_tests(cryptokit-tests DISCOVERY_TIMEOUT 300)

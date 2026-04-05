@@ -5,7 +5,7 @@
 #include "MKD/resource/resource_loader.hpp"
 
 #include <algorithm>
-#include <iostream>
+#include <ranges>
 
 namespace MKD
 {
@@ -63,6 +63,56 @@ namespace MKD
             [](const auto& e) { return e.is_directory(); },
             [](const auto& e) { return Font::load(e.path()); }
         );
+    }
+
+    ResourceLoader::Stylesheets ResourceLoader::loadStylesheets(std::string_view contentDir,
+                                                                std::string_view dictId) const
+    {
+        const auto cssDir = paths_.productRoot() / "Contents" / contentDir;
+        if (!fs::is_directory(cssDir))
+            return {};
+
+        std::vector<fs::path> baseStyles;
+        for (const auto& entry : fs::directory_iterator(cssDir))
+        {
+            if (!entry.is_regular_file())
+                continue;
+
+            const auto& path = entry.path();
+            if (path.extension() != ".css")
+                continue;
+
+            if (const auto filename = path.filename().string(); filename.ends_with("-nightmode.css"))
+                continue;
+
+            // keep only e.g. RGKO12.css, not RGKO12-appendix.css
+            if (path.stem().string().contains('-'))
+                continue;
+
+            baseStyles.push_back(path);
+        }
+
+        if (baseStyles.empty())
+            return {};
+
+        std::ranges::sort(baseStyles, [](const fs::path& lhs, const fs::path& rhs) {
+            return lhs.filename().string() < rhs.filename().string();
+        });
+
+        const auto& basePath = baseStyles.front();
+        const auto baseStem = basePath.stem().string();
+
+        Stylesheets stylesheets;
+        if (auto stylesheet = Stylesheet::load(basePath))
+            stylesheets.normal = std::move(*stylesheet);
+
+        if (const auto nightmodePath = cssDir / (baseStem + "-nightmode.css"); fs::is_regular_file(nightmodePath))
+        {
+            if (auto nightmode = Stylesheet::load(nightmodePath))
+                stylesheets.nightmode = std::move(*nightmode);
+        }
+
+        return stylesheets;
     }
 
 

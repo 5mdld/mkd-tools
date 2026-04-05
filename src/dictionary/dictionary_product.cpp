@@ -66,6 +66,7 @@ namespace MKD
             auto entries = loader.loadEntries(contentDef.directory, dictId);
             auto audio = loader.loadAudio(contentDef.directory, dictId);
             auto graphics = loader.loadGraphics(contentDef.directory, dictId);
+            auto stylesheets = loader.loadStylesheets(contentDef.directory, dictId);
             auto fonts = loader.loadFonts(contentDef.directory);
             auto keystores = loader.loadKeystores(contentDef.directory, dictId);
             auto headlines = loader.loadHeadlines(contentDef.directory);
@@ -75,6 +76,8 @@ namespace MKD
                 std::move(entries),
                 std::move(graphics),
                 std::move(audio),
+                std::move(stylesheets.normal),
+                std::move(stylesheets.nightmode),
                 std::move(fonts),
                 std::move(keystores),
                 std::move(headlines)

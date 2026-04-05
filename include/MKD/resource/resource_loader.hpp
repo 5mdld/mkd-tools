@@ -11,6 +11,7 @@
 #include "MKD/resource/resource_store.hpp"
 #include "MKD/resource/keystore.hpp"
 #include "MKD/resource/headline_store.hpp"
+#include "MKD/resource/stylesheet.hpp"
 
 #include <variant>
 
@@ -27,6 +28,11 @@ namespace MKD
     class ResourceLoader
     {
     public:
+        struct Stylesheets
+        {
+            std::optional<Stylesheet> normal;
+            std::optional<Stylesheet> nightmode;
+        };
 
         explicit ResourceLoader(const DictionaryPaths& paths);
 
@@ -36,6 +42,7 @@ namespace MKD
         [[nodiscard]] std::vector<Keystore> loadKeystores(std::string_view contentDir, std::string_view dictId) const;
         [[nodiscard]] std::vector<HeadlineStore> loadHeadlines(std::string_view contentDir) const;
         [[nodiscard]] std::vector<Font> loadFonts(std::string_view contentDir) const;
+        [[nodiscard]] Stylesheets loadStylesheets(std::string_view contentDir, std::string_view dictId) const;
 
     private:
 
