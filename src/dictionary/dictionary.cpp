@@ -8,28 +8,21 @@
 #include "MKD/output/keystore_exporter.hpp"
 #include "MKD/output/headline_exporter.hpp"
 
+#include <format>
 #include <utility>
 
 namespace MKD
 {
-    Dictionary::Dictionary(DictionaryContent content,
-                           std::optional<ResourceStore> entries,
-                           std::optional<NamedResourceStore> graphics,
-                           std::optional<std::variant<ResourceStore, NamedResourceStore>> audio,
-                           std::optional<Stylesheet> stylesheet,
-                           std::optional<Stylesheet> nightmodeStylesheet,
-                           std::vector<Font> fonts,
-                           std::vector<Keystore> keystores,
-                           std::vector<HeadlineStore> headlines)
+    Dictionary::Dictionary(DictionaryContent content, DictionaryResources resources)
         : content_(std::move(content)),
-          entries_(std::move(entries)),
-          graphics_(std::move(graphics)),
-          audio_(std::move(audio)),
-          stylesheet_(std::move(stylesheet)),
-          nightmodeStylesheet_(std::move(nightmodeStylesheet)),
-          fonts_(std::move(fonts)),
-          keystores_(std::move(keystores)),
-          headlines_(std::move(headlines))
+          entries_(std::move(resources.entries)),
+          graphics_(std::move(resources.graphics)),
+          audio_(std::move(resources.audio)),
+          stylesheet_(std::move(resources.stylesheet)),
+          nightmodeStylesheet_(std::move(resources.nightmodeStylesheet)),
+          fonts_(std::move(resources.fonts)),
+          keystores_(std::move(resources.keystores)),
+          headlines_(std::move(resources.headlines))
     {
     }
 
@@ -43,6 +36,81 @@ namespace MKD
     const DictionaryContent& Dictionary::content() const noexcept
     {
         return content_;
+    }
+
+
+    ResourceStore* Dictionary::entries() noexcept
+    {
+        return entries_ ? &*entries_ : nullptr;
+    }
+
+
+    const ResourceStore* Dictionary::entries() const noexcept
+    {
+        return entries_ ? &*entries_ : nullptr;
+    }
+
+
+    bool Dictionary::hasEntries() const noexcept
+    {
+        return entries_.has_value();
+    }
+
+
+    Result<ResourceStoreItem> Dictionary::entryByIndex(const size_t index) const
+    {
+        if (!entries_)
+            return std::unexpected("Dictionary has no entry resource store");
+
+        return entries_->getByIndex(index);
+    }
+
+
+    Result<ResourceStoreItem> Dictionary::entryById(const uint32_t itemId) const
+    {
+        if (!entries_)
+            return std::unexpected("Dictionary has no entry resource store");
+
+        auto data = entries_->get(itemId);
+        if (!data)
+            return std::unexpected(data.error());
+
+        return ResourceStoreItem{
+            .itemId = itemId,
+            .data = std::move(*data),
+        };
+    }
+
+
+    Result<std::string> Dictionary::entryUtf8ByIndex(const size_t index) const
+    {
+        auto entry = entryByIndex(index);
+        if (!entry)
+            return std::unexpected(entry.error());
+
+        return entry->asUtf8String();
+    }
+
+
+    Result<std::string> Dictionary::entryUtf8ById(const uint32_t itemId) const
+    {
+        auto entry = entryById(itemId);
+        if (!entry)
+            return std::unexpected(entry.error());
+
+        return entry->asUtf8String();
+    }
+
+
+    ResourceStore::Iterator Dictionary::entryBegin() const
+    {
+        return entries_ ? entries_->begin() : ResourceStore::Iterator{};
+    }
+
+
+    ResourceStore::Iterator Dictionary::entryEnd() const
+    {
+        return entries_ ? entries_->end() : ResourceStore::Iterator{};
     }
 
 

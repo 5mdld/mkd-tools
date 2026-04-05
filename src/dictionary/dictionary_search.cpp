@@ -5,6 +5,7 @@
 #include "dictionary_search.hpp"
 #include "text_normalize.hpp"
 #include "MKD/dictionary/dictionary.hpp"
+#include "MKD/resource/keystore_search.hpp"
 
 #include "utf8.h"
 

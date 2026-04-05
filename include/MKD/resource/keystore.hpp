@@ -180,6 +180,12 @@ namespace MKD
 
         [[nodiscard]] std::string_view filename() const noexcept;
 
+        /**
+         * Look up all keys in the prefix index that map to the given entry ID.
+         * Returns an empty vector if no keys exist for the entry.
+         */
+        [[nodiscard]] std::vector<std::string_view> keysForEntry(const EntryId& id) const;
+
         [[nodiscard]] Iterator begin(KeystoreIndex type) const noexcept;
         [[nodiscard]] Iterator end(KeystoreIndex type) const noexcept;
 

@@ -8,6 +8,7 @@
 
 #include "MKD/dictionary/dictionary_product.hpp"
 #include "MKD/dictionary/dictionary.hpp"
+#include "MKD/dictionary/dictionary_search.hpp"
 #include "MKD/dictionary/metadata.hpp"
 #include "MKD/dictionary/paths.hpp"
 
@@ -24,6 +25,8 @@
 
 #include "MKD/resource/resource_loader.hpp"
 #include "MKD/resource/keystore.hpp"
+#include "MKD/resource/keystore_search.hpp"
+#include "MKD/resource/search_mode.hpp"
 #include "MKD/resource/headline_store.hpp"
 #include "MKD/resource/named_resource_store.hpp"
 #include "MKD/resource/resource_store.hpp"

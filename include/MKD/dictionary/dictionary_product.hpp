@@ -13,7 +13,12 @@ namespace MKD
     class DictionaryProduct
     {
     public:
+        // Full open: loads metadata and all dictionary resources.
         static Result<DictionaryProduct> openAtPath(const fs::path& path);
+
+        // Lightweight open: loads metadata and paths only.
+        // Dictionaries are created with empty resources.
+        static Result<DictionaryProduct> loadMetadata(const fs::path& path);
 
         [[nodiscard]] const DictionaryMetadata& metadata() const noexcept { return metadata_; }
         [[nodiscard]] const DictionaryPaths& paths() const noexcept { return paths_; }

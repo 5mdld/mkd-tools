@@ -17,25 +17,44 @@
 #include "MKD/resource/headline_store.hpp"
 #include "MKD/resource/stylesheet.hpp"
 
+#include <cstdint>
 #include <variant>
 
 namespace MKD
 {
+    struct DictionaryResources
+    {
+        std::optional<ResourceStore> entries;
+        std::optional<NamedResourceStore> graphics;
+        std::optional<std::variant<ResourceStore, NamedResourceStore>> audio;
+        std::optional<Stylesheet> stylesheet;
+        std::optional<Stylesheet> nightmodeStylesheet;
+        std::vector<Font> fonts;
+        std::vector<Keystore> keystores;
+        std::vector<HeadlineStore> headlines;
+    };
+
+
     class Dictionary
     {
     public:
-        explicit Dictionary(DictionaryContent content,
-                            std::optional<ResourceStore> entries,
-                            std::optional<NamedResourceStore> graphics,
-                            std::optional<std::variant<ResourceStore, NamedResourceStore>> audio,
-                            std::optional<Stylesheet> stylesheet,
-                            std::optional<Stylesheet> nightmodeStylesheet,
-                            std::vector<Font> fonts,
-                            std::vector<Keystore> keystores,
-                            std::vector<HeadlineStore> headlines);
+        explicit Dictionary(DictionaryContent content, DictionaryResources resources);
 
         [[nodiscard]] const std::string& id() const noexcept;
         [[nodiscard]] const DictionaryContent& content() const noexcept;
+
+        // returns nullptr if no content resource store is available
+        [[nodiscard]] ResourceStore* entries() noexcept;
+        [[nodiscard]] const ResourceStore* entries() const noexcept;
+        [[nodiscard]] bool hasEntries() const noexcept;
+
+        [[nodiscard]] Result<ResourceStoreItem> entryByIndex(size_t index) const;
+        [[nodiscard]] Result<ResourceStoreItem> entryById(uint32_t itemId) const;
+        [[nodiscard]] Result<std::string> entryUtf8ByIndex(size_t index) const;
+        [[nodiscard]] Result<std::string> entryUtf8ById(uint32_t itemId) const;
+
+        [[nodiscard]] ResourceStore::Iterator entryBegin() const;
+        [[nodiscard]] ResourceStore::Iterator entryEnd() const;
 
         // returns nullptr if no nrsc resources available
         [[nodiscard]] NamedResourceStore* graphics() noexcept;

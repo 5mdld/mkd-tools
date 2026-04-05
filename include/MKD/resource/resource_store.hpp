@@ -10,6 +10,8 @@
 #include <expected>
 #include <filesystem>
 #include <iterator>
+#include <string>
+#include <string_view>
 
 namespace fs = std::filesystem;
 
@@ -19,6 +21,17 @@ namespace MKD
     {
         uint32_t itemId;
         RetainedSpan data;
+
+        /**
+         * Validate that the payload is UTF-8 and return a non-owning view.
+         * The returned view remains valid while this ResourceStoreItem is alive.
+         */
+        [[nodiscard]] Result<std::string_view> asUtf8StringView() const;
+
+        /**
+         * Validate UTF-8 and return an owning std::string copy.
+         */
+        [[nodiscard]] Result<std::string> asUtf8String() const;
     };
 
     class ResourceStore

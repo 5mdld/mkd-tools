@@ -6,6 +6,54 @@
 
 namespace MKD
 {
+    namespace
+    {
+        std::optional<std::string_view> nonEmptyString(const std::optional<std::string>& value)
+        {
+            if (!value || value->empty())
+                return std::nullopt;
+
+            return *value;
+        }
+    }
+
+
+    std::string LocalizedString::resolve() const
+    {
+        return resolve(LocalizedLanguage::Japanese);
+    }
+
+
+    std::string LocalizedString::resolve(const LocalizedLanguage preferred) const
+    {
+        const auto jaValue = nonEmptyString(ja);
+        const auto enValue = nonEmptyString(en);
+
+        if (preferred == LocalizedLanguage::Japanese)
+        {
+            if (jaValue)
+                return std::string(*jaValue);
+            if (enValue)
+                return std::string(*enValue);
+        }
+        else
+        {
+            if (enValue)
+                return std::string(*enValue);
+            if (jaValue)
+                return std::string(*jaValue);
+        }
+
+        return {};
+    }
+
+
+    bool LocalizedString::empty() const noexcept
+    {
+        return !nonEmptyString(ja) && !nonEmptyString(en);
+    }
+
+
     Result<DictionaryMetadata> DictionaryMetadata::loadFromPath(const fs::path& path)
     {
         auto fileContent = readTextFile(path);

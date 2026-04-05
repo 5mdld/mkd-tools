@@ -8,10 +8,42 @@
 
 #include <algorithm>
 #include <cassert>
+#include <format>
 #include <ranges>
+#include <stdexcept>
+
+#include "utf8.h"
 
 namespace MKD
 {
+    Result<std::string_view> ResourceStoreItem::asUtf8StringView() const
+    {
+        if (data.empty())
+            return std::string_view{};
+
+        const auto* begin = data.data();
+        const auto* end = begin + data.size();
+
+        if (const auto* it = utf8::find_invalid(begin, end); it != end)
+        {
+            const auto offset = static_cast<size_t>(it - begin);
+            return std::unexpected(std::format("Invalid UTF-8 sequence at byte offset {}", offset));
+        }
+
+        return std::string_view(reinterpret_cast<const char*>(begin), data.size());
+    }
+
+
+    Result<std::string> ResourceStoreItem::asUtf8String() const
+    {
+        auto view = asUtf8StringView();
+        if (!view)
+            return std::unexpected(view.error());
+
+        return std::string(*view);
+    }
+
+
     struct ResourceStore::Impl
     {
         ResourceStoreIndex index;

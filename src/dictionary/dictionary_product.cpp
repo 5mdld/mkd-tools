@@ -7,20 +7,91 @@
 
 #include <algorithm>
 #include <array>
+#include <format>
 
 namespace MKD
 {
     namespace
     {
-        std::optional<std::string> localizedValue(const std::optional<LocalizedString>& value)
+        std::optional<std::string> resolveLocalized(const std::optional<LocalizedString>& value)
         {
             if (!value)
                 return std::nullopt;
-            if (value->ja && !value->ja->empty())
-                return value->ja;
-            if (value->en && !value->en->empty())
-                return value->en;
-            return std::nullopt;
+            if (value->empty())
+                return std::nullopt;
+            return value->resolve();
+        }
+
+        struct ProductBase
+        {
+            DictionaryMetadata metadata;
+            DictionaryPaths paths;
+        };
+
+        Result<ProductBase> loadProductBase(const fs::path& path)
+        {
+            auto metadata = DictionaryMetadata::loadFromPath(
+                path / "Contents" / (path.stem().string() + ".json")
+            );
+            if (!metadata)
+                return std::unexpected(std::format("Failed to load metadata: '{}'", metadata.error()));
+
+            if (metadata->contents.empty())
+                return std::unexpected("Product has no content entries");
+
+            auto paths = DictionaryPaths::create(path);
+            if (!paths)
+                return std::unexpected(std::format("Failed to resolve paths: '{}'", paths.error()));
+
+            return ProductBase{
+                .metadata = std::move(*metadata),
+                .paths = std::move(*paths),
+            };
+        }
+
+        DictionaryResources loadResources(ResourceLoader& loader, const DictionaryContent& contentDef)
+        {
+            DictionaryResources resources;
+            const auto& dictId = contentDef.identifier;
+
+            resources.entries = loader.loadEntries(contentDef.directory, dictId);
+            resources.audio = loader.loadAudio(contentDef.directory, dictId);
+            resources.graphics = loader.loadGraphics(contentDef.directory, dictId);
+
+            auto stylesheets = loader.loadStylesheets(contentDef.directory, dictId);
+            resources.stylesheet = std::move(stylesheets.normal);
+            resources.nightmodeStylesheet = std::move(stylesheets.nightmode);
+
+            resources.fonts = loader.loadFonts(contentDef.directory);
+            resources.keystores = loader.loadKeystores(contentDef.directory, dictId);
+            resources.headlines = loader.loadHeadlines(contentDef.directory);
+            return resources;
+        }
+
+        std::vector<Dictionary> buildDictionaries(const DictionaryMetadata& metadata, ResourceLoader& loader)
+        {
+            std::vector<Dictionary> dictionaries;
+            dictionaries.reserve(metadata.contents.size());
+
+            for (const auto& contentDef : metadata.contents)
+            {
+                dictionaries.emplace_back(contentDef, loadResources(loader, contentDef));
+            }
+
+            return dictionaries;
+        }
+
+        std::vector<Dictionary> buildMetadataOnlyDictionaries(const DictionaryMetadata& metadata)
+        {
+            std::vector<Dictionary> dictionaries;
+            dictionaries.reserve(metadata.contents.size());
+
+            for (const auto& contentDef : metadata.contents)
+            {
+                dictionaries.emplace_back(contentDef, DictionaryResources{});
+            }
+
+            return dictionaries;
         }
 
         std::string composeSingleContentTitle(const DictionaryMetadata& metadata)
@@ -29,11 +100,11 @@ namespace MKD
                 return {};
 
             const auto& content = metadata.contents.front();
-            const auto title = localizedValue(content.title);
+            const auto title = resolveLocalized(content.title);
             if (!title || title->empty())
                 return {};
 
-            const auto edition = localizedValue(content.edition);
+            const auto edition = resolveLocalized(content.edition);
             if (edition && !edition->empty())
                 return *title + " " + *edition;
 
@@ -41,50 +112,26 @@ namespace MKD
         }
     }
 
+    Result<DictionaryProduct> DictionaryProduct::loadMetadata(const fs::path& path)
+    {
+        auto base = loadProductBase(path);
+        if (!base)
+            return std::unexpected(base.error());
+
+        auto dictionaries = buildMetadataOnlyDictionaries(base->metadata);
+        return DictionaryProduct(std::move(base->metadata), std::move(base->paths), std::move(dictionaries));
+    }
+
+
     Result<DictionaryProduct> DictionaryProduct::openAtPath(const fs::path& path)
     {
-        auto metadata = DictionaryMetadata::loadFromPath(
-            path / "Contents" / (path.stem().string() + ".json")
-        );
-        if (!metadata)
-            return std::unexpected(std::format("Failed to load metadata: '{}'", metadata.error()));
+        auto base = loadProductBase(path);
+        if (!base)
+            return std::unexpected(base.error());
 
-        if (metadata->contents.empty())
-            return std::unexpected("Product has no content entries");
-
-        auto paths = DictionaryPaths::create(path);
-        if (!paths)
-            return std::unexpected(std::format("Failed to resolve paths: '{}'", paths.error()));
-
-        ResourceLoader loader(*paths);
-        std::vector<Dictionary> dictionaries;
-
-        for (const auto& contentDef : metadata->contents)
-        {
-            const auto& dictId = contentDef.identifier;
-
-            auto entries = loader.loadEntries(contentDef.directory, dictId);
-            auto audio = loader.loadAudio(contentDef.directory, dictId);
-            auto graphics = loader.loadGraphics(contentDef.directory, dictId);
-            auto stylesheets = loader.loadStylesheets(contentDef.directory, dictId);
-            auto fonts = loader.loadFonts(contentDef.directory);
-            auto keystores = loader.loadKeystores(contentDef.directory, dictId);
-            auto headlines = loader.loadHeadlines(contentDef.directory);
-
-            dictionaries.emplace_back(
-                contentDef,
-                std::move(entries),
-                std::move(graphics),
-                std::move(audio),
-                std::move(stylesheets.normal),
-                std::move(stylesheets.nightmode),
-                std::move(fonts),
-                std::move(keystores),
-                std::move(headlines)
-            );
-        }
-
-        return DictionaryProduct(std::move(*metadata), std::move(*paths), std::move(dictionaries));
+        ResourceLoader loader(base->paths);
+        auto dictionaries = buildDictionaries(base->metadata, loader);
+        return DictionaryProduct(std::move(base->metadata), std::move(base->paths), std::move(dictionaries));
     }
 
 
@@ -106,9 +153,9 @@ namespace MKD
     {
         if (const auto singleContentTitle = composeSingleContentTitle(metadata_); !singleContentTitle.empty())
             return singleContentTitle;
-        if (const auto title = localizedValue(metadata_.displayName))
+        if (const auto title = resolveLocalized(metadata_.displayName))
             return *title;
-        if (const auto title = localizedValue(metadata_.productTitle))
+        if (const auto title = resolveLocalized(metadata_.productTitle))
             return *title;
         if (!metadata_.productIdentifier.empty())
             return metadata_.productIdentifier;

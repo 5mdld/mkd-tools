@@ -7,9 +7,13 @@
 
 #include <array>
 #include <bit>
+#include <algorithm>
 #include <cstring>
 #include <format>
+#include <mutex>
 #include <span>
+#include <unordered_map>
+#include <unordered_set>
 
 static_assert(std::endian::native == std::endian::little, "Keystore assumes little-endian byte order");
 
@@ -84,6 +88,11 @@ namespace MKD
 
             return std::span(data + 1, total - 1);
         }
+
+        [[nodiscard]] uint64_t packEntryId(const EntryId& id) noexcept
+        {
+            return (static_cast<uint64_t>(id.pageId) << 16) | id.itemId;
+        }
     }
 
 
@@ -104,6 +113,8 @@ namespace MKD
         size_t wordsOffset = 0;
         std::span<const uint32_t> indices[4] = {};
         std::span<const ConversionEntry> convTable;
+        mutable std::once_flag inverseIndexInit;
+        mutable std::unordered_map<uint64_t, std::vector<size_t>> inversePrefixIndex;
 
         Impl(MappedFile mappedFile,
              std::string dict,
@@ -202,6 +213,44 @@ namespace MKD
                     const auto& mapped = convTable[page];
                     page = mapped.page;
                     entry = mapped.item;
+                }
+            }
+        }
+
+        void buildInversePrefixIndex() const
+        {
+            inversePrefixIndex.clear();
+
+            const auto& prefixIndex = indices[static_cast<size_t>(KeystoreIndex::Prefix)];
+            inversePrefixIndex.reserve(prefixIndex.size());
+
+            for (size_t i = 0; i < prefixIndex.size(); ++i)
+            {
+                auto offset = wordOffset(KeystoreIndex::Prefix, i);
+                if (!offset)
+                    continue;
+
+                auto entry = parseWordEntry(*offset);
+                if (!entry)
+                    continue;
+
+                auto entryIds = decodeEntryIds(entry->pagesOffset, entry->flags);
+                if (!entryIds)
+                    continue;
+
+                if (needsConversion())
+                    applyConversion(*entryIds);
+
+                std::unordered_set<uint64_t> seenForWord;
+                seenForWord.reserve(entryIds->size());
+
+                for (const auto& id : *entryIds)
+                {
+                    const auto packed = packEntryId(id);
+                    if (!seenForWord.insert(packed).second)
+                        continue;
+
+                    inversePrefixIndex[packed].push_back(i);
                 }
             }
         }
@@ -374,6 +423,35 @@ namespace MKD
 
 
     std::string_view Keystore::filename() const noexcept { return impl_->filename; }
+
+    std::vector<std::string_view> Keystore::keysForEntry(const EntryId& id) const
+    {
+        std::call_once(impl_->inverseIndexInit, [this] {
+            impl_->buildInversePrefixIndex();
+        });
+
+        const auto entryKey = packEntryId(id);
+        const auto hit = impl_->inversePrefixIndex.find(entryKey);
+        if (hit == impl_->inversePrefixIndex.end())
+            return {};
+
+        std::vector<std::string_view> keys;
+        keys.reserve(hit->second.size());
+        std::unordered_set<std::string_view> seen;
+        seen.reserve(hit->second.size());
+
+        for (const auto index : hit->second)
+        {
+            auto key = keyAt(KeystoreIndex::Prefix, index);
+            if (!key)
+                continue;
+
+            if (seen.insert(*key).second)
+                keys.push_back(*key);
+        }
+
+        return keys;
+    }
 
     Keystore::Iterator Keystore::begin(const KeystoreIndex type) const noexcept
     {

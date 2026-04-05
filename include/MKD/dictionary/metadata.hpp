@@ -16,10 +16,21 @@ namespace fs = std::filesystem;
 
 namespace MKD
 {
+    enum class LocalizedLanguage
+    {
+        Japanese,
+        English
+    };
+
+
     struct LocalizedString
     {
         std::optional<std::string> en;
         std::optional<std::string> ja;
+
+        [[nodiscard]] std::string resolve() const;
+        [[nodiscard]] std::string resolve(LocalizedLanguage preferred) const;
+        [[nodiscard]] bool empty() const noexcept;
     };
 
     struct DictionaryContent
