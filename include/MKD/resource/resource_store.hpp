@@ -65,6 +65,11 @@ namespace MKD
         [[nodiscard]] Result<ResourceStoreItem> getByIndex(size_t index) const;
 
         /**
+         * Get only the item ID at an index without loading/decompressing data
+         */
+        [[nodiscard]] Result<uint32_t> idAtIndex(size_t index) const;
+
+        /**
          * Get total number of records
          * @return Number of records
          */

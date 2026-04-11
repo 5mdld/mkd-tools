@@ -106,6 +106,16 @@ namespace MKD
     }
 
 
+    Result<uint32_t> ResourceStore::idAtIndex(const size_t index) const
+    {
+        auto result = impl_->index.getByIndex(index);
+        if (!result)
+            return std::unexpected(result.error());
+
+        return result->first;
+    }
+
+
     size_t ResourceStore::size() const noexcept
     {
         return impl_->index.size();
