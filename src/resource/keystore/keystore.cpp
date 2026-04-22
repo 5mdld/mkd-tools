@@ -110,6 +110,7 @@ namespace MKD
         MappedFile file;
         std::string dictId;
         std::string filename;
+        std::optional<KeystoreScope> scope;
         size_t wordsOffset = 0;
         std::span<const uint32_t> indices[4] = {};
         std::span<const ConversionEntry> convTable;
@@ -119,6 +120,7 @@ namespace MKD
         Impl(MappedFile mappedFile,
              std::string dict,
              std::string name,
+             const std::optional<KeystoreScope> keystoreScope,
              const size_t words,
              std::span<const uint32_t> index0,
              std::span<const uint32_t> index1,
@@ -128,6 +130,7 @@ namespace MKD
             : file(std::move(mappedFile))
               , dictId(std::move(dict))
               , filename(std::move(name))
+              , scope(keystoreScope)
               , wordsOffset(words)
               , indices{index0, index1, index2, index3}
               , convTable(conversions)
@@ -359,10 +362,14 @@ namespace MKD
             convTable = std::span(entries, count);
         }
 
+        auto filename = path.filename().string();
+        const auto scope = parseKeystoreScopeFilename(filename);
+
         auto impl = std::make_unique<Impl>(
             std::move(*file),
             std::move(dictId),
-            path.filename().string(),
+            std::move(filename),
+            scope,
             hdr->wordsOffset,
             indices[0],
             indices[1],
@@ -423,6 +430,7 @@ namespace MKD
 
 
     std::string_view Keystore::filename() const noexcept { return impl_->filename; }
+    std::optional<KeystoreScope> Keystore::scope() const noexcept { return impl_->scope; }
 
     std::vector<std::string_view> Keystore::keysForEntry(const EntryId& id) const
     {

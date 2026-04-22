@@ -7,10 +7,12 @@
 #include "MKD/result.hpp"
 #include "MKD/resource/common.hpp"
 #include "MKD/resource/entry_id.hpp"
+#include "MKD/resource/keystore_scope.hpp"
 
 #include <expected>
 #include <iterator>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -179,6 +181,7 @@ namespace MKD
         [[nodiscard]] size_t indexSize(KeystoreIndex type) const noexcept;
 
         [[nodiscard]] std::string_view filename() const noexcept;
+        [[nodiscard]] std::optional<KeystoreScope> scope() const noexcept;
 
         /**
          * Look up all keys in the prefix index that map to the given entry ID.

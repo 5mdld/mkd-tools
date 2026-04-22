@@ -2,10 +2,12 @@
 // kiwakiwaaにより 2026/03/11 に作成されました。
 //
 
-#include "dictionary_search.hpp"
-#include "text_normalize.hpp"
+#include "MKD/dictionary/dictionary_search.hpp"
 #include "MKD/dictionary/dictionary.hpp"
 #include "MKD/resource/keystore_search.hpp"
+#include "MKD/resource/keystore_scope.hpp"
+
+#include "text_normalize.hpp"
 
 #include "utf8.h"
 
@@ -84,25 +86,24 @@ namespace MKD
         }
 
 
-        std::optional<SearchScope> scopeFromFilename(std::string_view filename)
+        std::optional<SearchScope> searchScopeFromKeystoreScope(const KeystoreScope scope)
         {
-            constexpr std::string_view ext = ".keystore";
-            if (filename.size() <= ext.size() || filename.substr(filename.size() - ext.size()) != ext)
-                return std::nullopt;
-
-            const auto name = filename.substr(0, filename.size() - ext.size());
-
-            if (name == "headword")   return SearchScope::Headword;
-            if (name == "idiom")      return SearchScope::Idiom;
-            if (name == "example")    return SearchScope::Example;
-            if (name == "english")    return SearchScope::English;
-            if (name == "sense")      return SearchScope::Sense;
-            if (name == "kanji")      return SearchScope::Kanji;
-            if (name == "collocation") return SearchScope::Collocation;
-            if (name == "fulltext")   return SearchScope::Fulltext;
-            if (name == "category")   return SearchScope::Category;
-            if (name == "compound")   return SearchScope::Idiom;
-            if (name == "numeral")    return SearchScope::Numeral;
+            switch (scope)
+            {
+                case KeystoreScope::Headword: return SearchScope::Headword;
+                case KeystoreScope::Idiom: return SearchScope::Idiom;
+                case KeystoreScope::Example: return SearchScope::Example;
+                case KeystoreScope::English: return SearchScope::English;
+                case KeystoreScope::Sense: return SearchScope::Sense;
+                case KeystoreScope::Kanji: return SearchScope::Kanji;
+                case KeystoreScope::Collocation: return SearchScope::Collocation;
+                case KeystoreScope::Fulltext: return SearchScope::Fulltext;
+                case KeystoreScope::Category: return SearchScope::Category;
+                case KeystoreScope::Compound:
+                    // Keep historical search behavior: compound keystore participates in idiom scope.
+                    return SearchScope::Idiom;
+                case KeystoreScope::Numeral: return SearchScope::Numeral;
+            }
             return std::nullopt;
         }
 
@@ -140,7 +141,7 @@ namespace MKD
             std::vector<std::string> filtered;
             for (const auto& key : keys)
             {
-                bool isStop = std::ranges::any_of(STOP_WORDS, [&](std::string_view sw) {
+                const bool isStop = std::ranges::any_of(STOP_WORDS, [&](std::string_view sw) {
                     return key == sw;
                 });
                 if (!isStop)
@@ -199,17 +200,20 @@ namespace MKD
                 }
             }
 
-            // Build scope map from keystore filenames.
+            // Build scope map from keystore scope metadata.
             const Keystore* kanjiStore = nullptr;
 
             for (const auto& ks : dict.keystores())
             {
-                auto parsedScope = scopeFromFilename(ks.filename());
+                auto parsedScope = ks.scope();
                 if (!parsedScope) continue;
 
-                scopeMap[static_cast<uint8_t>(*parsedScope)].push_back(&ks);
+                auto searchScope = searchScopeFromKeystoreScope(*parsedScope);
+                if (!searchScope) continue;
 
-                if (*parsedScope == SearchScope::Kanji)
+                scopeMap[static_cast<uint8_t>(*searchScope)].push_back(&ks);
+
+                if (*searchScope == SearchScope::Kanji)
                     kanjiStore = &ks;
             }
 
@@ -481,7 +485,7 @@ namespace MKD
         if (key.empty())
             return std::unexpected("Empty search key");
 
-        auto stores = impl->keystoresForScope(impl->scope);
+        const auto stores = impl->keystoresForScope(impl->scope);
         if (stores.empty())
             return SearchResult{};
 

@@ -31,6 +31,8 @@ TEST_F(KeystoreTest, LoadValidKeystoreFile)
     ASSERT_TRUE(result2.has_value()) << "Failed to load keystore: " << result2.error();
 
     auto& keystore = result2.value();
+    ASSERT_TRUE(keystore.scope().has_value());
+    EXPECT_EQ(*keystore.scope(), MKD::KeystoreScope::Headword);
 
     for (auto i = 0; i < keystore.indexSize(MKD::KeystoreIndex::Prefix); ++i)
     {
