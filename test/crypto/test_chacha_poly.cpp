@@ -97,6 +97,55 @@ TEST(ChaChaPoly, WrongKeyFails)
     pPool->drain();
 }
 
+TEST(ChaChaPoly, TamperedCombinedFails)
+{
+    NS::AutoreleasePool* pPool = NS::AutoreleasePool::alloc()->init();
+
+    CK::SymmetricKey* pKey = CK::SymmetricKey::symmetricKey(256);
+    ASSERT_TRUE(pKey);
+
+    constexpr auto plaintext = "Tamper check";
+    NS::Data* pPlaintext = NS::Data::dataWithBytes(plaintext, std::strlen(plaintext));
+    ASSERT_TRUE(pPlaintext);
+
+    CK::SealedBox* pSealedBox = CK::ChaChaPoly::seal(pPlaintext, pKey);
+    ASSERT_TRUE(pSealedBox);
+
+    NS::Data* pCombined = pSealedBox->combined();
+    ASSERT_TRUE(pCombined);
+    ASSERT_GT(pCombined->length(), 0u);
+
+    std::vector<uint8_t> tampered(pCombined->length());
+    std::memcpy(tampered.data(), pCombined->bytes(), pCombined->length());
+    tampered.back() ^= 0x80;
+
+    NS::Data* pTampered = NS::Data::dataWithBytes(tampered.data(), tampered.size());
+    ASSERT_TRUE(pTampered);
+
+    CK::SealedBox* pTamperedBox = CK::SealedBox::sealedBox(pTampered);
+    ASSERT_TRUE(pTamperedBox) << "Tampered bytes should still parse as a SealedBox payload";
+
+    NS::Data* pDecrypted = CK::ChaChaPoly::open(pTamperedBox, pKey);
+    EXPECT_EQ(pDecrypted, nullptr) << "Tampered payload should fail authentication";
+
+    pPool->drain();
+}
+
+TEST(ChaChaPoly, MalformedCombinedRejected)
+{
+    NS::AutoreleasePool* pPool = NS::AutoreleasePool::alloc()->init();
+
+    // ChaChaPoly combined payload is nonce (12) + ciphertext (>=0) + tag (16).
+    std::vector<uint8_t> malformed(27, 0xA5);
+    NS::Data* pMalformed = NS::Data::dataWithBytes(malformed.data(), malformed.size());
+    ASSERT_TRUE(pMalformed);
+
+    CK::SealedBox* pBox = CK::SealedBox::sealedBox(pMalformed);
+    EXPECT_EQ(pBox, nullptr);
+
+    pPool->drain();
+}
+
 TEST(ChaChaPoly, KeyFromData)
 {
     NS::AutoreleasePool* pPool = NS::AutoreleasePool::alloc()->init();

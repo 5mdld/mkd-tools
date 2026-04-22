@@ -19,15 +19,17 @@
 
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-#define _CK_PRIVATE_CLS(symbol) (CK::Private::Class::symbol())
+#define _CK_PRIVATE_CLS(symbol) (CK::Private::Class::s_k##symbol)
 #define _CK_PRIVATE_SEL(accessor) (CK::Private::Selector::s_k##accessor)
 
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 #if defined(CK_PRIVATE_IMPLEMENTATION)
 #define _CK_PRIVATE_VISIBILITY __attribute__((visibility("default")))
+#define _CK_PRIVATE_DEF_CLS(symbol) void* s_k##symbol _CK_PRIVATE_VISIBILITY = CK::Private::lookUpClass(#symbol)
 #define _CK_PRIVATE_DEF_SEL(accessor, symbol) SEL s_k##accessor _CK_PRIVATE_VISIBILITY = sel_registerName(symbol)
 #else
+#define _CK_PRIVATE_DEF_CLS(symbol) extern void* s_k##symbol
 #define _CK_PRIVATE_DEF_SEL(accessor, symbol) extern SEL s_k##accessor
 #endif
 
@@ -48,25 +50,21 @@ namespace CK
             (void) s_initialized;
         }
 
+        _CK_INLINE void* lookUpClass(const char* pClassName)
+        {
+            Initialize();
+#ifdef __OBJC__
+            return (__bridge void*)objc_lookUpClass(pClassName);
+#else
+            return objc_lookUpClass(pClassName);
+#endif
+        }
+
         namespace Class
         {
-            _CK_INLINE void* CKSymmetricKey()
-            {
-                Initialize();
-                return objc_lookUpClass("CKSymmetricKey");
-            }
-
-            _CK_INLINE void* CKSealedBox()
-            {
-                Initialize();
-                return objc_lookUpClass("CKSealedBox");
-            }
-
-            _CK_INLINE void* CKChaChaPoly()
-            {
-                Initialize();
-                return objc_lookUpClass("CKChaChaPoly");
-            }
+            _CK_PRIVATE_DEF_CLS(CKSymmetricKey);
+            _CK_PRIVATE_DEF_CLS(CKSealedBox);
+            _CK_PRIVATE_DEF_CLS(CKChaChaPoly);
         }
 
         namespace Selector
