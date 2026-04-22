@@ -87,6 +87,8 @@ namespace MKD
 
         [[nodiscard]] Result<std::pair<uint32_t, ResourceStoreMapRecord>> getByIndex(size_t index) const;
 
+        [[nodiscard]] Result<size_t> indexOfId(uint32_t itemId) const;
+
         [[nodiscard]] uint32_t mapVersion() const;
 
         [[nodiscard]] size_t size() const noexcept;

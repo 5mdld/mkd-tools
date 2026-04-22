@@ -111,4 +111,21 @@ TEST_F(RscIndexTest, FindRecordById)
     EXPECT_EQ(foundRecord.itemOffset, expectedRecord.itemOffset);
 }
 
+TEST_F(RscIndexTest, ResolveIndexByIdRoundTrip)
+{
+    const auto indexResult = MKD::ResourceStoreIndex::load(testDataPath_);
+    ASSERT_TRUE(indexResult.has_value());
+
+    const auto& index = indexResult.value();
+    ASSERT_GT(index.size(), 0u);
+
+    const size_t probeIndex = std::min<size_t>(index.size() - 1, 9);
+    const auto recordResult = index.getByIndex(probeIndex);
+    ASSERT_TRUE(recordResult.has_value());
+
+    const auto& [itemId, _] = *recordResult;
+    const auto resolvedIndexResult = index.indexOfId(itemId);
+    ASSERT_TRUE(resolvedIndexResult.has_value()) << resolvedIndexResult.error();
+    EXPECT_EQ(*resolvedIndexResult, probeIndex);
+}
 

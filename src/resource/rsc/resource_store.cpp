@@ -115,6 +115,11 @@ namespace MKD
         return result->first;
     }
 
+    Result<size_t> ResourceStore::indexOfId(const uint32_t itemId) const
+    {
+        return impl_->index.indexOfId(itemId);
+    }
+
 
     size_t ResourceStore::size() const noexcept
     {

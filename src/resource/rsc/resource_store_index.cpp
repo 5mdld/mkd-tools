@@ -83,30 +83,6 @@ namespace MKD
 
         const auto& idxRecords = *idxRecords_;
 
-        // Try fast guesses first (IDs are often sequential)
-        const size_t guessIdx = std::min(static_cast<size_t>(itemId), idxRecords.size() - 1);
-        if (idxRecords[guessIdx].id() == itemId)
-        {
-            const size_t mapIdx = idxRecords[guessIdx].mapIndex();
-            if (mapIdx >= mapRecords_.size())
-                return std::unexpected(std::format("Index mismatch for item ID {}", itemId));
-            return mapRecords_[mapIdx];
-        }
-
-        // Try itemId-1 as another common pattern
-        if (itemId > 0)
-        {
-            const size_t guessIdx2 = std::min(static_cast<size_t>(itemId - 1), idxRecords.size() - 1);
-            if (idxRecords[guessIdx2].id() == itemId)
-            {
-                const size_t mapIdx = idxRecords[guessIdx2].mapIndex();
-                if (mapIdx >= mapRecords_.size())
-                    return std::unexpected(std::format("Index mismatch for item ID {}", itemId));
-                return mapRecords_[mapIdx];
-            }
-        }
-
-        // Fall back to binary search
         const auto it = std::ranges::lower_bound(
             idxRecords,
             itemId,
@@ -151,6 +127,41 @@ namespace MKD
         }
 
         return std::pair{itemId, mapRecords_[index]};
+    }
+
+    Result<size_t> ResourceStoreIndex::indexOfId(const uint32_t itemId) const
+    {
+        if (!idxRecords_.has_value())
+        {
+            if (itemId >= mapRecords_.size())
+                return std::unexpected(std::format("Item ID {} not found (out of range)", itemId));
+
+            return itemId;
+        }
+
+        const auto& idxRecords = *idxRecords_;
+        if (idxRecords.empty())
+            return std::unexpected("Index records are empty");
+
+        auto validateMapIndex = [this, itemId](const size_t mapIdx) -> Result<size_t>
+        {
+            if (mapIdx >= mapRecords_.size())
+                return std::unexpected(std::format("Index mismatch for item ID {}", itemId));
+
+            return mapIdx;
+        };
+
+        const auto it = std::ranges::lower_bound(
+            idxRecords,
+            itemId,
+            std::less{},
+            [](const ResourceStoreIndexRecord& record) { return record.id(); }
+        );
+
+        if (it == idxRecords.end() || it->id() != itemId)
+            return std::unexpected(std::format("Item ID {} not found", itemId));
+
+        return validateMapIndex(it->mapIndex());
     }
 
     uint32_t ResourceStoreIndex::mapVersion() const

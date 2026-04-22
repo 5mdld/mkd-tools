@@ -70,6 +70,11 @@ namespace MKD
         [[nodiscard]] Result<uint32_t> idAtIndex(size_t index) const;
 
         /**
+         * Resolve an item ID to its index in this resource store.
+         */
+        [[nodiscard]] Result<size_t> indexOfId(uint32_t itemId) const;
+
+        /**
          * Get total number of records
          * @return Number of records
          */
