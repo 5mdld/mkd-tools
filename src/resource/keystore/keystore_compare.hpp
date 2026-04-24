@@ -10,6 +10,9 @@
 
 namespace MKD::detail::keystore
 {
+    char32_t foldCase(char32_t cp);
+
+
     constexpr bool isIgnorable(const char32_t cp)
     {
         return cp == 0x20 || cp == 0x2D; // space or hyphen

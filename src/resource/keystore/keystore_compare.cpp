@@ -9,6 +9,21 @@
 
 namespace MKD::detail::keystore
 {
+    char32_t foldCase(const char32_t cp)
+    {
+        // ascii uppercase to lowercase
+        if (cp >= 0x41 && cp <= 0x5A)
+            return cp | 0x20;
+
+        // skip CJK / kana
+        if (cp >= 0x3000 && cp < 0xA000)
+            return cp;
+
+        // everything else goes through the case map
+        return unicode::toLowercase(cp);
+    }
+
+
     std::u32string normalizeKeyToUTF32(std::string_view s, const bool reverse)
     {
         std::u32string result;
@@ -17,7 +32,7 @@ namespace MKD::detail::keystore
         {
             const char32_t cp = unicode::nextCodepoint(s, offset);
             if (isIgnorable(cp)) continue;
-            result.push_back(unicode::keystoreFold(cp));
+            result.push_back(foldCase(cp));
         }
 
         if (reverse)
@@ -68,7 +83,7 @@ namespace MKD::detail::keystore
                 {
                     if (const char32_t cp = unicode::previousCodepoint(a, pa); !isIgnorable(cp))
                     {
-                        ca = unicode::keystoreFold(cp);
+                        ca = foldCase(cp);
                         hasA = true;
                         break;
                     }
@@ -78,7 +93,7 @@ namespace MKD::detail::keystore
                 {
                     if (const char32_t cp = unicode::previousCodepoint(b, pb); !isIgnorable(cp))
                     {
-                        cb = unicode::keystoreFold(cp);
+                        cb = foldCase(cp);
                         hasB = true;
                         break;
                     }
@@ -107,7 +122,7 @@ namespace MKD::detail::keystore
                 {
                     if (const char32_t cp = unicode::nextCodepoint(a, pa); !isIgnorable(cp))
                     {
-                        ca = unicode::keystoreFold(cp);
+                        ca = foldCase(cp);
                         hasA = true;
                         break;
                     }
@@ -117,7 +132,7 @@ namespace MKD::detail::keystore
                 {
                     if (const char32_t cp = unicode::nextCodepoint(b, pb); !isIgnorable(cp))
                     {
-                        cb = unicode::keystoreFold(cp);
+                        cb = foldCase(cp);
                         hasB = true;
                         break;
                     }

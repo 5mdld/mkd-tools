@@ -218,12 +218,6 @@ namespace MKD::detail::unicode
     }
 
 
-    Codepoint toLowercase(const Codepoint cp) noexcept
-    {
-        return static_cast<Codepoint>(utf8proc_tolower(static_cast<utf8proc_int32_t>(cp)));
-    }
-
-
     Codepoint hiraganaToKatakana(const Codepoint cp) noexcept
     {
         if (cp >= HIRAGANA_START && cp <= HIRAGANA_END)
@@ -239,15 +233,6 @@ namespace MKD::detail::unicode
             return COMBINING_ACUTE;
 
         return toLowercase(hiraganaToKatakana(cp));
-    }
-
-
-    Codepoint keystoreFold(const Codepoint cp) noexcept
-    {
-        if (cp >= 0x3000 && cp < 0xA000)
-            return cp;
-
-        return toLowercase(cp);
     }
 
 

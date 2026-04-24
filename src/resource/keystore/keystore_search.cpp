@@ -71,7 +71,7 @@ namespace MKD
             {
                 const char32_t cp = unicode::nextCodepoint(searchKey, offset);
                 if (keystore::isIgnorable(cp)) continue;
-                norm.push_back(unicode::keystoreFold(cp));
+                norm.push_back(keystore::foldCase(cp));
             }
 
             if (reverse)
