@@ -267,7 +267,7 @@ namespace MKD
         impl->allowScopeFallback = options.enableScopeFallback;
         impl->allowStopWords = options.enableStopWords;
 
-        const auto normalized = normalizeSearchQuery(query);
+        const auto normalized = detail::unicode::normalizeDictionaryKey(query, detail::unicode::DictionaryKeyNormalizeOption::CollapseSeparators);
         auto keys = splitKeys(normalized);
         if (keys.empty())
             return std::unexpected("Empty search query");

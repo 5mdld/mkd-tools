@@ -21,12 +21,4 @@ namespace MKD
 
     // Check whether 'haystack' contains 'needle' after keyword normalization.
     bool normalizedContains(std::string_view haystack, std::string_view needle);
-
-    /**
-     * Normalise a search query for keystore lookup.
-     * Converts Hiragana to Katakana so queries match katakana-stored keys.
-     * @param query UTF-8 search query
-     * @return normalised UTF-8 string
-     */
-    std::string normalizeSearchQuery(std::string_view query);
 }

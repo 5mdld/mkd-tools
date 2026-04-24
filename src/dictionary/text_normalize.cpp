@@ -46,27 +46,4 @@ namespace MKD
 
         return std::ranges::search(normHay, normNeedle).begin() != normHay.end();
     }
-
-    /* TODO: app uses NFD decomposing and...
-    * - remove bracketed text () [] {}
-    * - normalize whitespace and hyphen sequences
-    * - collapse duplicate separators
-    * - normalize kana (hiragana ↔ katakana adjustments and dakuten/handakuten handling)
-    * - normalize fullwidth/halfwidth characters
-    * - perform several compatibility mappings (e.g., ligatures, special Latin characters)
-    * -  normalize iteration mark 々 depending on previous character
-    */
-    std::string normalizeSearchQuery(std::string_view query)
-    {
-        std::string result;
-        size_t offset = 0;
-
-        while (offset < query.size())
-        {
-            const char32_t cp = detail::unicode::nextCodepoint(query, offset);
-            detail::unicode::appendUtf8(result, detail::unicode::hiraganaToKatakana(cp));
-        }
-
-        return result;
-    }
 }
