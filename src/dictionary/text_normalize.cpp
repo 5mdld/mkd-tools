@@ -3,9 +3,7 @@
 //
 
 #include "text_normalize.hpp"
-#include "resource/detail/unicode/unicode_case_map.hpp"
-
-#include "utf8.h"
+#include "unicode/unicode.hpp"
 
 #include <algorithm>
 
@@ -13,30 +11,9 @@ namespace MKD
 {
     namespace
     {
-        constexpr char32_t HIRAGANA_START = 0x3041;
-        constexpr char32_t HIRAGANA_END   = 0x3096;
-        constexpr char32_t HIRAGANA_TO_KATAKANA_OFFSET = 0x60;
-
-        constexpr char32_t ASCII_APOSTROPHE   = 0x0027;
-        constexpr char32_t RIGHT_SINGLE_QUOTE = 0x2019;
-        constexpr char32_t COMBINING_ACUTE    = 0x0301;
-
         char32_t normalizeCodepoint(const char32_t cp)
         {
-            if (cp == ASCII_APOSTROPHE || cp == RIGHT_SINGLE_QUOTE)
-                return COMBINING_ACUTE;
-
-            if (cp >= HIRAGANA_START && cp <= HIRAGANA_END)
-                return cp + HIRAGANA_TO_KATAKANA_OFFSET;
-
-            // ascii case fold
-            if (cp >= 0x41 && cp <= 0x5A)
-                return cp | 0x20;
-
-            if (cp < 0x80)
-                return cp;
-
-            return detail::unicode::toLowercase(cp);
+            return detail::unicode::keywordSearchFold(cp);
         }
     }
 
@@ -44,12 +21,11 @@ namespace MKD
     std::u32string normalizeForKeywordSearch(std::string_view text)
     {
         std::u32string result;
-        auto it = text.begin();
-        const auto end = text.end();
+        size_t offset = 0;
 
-        while (it != end)
+        while (offset < text.size())
         {
-            const char32_t cp = utf8::next(it, end);
+            const char32_t cp = detail::unicode::nextCodepoint(text, offset);
             result.push_back(normalizeCodepoint(cp));
         }
 
@@ -83,18 +59,12 @@ namespace MKD
     std::string normalizeSearchQuery(std::string_view query)
     {
         std::string result;
-        auto it = query.begin();
-        const auto end = query.end();
+        size_t offset = 0;
 
-        while (it != end)
+        while (offset < query.size())
         {
-            const char32_t cp = utf8::next(it, end);
-            char32_t out = cp;
-
-            if (cp >= HIRAGANA_START && cp <= HIRAGANA_END)
-                out = cp + HIRAGANA_TO_KATAKANA_OFFSET;
-
-            utf8::append(out, std::back_inserter(result));
+            const char32_t cp = detail::unicode::nextCodepoint(query, offset);
+            detail::unicode::appendUtf8(result, detail::unicode::hiraganaToKatakana(cp));
         }
 
         return result;

@@ -3,9 +3,9 @@
 //
 
 #include "MKD/resource/xml_view.hpp"
+#include "unicode/unicode.hpp"
 
 #include <format>
-#include <utf8.h>
 
 namespace MKD
 {
@@ -30,14 +30,10 @@ namespace MKD
 
     std::expected<void, std::string> XmlView::validate() const
     {
-        const auto* begin = data_.data();
-        const auto* end = begin + data_.size();
-
-        if (const auto* it = utf8::find_invalid(begin, end); it != end)
+        if (const auto invalidOffset = detail::unicode::firstInvalidUtf8Offset(data_))
         {
-            const size_t offset = it - begin;
             return std::unexpected(
-                std::format("Invalid UTF-8 sequence at byte offset {}", offset)
+                std::format("Invalid UTF-8 sequence at byte offset {}", *invalidOffset)
             );
         }
 

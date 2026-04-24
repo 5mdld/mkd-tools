@@ -8,8 +8,7 @@
 #include "MKD/resource/keystore_scope.hpp"
 
 #include "text_normalize.hpp"
-
-#include "utf8.h"
+#include "unicode/unicode.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -22,18 +21,18 @@ namespace MKD
         std::string_view dropFirstCodepoint(std::string_view s)
         {
             if (s.empty()) return {};
-            auto it = s.begin();
-            utf8::next(it, s.end());
-            return {it, s.end()};
+            size_t offset = 0;
+            static_cast<void>(detail::unicode::nextCodepoint(s, offset));
+            return {s.data() + offset, s.size() - offset};
         }
 
 
         std::string_view dropLastCodepoint(std::string_view s)
         {
             if (s.empty()) return {};
-            auto it = s.end();
-            utf8::prior(it, s.begin());
-            return {s.begin(), it};
+            size_t offset = s.size();
+            static_cast<void>(detail::unicode::previousCodepoint(s, offset));
+            return {s.data(), offset};
         }
 
 
@@ -52,18 +51,7 @@ namespace MKD
 
         bool isJapanese(std::string_view s)
         {
-            auto it = s.begin();
-            const auto end = s.end();
-            while (it != end)
-            {
-                const char32_t cp = utf8::next(it, end);
-                if ((cp >= 0x3040 && cp <= 0x309F)
-                    || (cp >= 0x30A0 && cp <= 0x30FF)
-                    || (cp >= 0x4E00 && cp <= 0x9FFF)
-                    || (cp >= 0x3400 && cp <= 0x4DBF))
-                    return true;
-            }
-            return false;
+            return detail::unicode::containsJapaneseScript(s);
         }
 
 

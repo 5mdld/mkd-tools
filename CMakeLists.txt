@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(mkd-tools LANGUAGES CXX)
+project(mkd-tools LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -35,9 +35,16 @@ FetchContent_Declare(zlib
         GIT_TAG v1.3.1
         GIT_SHALLOW TRUE
 )
+FetchContent_Declare(utf8proc
+        GIT_REPOSITORY https://github.com/JuliaStrings/utf8proc.git
+        GIT_TAG v2.10.0
+        GIT_SHALLOW TRUE
+)
 
 set(ZLIB_BUILD_EXAMPLES OFF)
-FetchContent_MakeAvailable(glaze zlib)
+set(UTF8PROC_INSTALL OFF CACHE BOOL "" FORCE)
+set(UTF8PROC_ENABLE_TESTING OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(glaze zlib utf8proc)
 
 if (NOT TARGET ZLIB::ZLIB)
     if (TARGET zlibstatic)
@@ -68,12 +75,12 @@ target_include_directories(mkd PUBLIC
 
 target_include_directories(mkd PRIVATE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/third_party/utfcpp>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/third_party/pugixml>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/third_party/indiqcators>
 )
 
 target_link_libraries(mkd PUBLIC glaze::glaze ZLIB::ZLIB)
+target_link_libraries(mkd PRIVATE utf8proc)
 
 # compile/link flags
 if (CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")

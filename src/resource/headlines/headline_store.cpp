@@ -4,8 +4,7 @@
 
 #include "MKD/resource/headline_store.hpp"
 #include "platform/mmap_file.hpp"
-
-#include <utf8.h>
+#include "unicode/unicode.hpp"
 
 #include <algorithm>
 #include <bit>
@@ -61,37 +60,19 @@ namespace MKD
 
     std::string HeadlineComponents::prefixUtf8() const
     {
-#if defined(_WIN32)
-        std::string result;
-        utf8::utf16to8(prefix.begin(), prefix.end(), std::back_inserter(result));
-        return result;
-#else
-        return utf8::utf16to8(prefix);
-#endif
+        return detail::unicode::toUtf8(prefix);
     }
 
 
     std::string HeadlineComponents::headlineUtf8() const
     {
-#if defined(_WIN32)
-        std::string result;
-        utf8::utf16to8(headline.begin(), headline.end(), std::back_inserter(result));
-        return result;
-#else
-        return utf8::utf16to8(headline);
-#endif
+        return detail::unicode::toUtf8(headline);
     }
 
 
     std::string HeadlineComponents::suffixUtf8() const
     {
-#if defined(_WIN32)
-        std::string result;
-        utf8::utf16to8(suffix.begin(), suffix.end(), std::back_inserter(result));
-        return result;
-#else
-        return utf8::utf16to8(suffix);
-#endif
+        return detail::unicode::toUtf8(suffix);
     }
 
 

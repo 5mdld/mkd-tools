@@ -4,8 +4,7 @@
 
 #include "keystore_search.hpp"
 #include "keystore_compare.hpp"
-
-#include "utf8.h"
+#include "unicode/unicode.hpp"
 
 #include <algorithm>
 #include <utility>
@@ -66,14 +65,13 @@ namespace MKD
             const bool reverse = (mode == SearchMode::Suffix);
 
             std::u32string norm;
-            auto it = searchKey.begin();
-            const auto end = searchKey.end();
+            size_t offset = 0;
 
-            while (it != end)
+            while (offset < searchKey.size())
             {
-                const char32_t cp = utf8::next(it, end);
+                const char32_t cp = unicode::nextCodepoint(searchKey, offset);
                 if (keystore::isIgnorable(cp)) continue;
-                norm.push_back(keystore::foldCase(cp));
+                norm.push_back(unicode::keystoreFold(cp));
             }
 
             if (reverse)
@@ -93,9 +91,7 @@ namespace MKD
             if (reverse)
                 std::ranges::reverse(norm);
 
-            std::string result;
-            utf8::utf32to8(norm.begin(), norm.end(), std::back_inserter(result));
-            return result;
+            return unicode::toUtf8(norm);
         }
     }
 
