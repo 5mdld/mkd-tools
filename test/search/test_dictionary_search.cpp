@@ -177,18 +177,18 @@ TEST_F(DictionarySearchTest, KOGO3_HeadwordSearch)
     printInfo(result->matchedKeys, result->entries);
 }
 
-TEST_F(DictionarySearchTest, SearchCancellation)
+TEST_F(DictionarySearchTest, PreSearchCancelDoesNotCancelNextSearch)
 {
     auto dict = loadDictionary("KOGO3");
     DictionarySearch search(dict);
 
     search.cancel();
 
-    auto result = measureSearchTime("cancelled search", [&]() {
+    auto result = measureSearchTime("pre-search cancel ignored", [&]() {
         return search.search("日本");
     });
 
-    ASSERT_FALSE(result.has_value());
+    ASSERT_TRUE(result.has_value());
 }
 
 TEST_F(DictionarySearchTest, DictionaryEntryAccessHelpers)

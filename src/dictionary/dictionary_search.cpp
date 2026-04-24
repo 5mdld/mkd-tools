@@ -55,22 +55,10 @@ namespace MKD
         }
 
 
-        // might not be 100% right
-        // (1LL << scope) & 0x496
         bool scopeUsesCompoundSearch(SearchScope scope)
         {
-            switch (scope)
-            {
-                case SearchScope::Idiom:
-                case SearchScope::Compound:
-                case SearchScope::Example:
-                case SearchScope::Sense:
-                case SearchScope::Collocation:
-                case SearchScope::Fulltext:
-                    return true;
-                default:
-                    return false;
-            }
+            const auto value = static_cast<uint8_t>(scope);
+            return value <= 10 && ((1ULL << value) & 0x496ULL) != 0;
         }
 
 
@@ -82,12 +70,14 @@ namespace MKD
                 case KeystoreScope::Idiom: return SearchScope::Idiom;
                 case KeystoreScope::Example: return SearchScope::Example;
                 case KeystoreScope::English: return SearchScope::English;
-                case KeystoreScope::Sense: return SearchScope::Sense;
+                case KeystoreScope::Gogi: return SearchScope::Gogi;
                 case KeystoreScope::Kanji: return SearchScope::Kanji;
                 case KeystoreScope::Collocation: return SearchScope::Collocation;
+                case KeystoreScope::CJ: return SearchScope::CJ;
+                case KeystoreScope::JC: return SearchScope::JC;
                 case KeystoreScope::Fulltext: return SearchScope::Fulltext;
-                case KeystoreScope::Category: return SearchScope::Category;
-                case KeystoreScope::Compound:
+                case KeystoreScope::Group: return SearchScope::Group;
+                case KeystoreScope::CompoundNoun:
                     // Keep historical search behavior: compound keystore participates in idiom scope.
                     return SearchScope::Idiom;
                 case KeystoreScope::Numeral: return SearchScope::Numeral;
@@ -170,8 +160,11 @@ namespace MKD
         SearchScope scope = SearchScope::Headword;
         SearchMode mode = SearchMode::Prefix;
         bool useCompound = true;
+        bool allowScopeFallback = true;
+        bool allowStopWords = true;
         std::unordered_map<uint8_t, std::vector<const Keystore*>> scopeMap;
         bool isJapaneseDictionary = false;
+        std::atomic<bool> searching{false};
 
         explicit Impl(const Dictionary& d) : dict(d)
         {
@@ -257,9 +250,22 @@ namespace MKD
 
     Result<SearchResult> DictionarySearch::search(std::string_view query, const SearchOptions& options) const
     {
+        impl->cancelled.store(false, std::memory_order_relaxed);
+        impl->searching.store(true, std::memory_order_relaxed);
+        struct SearchActivity
+        {
+            Impl& impl;
+            ~SearchActivity()
+            {
+                impl.searching.store(false, std::memory_order_relaxed);
+            }
+        } activity{*impl};
+
         impl->scope = options.scope;
         impl->mode = options.type;
         impl->useCompound = options.enableJapaneseCompound;
+        impl->allowScopeFallback = options.enableScopeFallback;
+        impl->allowStopWords = options.enableStopWords;
 
         const auto normalized = normalizeSearchQuery(query);
         auto keys = splitKeys(normalized);
@@ -273,8 +279,8 @@ namespace MKD
         if (impl->isCancelled())
             return std::unexpected("Search cancelled");
 
-        // joined key fallback for multi-word queries.
-        if (keys.size() >= 2)
+        // joined key fallback for multi-word headword queries.
+        if (options.scope == SearchScope::Headword && keys.size() >= 2)
         {
             impl->scope = options.scope;
 
@@ -290,7 +296,12 @@ namespace MKD
         return result ? std::move(*result) : SearchResult{};
     }
 
-    void DictionarySearch::cancel() const noexcept { impl->cancelled.store(true, std::memory_order_relaxed); }
+    void DictionarySearch::cancel() const noexcept
+    {
+        if (impl->searching.load(std::memory_order_relaxed))
+            impl->cancelled.store(true, std::memory_order_relaxed);
+    }
+
     void DictionarySearch::reset() const noexcept { impl->cancelled.store(false, std::memory_order_relaxed); }
     bool DictionarySearch::isCancelled() const noexcept { return impl->isCancelled(); }
 
@@ -302,8 +313,10 @@ namespace MKD
         if (result && !result->empty())
             return result;
 
-        // fallback Headword → Idiom
-        if (impl->scope == SearchScope::Headword)
+        const auto originalScope = impl->scope;
+
+        // fallback Headword -> Idiom
+        if (impl->allowScopeFallback && impl->scope == SearchScope::Headword)
         {
             impl->scope = SearchScope::Idiom;
             result = searchWithKeysAndFlags(keys, limit, 4);
@@ -311,16 +324,32 @@ namespace MKD
                 return result;
 
             // stop word removal at Idiom scope
+            if (impl->allowStopWords)
+            {
+                if (auto filtered = removeStopWords(keys); filtered.size() != keys.size())
+                {
+                    result = searchWithKeysAndFlags(filtered, limit, 4);
+                    if (result && !result->empty())
+                        return result;
+                }
+            }
+        }
+        else if (impl->allowStopWords && impl->scope == SearchScope::Idiom)
+        {
             if (auto filtered = removeStopWords(keys); filtered.size() != keys.size())
             {
-                result = searchWithKeysAndFlags(filtered, limit, 4);
+                result = searchWithKeysAndFlags(filtered, limit, 0);
                 if (result && !result->empty())
                     return result;
             }
         }
 
-        // japanese fallback → Example scope
-        if (impl->scope <= SearchScope::Idiom && keys.size() == 1 && isJapanese(keys[0]))
+        // japanese fallback -> Example scope
+        if (impl->allowScopeFallback
+            && originalScope <= SearchScope::Idiom
+            && keys.size() == 1
+            && isJapanese(keys[0])
+            && impl->isJapaneseDictionary)
         {
             impl->scope = SearchScope::Example;
             result = searchWithKeysAndFlags(keys, limit, 8);
@@ -488,7 +517,7 @@ namespace MKD
             if (!hits)
                 continue;
 
-            // Exact → Prefix fallback
+            // Exact -> Prefix fallback
             if (hits->empty() && mode == SearchMode::Exact)
             {
                 hits = keystoreSearchResults(*keystore, key, SearchMode::Prefix);
