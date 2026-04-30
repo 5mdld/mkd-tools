@@ -20,9 +20,7 @@ class DictionarySearchTest : public ::testing::Test
 protected:
     void SetUp() override
     {
-        const auto containerPath =
-            MKD::macOS::getContainerPathByGroupIdentifier(MKD::MONOKAKIDO_GROUP_ID);
-
+        const auto containerPath = MKD::macOS::getContainerPathByGroupIdentifier(MKD::MONOKAKIDO_GROUP_ID);
         dictionariesPath_ = containerPath / MKD::DICTIONARIES_SUBPATH;
     }
 
@@ -53,15 +51,15 @@ protected:
     template<typename Func>
     auto measureSearchTime(const std::string& searchName, Func&& searchFunc)
     {
-        auto start = std::chrono::high_resolution_clock::now();
+        const auto start = std::chrono::high_resolution_clock::now();
         auto result = searchFunc();
-        auto end = std::chrono::high_resolution_clock::now();
+        const auto end = std::chrono::high_resolution_clock::now();
 
-        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+        const auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
         double milliseconds = static_cast<double>(duration.count()) / 1000.0;
 
-        test::verbosePrint("⏱️  {} search took: {:.3f} ms ({} μs)\n",
-                          searchName, milliseconds, duration.count());
+        test::verbosePrint("⏱ {} search took: {:.3f} ms ({} μs)\n",
+                           searchName, milliseconds, duration.count());
 
         return result;
     }
@@ -71,10 +69,10 @@ protected:
 
 TEST_F(DictionarySearchTest, KANKENKJ2_KanjiHeadwordSearch)
 {
-    auto dict = loadDictionary("KANKENKJ2");
-    DictionarySearch search(dict);
+    const auto dict = loadDictionary("KANKENKJ2");
+    const DictionarySearch search(dict);
 
-    auto result = measureSearchTime("KANKENKJ2 headword", [&]() {
+    const auto result = measureSearchTime("KANKENKJ2 headword", [&]() {
         return search.search("愛");
     });
 
@@ -85,10 +83,10 @@ TEST_F(DictionarySearchTest, KANKENKJ2_KanjiHeadwordSearch)
 
 TEST_F(DictionarySearchTest, KANKENKJ2_CompoundKanjiSearch)
 {
-    auto dict = loadDictionary("KANKENKJ2");
-    DictionarySearch search(dict);
+    const auto dict = loadDictionary("KANKENKJ2");
+    const DictionarySearch search(dict);
 
-    auto result = measureSearchTime("KANKENKJ2 compound", [&]() {
+    const auto result = measureSearchTime("KANKENKJ2 compound", [&]() {
         return search.search("愛情");
     });
 
@@ -101,27 +99,29 @@ TEST_F(DictionarySearchTest, KANKENKJ2_CompoundKanjiSearch)
 
 TEST_F(DictionarySearchTest, KANKENKJ2_PrefixSearch)
 {
-    auto dict = loadDictionary("KANKENKJ2");
-    DictionarySearch search(dict);
+    const auto dict = loadDictionary("KANKENKJ2");
+    const DictionarySearch search(dict);
 
     SearchOptions options;
     options.type = SearchMode::Prefix;
+    options.scope = SearchScope::Idiom;
 
-    auto result = measureSearchTime("KANKENKJ2 prefix", [&]() {
+    const auto result = measureSearchTime("KANKENKJ2 prefix", [&]() {
         return search.search("愛", options);
     });
 
     ASSERT_TRUE(result.has_value());
+    ASSERT_TRUE(result->entries.size() == 43);
     ASSERT_FALSE(result->empty());
     printInfo(result->matchedKeys, result->entries);
 }
 
 TEST_F(DictionarySearchTest, OKO12_HeadwordSearch)
 {
-    auto dict = loadDictionary("KOGO3");
-    DictionarySearch search(dict);
+    const auto dict = loadDictionary("KOGO3");
+    const DictionarySearch search(dict);
 
-    auto result = measureSearchTime("KOGO3 headword", [&]() {
+    const auto result = measureSearchTime("KOGO3 headword", [&]() {
         return search.search("学生");
     });
 
@@ -130,32 +130,32 @@ TEST_F(DictionarySearchTest, OKO12_HeadwordSearch)
     printInfo(result->matchedKeys, result->entries);
 }
 
-TEST_F(DictionarySearchTest, OKO12_IdiomScopeFallback)
+TEST_F(DictionarySearchTest, SHINJIGEN_GogiSearch)
 {
-    auto dict = loadDictionary("KOGO3");
-    DictionarySearch search(dict);
+    const auto dict = loadDictionary("SHINJIGEN2");
+    const DictionarySearch search(dict);
 
     SearchOptions options;
-    options.scope = SearchScope::Headword;
+    options.type = SearchMode::Prefix;
+    options.scope = SearchScope::Gogi;
 
-    auto result = measureSearchTime("KOGO3 idiom fallback", [&]() {
-        return search.search("気に掛かる", options);
+    const auto result = measureSearchTime("Shinjigen Gogi search", [&]() {
+        return search.search("ひよどり", options);
     });
 
     ASSERT_TRUE(result.has_value());
+    ASSERT_TRUE(result->entries.size() == 4);
     ASSERT_FALSE(result->empty());
 
-    // fallback flag expected
-    EXPECT_TRUE(result->flags & 4);
     printInfo(result->matchedKeys, result->entries);
 }
 
 TEST_F(DictionarySearchTest, OKO12_JoinedQueryFallback)
 {
-    auto dict = loadDictionary("KOGO3");
-    DictionarySearch search(dict);
+    const auto dict = loadDictionary("KOGO3");
+    const DictionarySearch search(dict);
 
-    auto result = measureSearchTime("KOGO3 joined query", [&]() {
+    const auto result = measureSearchTime("KOGO3 joined query", [&]() {
         return search.search("取り 扱い");
     });
 
@@ -165,10 +165,10 @@ TEST_F(DictionarySearchTest, OKO12_JoinedQueryFallback)
 
 TEST_F(DictionarySearchTest, KOGO3_HeadwordSearch)
 {
-    auto dict = loadDictionary("SKOGO");
-    DictionarySearch search(dict);
+    const auto dict = loadDictionary("SKOGO");
+    const DictionarySearch search(dict);
 
-    auto result = measureSearchTime("KOGO3 headword", [&]() {
+    const auto result = measureSearchTime("KOGO3 headword", [&]() {
         return search.search("あはれ");
     });
 
@@ -179,12 +179,12 @@ TEST_F(DictionarySearchTest, KOGO3_HeadwordSearch)
 
 TEST_F(DictionarySearchTest, PreSearchCancelDoesNotCancelNextSearch)
 {
-    auto dict = loadDictionary("KOGO3");
-    DictionarySearch search(dict);
+    const auto dict = loadDictionary("KOGO3");
+    const DictionarySearch search(dict);
 
     search.cancel();
 
-    auto result = measureSearchTime("pre-search cancel ignored", [&]() {
+    const auto result = measureSearchTime("pre-search cancel ignored", [&]() {
         return search.search("日本");
     });
 

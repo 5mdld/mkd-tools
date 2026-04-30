@@ -1,5 +1,5 @@
 //
-// Public dictionary search API.
+// kiwakiwaaにより 2026/03/11 に作成されました。
 //
 
 #pragma once
@@ -113,24 +113,6 @@ namespace MKD
         [[nodiscard]] bool isCancelled() const noexcept;
 
     private:
-        // search keys at current scope with cascading scope fallback
-        [[nodiscard]] Result<SearchResult> searchWithKeys(const std::vector<std::string>& keys,
-                                                          size_t limit) const;
-
-        // iterate keys, search each, intersect results. sets flags on result.
-        [[nodiscard]] Result<SearchResult> searchWithKeysAndFlags(const std::vector<std::string>& keys,
-                                                                  size_t limit,
-                                                                  uint32_t flags) const;
-
-        // dispatch compound search for Japanese keys at eligible scopes, otherwise simple
-        [[nodiscard]] Result<SearchResult> searchSingleKey(std::string_view key, size_t limit) const;
-
-        // compound word decomposition with front/back stripping
-        [[nodiscard]] Result<SearchResult> japaneseCompoundSearch(std::string_view key) const;
-
-        // binary search across keystores for the current scope
-        [[nodiscard]] Result<SearchResult> simpleSearch(std::string_view key, SearchMode type) const;
-
         struct Impl;
         std::unique_ptr<Impl> impl;
     };

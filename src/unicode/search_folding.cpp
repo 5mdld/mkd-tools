@@ -1,3 +1,7 @@
+//
+// kiwakiwaaにより 2026/04/24 に作成されました。
+//
+
 #include "search_folding.hpp"
 
 #include "case.hpp"

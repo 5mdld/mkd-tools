@@ -3,137 +3,15 @@
 //
 
 #include "MKD/dictionary/dictionary_search.hpp"
-#include "MKD/dictionary/dictionary.hpp"
-#include "MKD/resource/keystore_search.hpp"
-#include "MKD/resource/keystore_scope.hpp"
 
-#include "text_normalize.hpp"
-#include "unicode/unicode.hpp"
+#include "search/search_logic_factory.hpp"
 
 #include <algorithm>
 #include <atomic>
-#include <unordered_map>
+#include <iterator>
 
 namespace MKD
 {
-    namespace
-    {
-        std::string_view dropFirstCodepoint(std::string_view s)
-        {
-            if (s.empty()) return {};
-            size_t offset = 0;
-            static_cast<void>(detail::unicode::nextCodepoint(s, offset));
-            return {s.data() + offset, s.size() - offset};
-        }
-
-
-        std::string_view dropLastCodepoint(std::string_view s)
-        {
-            if (s.empty()) return {};
-            size_t offset = s.size();
-            static_cast<void>(detail::unicode::previousCodepoint(s, offset));
-            return {s.data(), offset};
-        }
-
-
-        std::vector<EntryId> collectEntryIds(const std::vector<KeystoreSearchResult>& results)
-        {
-            std::vector<EntryId> ids;
-            for (const auto& r : results)
-                ids.insert(ids.end(), r.entryIds.begin(), r.entryIds.end());
-
-            std::ranges::sort(ids);
-            auto [first, last] = std::ranges::unique(ids);
-            ids.erase(first, last);
-            return ids;
-        }
-
-
-        bool isJapanese(std::string_view s)
-        {
-            return detail::unicode::containsJapaneseScript(s);
-        }
-
-
-        bool scopeUsesCompoundSearch(SearchScope scope)
-        {
-            const auto value = static_cast<uint8_t>(scope);
-            return value <= 10 && ((1ULL << value) & 0x496ULL) != 0;
-        }
-
-
-        std::optional<SearchScope> searchScopeFromKeystoreScope(const KeystoreScope scope)
-        {
-            switch (scope)
-            {
-                case KeystoreScope::Headword: return SearchScope::Headword;
-                case KeystoreScope::Idiom: return SearchScope::Idiom;
-                case KeystoreScope::Example: return SearchScope::Example;
-                case KeystoreScope::English: return SearchScope::English;
-                case KeystoreScope::Gogi: return SearchScope::Gogi;
-                case KeystoreScope::Kanji: return SearchScope::Kanji;
-                case KeystoreScope::Collocation: return SearchScope::Collocation;
-                case KeystoreScope::CJ: return SearchScope::CJ;
-                case KeystoreScope::JC: return SearchScope::JC;
-                case KeystoreScope::Fulltext: return SearchScope::Fulltext;
-                case KeystoreScope::Group: return SearchScope::Group;
-                case KeystoreScope::CompoundNoun:
-                    // Keep historical search behavior: compound keystore participates in idiom scope.
-                    return SearchScope::Idiom;
-                case KeystoreScope::Numeral: return SearchScope::Numeral;
-            }
-            return std::nullopt;
-        }
-
-
-        std::vector<std::string> splitKeys(std::string_view query)
-        {
-            std::vector<std::string> keys;
-            size_t i = 0;
-
-            while (i < query.size())
-            {
-                while (i < query.size() && query[i] == ' ')
-                    ++i;
-
-                const size_t start = i;
-                while (i < query.size() && query[i] != ' ')
-                    ++i;
-
-                if (i > start)
-                    keys.emplace_back(query.substr(start, i - start));
-            }
-            return keys;
-        }
-
-
-        constexpr std::string_view STOP_WORDS[] = {
-            "a", "an", "her", "hers", "herself", "him", "himself", "his",
-            "me", "my", "myself", "the", "their", "them", "themselves",
-            "they", "you", "your", "yours", "yourself"
-        };
-
-
-        std::vector<std::string> removeStopWords(const std::vector<std::string>& keys)
-        {
-            std::vector<std::string> filtered;
-            for (const auto& key : keys)
-            {
-                const bool isStop = std::ranges::any_of(STOP_WORDS, [&](std::string_view sw) {
-                    return key == sw;
-                });
-                if (!isStop)
-                    filtered.push_back(key);
-            }
-
-            if (filtered.empty() && !keys.empty())
-                filtered.push_back(keys.front());
-
-            return filtered;
-        }
-    }
-
-
     void SearchResult::unionWith(const SearchResult& other)
     {
         std::vector<EntryId> merged;
@@ -155,85 +33,15 @@ namespace MKD
 
     struct DictionarySearch::Impl
     {
-        const Dictionary& dict;
+        const Dictionary& dictionary;
         std::atomic<bool> cancelled{false};
-        SearchScope scope = SearchScope::Headword;
-        SearchMode mode = SearchMode::Prefix;
-        bool useCompound = true;
-        bool allowScopeFallback = true;
-        bool allowStopWords = true;
-        std::unordered_map<uint8_t, std::vector<const Keystore*>> scopeMap;
-        bool isJapaneseDictionary = false;
         std::atomic<bool> searching{false};
 
-        explicit Impl(const Dictionary& d) : dict(d)
-        {
-            // Check if this is a Japanese dictionary
-            if (const auto& content = dict.content(); content.languages)
-            {
-                for (const auto& lang : *content.languages)
-                {
-                    if (lang == "ja")
-                    {
-                        isJapaneseDictionary = true;
-                        break;
-                    }
-                }
-            }
-
-            // Build scope map from keystore scope metadata.
-            const Keystore* kanjiStore = nullptr;
-
-            for (const auto& ks : dict.keystores())
-            {
-                auto parsedScope = ks.scope();
-                if (!parsedScope) continue;
-
-                auto searchScope = searchScopeFromKeystoreScope(*parsedScope);
-                if (!searchScope) continue;
-
-                scopeMap[static_cast<uint8_t>(*searchScope)].push_back(&ks);
-
-                if (*searchScope == SearchScope::Kanji)
-                    kanjiStore = &ks;
-            }
-
-
-            /*
-             * For Japanese dictionaries, the app adds the Kanji keystore as
-             * secondary for all scopes (when option 0x4000000 is set and no
-             * subkey directory exists). We always add it since we don't track
-             * subkey directories separately.
-             */
-            if (isJapaneseDictionary && kanjiStore)
-            {
-                for (auto& [scopeKey, stores] : scopeMap)
-                {
-                    if (scopeKey == static_cast<uint8_t>(SearchScope::Kanji))
-                        continue;
-
-                    bool alreadyHas = std::ranges::any_of(stores, [&](const Keystore* k) {
-                        return k == kanjiStore;
-                    });
-
-                    if (!alreadyHas)
-                        stores.push_back(kanjiStore);
-                }
-            }
-        }
+        explicit Impl(const Dictionary& dict) : dictionary(dict) {}
 
         [[nodiscard]] bool isCancelled() const noexcept
         {
             return cancelled.load(std::memory_order_relaxed);
-        }
-
-        // Get keystores for the current scope. Returns empty span if none found.
-        [[nodiscard]] std::span<const Keystore* const> keystoresForScope(SearchScope s) const
-        {
-            auto it = scopeMap.find(static_cast<uint8_t>(s));
-            if (it != scopeMap.end())
-                return it->second;
-            return {};
         }
     };
 
@@ -252,6 +60,7 @@ namespace MKD
     {
         impl->cancelled.store(false, std::memory_order_relaxed);
         impl->searching.store(true, std::memory_order_relaxed);
+
         struct SearchActivity
         {
             Impl& impl;
@@ -261,40 +70,10 @@ namespace MKD
             }
         } activity{*impl};
 
-        impl->scope = options.scope;
-        impl->mode = options.type;
-        impl->useCompound = options.enableJapaneseCompound;
-        impl->allowScopeFallback = options.enableScopeFallback;
-        impl->allowStopWords = options.enableStopWords;
-
-        const auto normalized = detail::unicode::normalizeDictionaryKey(query, detail::unicode::DictionaryKeyNormalizeOption::CollapseSeparators);
-        auto keys = splitKeys(normalized);
-        if (keys.empty())
-            return std::unexpected("Empty search query");
-
-        auto result = searchWithKeys(keys, options.limit);
-        if (result && !result->empty())
-            return result;
-
-        if (impl->isCancelled())
-            return std::unexpected("Search cancelled");
-
-        // joined key fallback for multi-word headword queries.
-        if (options.scope == SearchScope::Headword && keys.size() >= 2)
-        {
-            impl->scope = options.scope;
-
-            std::string joined;
-            for (const auto& k : keys)
-                joined += k;
-
-            auto joinedResult = searchSingleKey(joined, options.limit);
-            if (joinedResult && !joinedResult->empty())
-                return joinedResult;
-        }
-
-        return result ? std::move(*result) : SearchResult{};
+        const auto logic = detail::search::makeSearchLogic(impl->dictionary, impl->cancelled);
+        return logic->search(query, options);
     }
+
 
     void DictionarySearch::cancel() const noexcept
     {
@@ -302,237 +81,15 @@ namespace MKD
             impl->cancelled.store(true, std::memory_order_relaxed);
     }
 
-    void DictionarySearch::reset() const noexcept { impl->cancelled.store(false, std::memory_order_relaxed); }
-    bool DictionarySearch::isCancelled() const noexcept { return impl->isCancelled(); }
 
-
-    Result<SearchResult> DictionarySearch::searchWithKeys(const std::vector<std::string>& keys, size_t limit) const
+    void DictionarySearch::reset() const noexcept
     {
-        // try current scope
-        auto result = searchWithKeysAndFlags(keys, limit, 0);
-        if (result && !result->empty())
-            return result;
-
-        const auto originalScope = impl->scope;
-
-        // fallback Headword -> Idiom
-        if (impl->allowScopeFallback && impl->scope == SearchScope::Headword)
-        {
-            impl->scope = SearchScope::Idiom;
-            result = searchWithKeysAndFlags(keys, limit, 4);
-            if (result && !result->empty())
-                return result;
-
-            // stop word removal at Idiom scope
-            if (impl->allowStopWords)
-            {
-                if (auto filtered = removeStopWords(keys); filtered.size() != keys.size())
-                {
-                    result = searchWithKeysAndFlags(filtered, limit, 4);
-                    if (result && !result->empty())
-                        return result;
-                }
-            }
-        }
-        else if (impl->allowStopWords && impl->scope == SearchScope::Idiom)
-        {
-            if (auto filtered = removeStopWords(keys); filtered.size() != keys.size())
-            {
-                result = searchWithKeysAndFlags(filtered, limit, 0);
-                if (result && !result->empty())
-                    return result;
-            }
-        }
-
-        // japanese fallback -> Example scope
-        if (impl->allowScopeFallback
-            && originalScope <= SearchScope::Idiom
-            && keys.size() == 1
-            && isJapanese(keys[0])
-            && impl->isJapaneseDictionary)
-        {
-            impl->scope = SearchScope::Example;
-            result = searchWithKeysAndFlags(keys, limit, 8);
-            if (result && !result->empty())
-                return result;
-        }
-
-        return result ? std::move(*result) : SearchResult{};
+        impl->cancelled.store(false, std::memory_order_relaxed);
     }
 
 
-    Result<SearchResult> DictionarySearch::searchWithKeysAndFlags(const std::vector<std::string>& keys, const size_t limit, const uint32_t flags) const
+    bool DictionarySearch::isCancelled() const noexcept
     {
-        SearchResult accumulated;
-
-        for (const auto& key : keys)
-        {
-            if (impl->isCancelled())
-                return std::unexpected("Search cancelled");
-
-            auto keyResult = searchSingleKey(key, limit);
-            if (!keyResult)
-                continue;
-
-            if (accumulated.empty() && accumulated.matchedKeys.empty())
-            {
-                accumulated = std::move(*keyResult);
-            }
-            else
-            {
-                accumulated.intersectWith(*keyResult);
-
-                if (accumulated.empty())
-                    break;
-            }
-        }
-
-        accumulated.flags |= flags;
-        return accumulated;
-    }
-
-
-    Result<SearchResult> DictionarySearch::searchSingleKey(std::string_view key, size_t /*limit*/) const
-    {
-        if (impl->isCancelled())
-            return std::unexpected("Search cancelled");
-
-        if (impl->useCompound
-            && impl->mode <= SearchMode::Suffix
-            && scopeUsesCompoundSearch(impl->scope)
-            && isJapanese(key))
-        {
-            return japaneseCompoundSearch(key);
-        }
-
-        auto result = simpleSearch(key, impl->mode);
-        if (result && !result->empty())
-        {
-            result->matchedKeys.emplace_back(key);
-            return result;
-        }
-
-        return result;
-    }
-
-
-    Result<SearchResult> DictionarySearch::japaneseCompoundSearch(std::string_view key) const
-    {
-        if (key.empty())
-            return std::unexpected("Empty search key");
-
-        // front-strip to find longest matching suffix
-        SearchResult accumulated;
-        std::string_view candidate = key;
-
-        while (!candidate.empty())
-        {
-            if (impl->isCancelled())
-                return std::unexpected("Search cancelled");
-
-            if (auto result = simpleSearch(candidate, impl->mode); result && !result->empty())
-            {
-                accumulated = std::move(*result);
-                accumulated.matchedKeys.emplace_back(candidate);
-                break;
-            }
-
-            candidate = dropFirstCodepoint(candidate);
-        }
-
-        if (accumulated.empty())
-            return SearchResult{};
-
-        if (candidate.size() >= key.size())
-            return accumulated;
-
-        // back-strip on the unmatched prefix
-        std::string_view remaining = key.substr(0, key.size() - candidate.size());
-
-        while (!remaining.empty())
-        {
-            if (impl->isCancelled())
-                return std::unexpected("Search cancelled");
-
-            std::string_view suffix = remaining;
-
-            while (!suffix.empty())
-            {
-                if (impl->isCancelled())
-                    return std::unexpected("Search cancelled");
-
-                auto result = simpleSearch(suffix, SearchMode::Exact);
-                if (result && !result->empty())
-                {
-                    accumulated.intersectWith(*result);
-
-                    if (accumulated.empty())
-                        return SearchResult{};
-
-                    accumulated.matchedKeys.emplace_back(suffix);
-                    remaining = remaining.substr(suffix.size());
-                    break;
-                }
-
-                suffix = dropLastCodepoint(suffix);
-            }
-
-            if (suffix.empty())
-                break;
-        }
-
-        if (!accumulated.empty())
-            accumulated.matchedKeys.emplace_back(key);
-
-        // validate with headline
-        std::erase_if(accumulated.entries, [&](const EntryId& entry) {
-            const auto headline = impl->dict.headlineForEntryId(entry);
-            if (!headline)
-                return false;
-
-            return !normalizedContains(*headline, key);
-        });
-
-        return accumulated;
-    }
-
-
-    Result<SearchResult> DictionarySearch::simpleSearch(std::string_view key, SearchMode mode) const
-    {
-        if (key.empty())
-            return std::unexpected("Empty search key");
-
-        const auto stores = impl->keystoresForScope(impl->scope);
-        if (stores.empty())
-            return SearchResult{};
-
-        SearchResult result;
-
-        for (const auto* keystore : stores)
-        {
-            if (impl->isCancelled())
-                return std::unexpected("Search cancelled");
-
-            auto hits = keystoreSearchResults(*keystore, key, mode);
-            if (!hits)
-                continue;
-
-            // Exact -> Prefix fallback
-            if (hits->empty() && mode == SearchMode::Exact)
-            {
-                hits = keystoreSearchResults(*keystore, key, SearchMode::Prefix);
-                if (!hits)
-                    continue;
-            }
-
-            if (auto ids = collectEntryIds(*hits); !ids.empty())
-            {
-                SearchResult partial;
-                partial.entries = std::move(ids);
-                result.unionWith(partial);
-            }
-        }
-
-        return result;
+        return impl->isCancelled();
     }
 }

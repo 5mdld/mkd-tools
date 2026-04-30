@@ -1,3 +1,7 @@
+//
+// kiwakiwaaにより 2026/04/24 に作成されました。
+//
+
 #include "normalization.hpp"
 
 #include "utf8.hpp"
@@ -56,7 +60,7 @@ namespace MKD::detail::unicode
             const std::span<const Mapping> mappings
         ) noexcept
         {
-            const auto it = std::ranges::find_if(mappings, [cp](const Mapping mapping) {
+            const auto it = std::ranges::find_if(mappings, [cp](const Mapping& mapping) {
                 return mapping.first == cp;
             });
 

@@ -1,3 +1,7 @@
+//
+// kiwakiwaaにより 2026/04/24 に作成されました。
+//
+
 #pragma once
 
 #include <cstddef>
@@ -6,6 +10,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include "constants.hpp"
 
@@ -17,6 +22,7 @@ namespace MKD::detail::unicode
     [[nodiscard]] Codepoint nextCodepoint(std::string_view text, size_t& offset);
     [[nodiscard]] Codepoint previousCodepoint(std::string_view text, size_t& offset);
     [[nodiscard]] size_t codepointCount(std::string_view text);
+    [[nodiscard]] std::vector<std::string_view> graphemeClusters(std::string_view text);
 
     [[nodiscard]] std::u32string toUtf32(std::string_view text);
     [[nodiscard]] std::string toUtf8(std::u32string_view text);

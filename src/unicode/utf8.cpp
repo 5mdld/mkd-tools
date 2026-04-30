@@ -1,3 +1,7 @@
+//
+// kiwakiwaaにより 2026/04/24 に作成されました。
+//
+
 #include "utf8.hpp"
 
 #include <utf8proc.h>
@@ -125,6 +129,58 @@ namespace MKD::detail::unicode
             ++count;
         }
         return count;
+    }
+
+
+    std::vector<std::string_view> graphemeClusters(const std::string_view text)
+    {
+        std::vector<std::string_view> clusters;
+        if (text.empty())
+            return clusters;
+
+        size_t previousOffset = 0;
+        size_t currentOffset = 0;
+        utf8proc_int32_t previousCodepoint = 0;
+        auto decodedBytes = utf8proc_iterate(
+            bytes(text),
+            static_cast<utf8proc_ssize_t>(text.size()),
+            &previousCodepoint
+        );
+        if (decodedBytes < 0)
+            throw std::runtime_error("Invalid UTF-8 sequence at grapheme cluster start");
+
+        currentOffset = static_cast<size_t>(decodedBytes);
+        utf8proc_int32_t state = 0;
+
+        while (currentOffset < text.size())
+        {
+            utf8proc_int32_t currentCodepoint = 0;
+            decodedBytes = utf8proc_iterate(
+                bytes(text) + currentOffset,
+                static_cast<utf8proc_ssize_t>(text.size() - currentOffset),
+                &currentCodepoint
+            );
+            if (decodedBytes < 0)
+                throw std::runtime_error(std::format("Invalid UTF-8 sequence at byte offset {}", currentOffset));
+
+            const auto breakBeforeCurrent = utf8proc_grapheme_break_stateful(
+                previousCodepoint,
+                currentCodepoint,
+                &state
+            );
+            if (breakBeforeCurrent)
+            {
+                clusters.emplace_back(text.data() + previousOffset, currentOffset - previousOffset);
+                previousOffset = currentOffset;
+                state = 0;
+            }
+
+            previousCodepoint = currentCodepoint;
+            currentOffset += static_cast<size_t>(decodedBytes);
+        }
+
+        clusters.emplace_back(text.data() + previousOffset, currentOffset - previousOffset);
+        return clusters;
     }
 
 

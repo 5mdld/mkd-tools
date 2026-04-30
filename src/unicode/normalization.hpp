@@ -1,3 +1,7 @@
+//
+// kiwakiwaaにより 2026/04/24 に作成されました。
+//
+
 #pragma once
 
 #include <cstdint>

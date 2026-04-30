@@ -75,6 +75,11 @@ namespace MKD
         return detail::unicode::toUtf8(suffix);
     }
 
+    std::string HeadlineComponents::sortingHeadlineUtf8() const
+    {
+        return detail::unicode::toUtf8(sortingHeadline);
+    }
+
 
     Result<HeadlineStore> HeadlineStore::load(const fs::path& filePath)
     {
@@ -140,6 +145,28 @@ namespace MKD
         HeadlineRecord rec{};
         std::memcpy(&rec, recordAt(index), sizeof(rec));
         return rec.entryId();
+    }
+
+
+    Result<HeadlineComponents> HeadlineStore::componentsForEntryId(
+        const EntryId& entryId,
+        const bool allowFallback) const
+    {
+        const auto* record = recordForEntryId(entryId, allowFallback);
+        if (!record)
+            return std::unexpected("headline not found");
+
+        return componentsFromRecord(record);
+    }
+
+
+    Result<std::u16string_view> HeadlineStore::sortingHeadlineForEntryId(const EntryId& entryId) const
+    {
+        const auto* record = recordForEntryId(entryId, true);
+        if (!record)
+            return std::unexpected("sorting headline not found");
+
+        return sortingHeadlineFromRecord(record);
     }
 
 
@@ -274,6 +301,63 @@ namespace MKD
         return fileData_.data().data() + recordsOffset_ + index * stride_;
     }
 
+
+    const uint8_t* HeadlineStore::recordForEntryId(const EntryId& entryId, const bool allowFallback) const noexcept
+    {
+        const auto compareEntryId = [](const EntryId& lhs, const EntryId& rhs) {
+            if (lhs.pageId != rhs.pageId)
+                return lhs.pageId < rhs.pageId;
+            return lhs.itemId < rhs.itemId;
+        };
+
+        const auto equalEntryId = [](const EntryId& lhs, const EntryId& rhs) {
+            return lhs.pageId == rhs.pageId && lhs.itemId == rhs.itemId;
+        };
+
+        const auto lowerBoundRecord = [&](const EntryId& target) -> const uint8_t* {
+            size_t first = 0;
+            size_t count = entryCount_;
+
+            while (count > 0)
+            {
+                const size_t step = count / 2;
+                const size_t middle = first + step;
+
+                HeadlineRecord rec{};
+                std::memcpy(&rec, recordAt(middle), sizeof(rec));
+
+                if (compareEntryId(rec.entryId(), target))
+                {
+                    first = middle + 1;
+                    count -= step + 1;
+                }
+                else
+                {
+                    count = step;
+                }
+            }
+
+            if (first >= entryCount_)
+                return nullptr;
+
+            const uint8_t* record = recordAt(first);
+            HeadlineRecord rec{};
+            std::memcpy(&rec, record, sizeof(rec));
+            return equalEntryId(rec.entryId(), target) ? record : nullptr;
+        };
+
+        if (const auto* record = lowerBoundRecord(entryId))
+            return record;
+
+        if (!allowFallback || entryId.itemId == 0)
+            return nullptr;
+
+        return lowerBoundRecord(EntryId{
+            .pageId = entryId.pageId,
+            .itemId = 0,
+        });
+    }
+
     Result<std::u16string_view> HeadlineStore::stringAt(const uint32_t offset) const
     {
         if (offset % sizeof(char16_t) != 0)
@@ -309,6 +393,10 @@ namespace MKD
         if (!headline)
             return std::unexpected(headline.error());
 
+        auto sortingHeadline = sortingHeadlineFromRecord(record);
+        if (!sortingHeadline)
+            return std::unexpected(sortingHeadline.error());
+
         std::u16string_view prefix;
         if (rec.prefixOffset != 0)
         {
@@ -329,7 +417,24 @@ namespace MKD
             .prefix = prefix,
             .headline = *headline,
             .suffix = suffix,
+            .sortingHeadline = *sortingHeadline,
             .entryId = rec.entryId(),
         };
+    }
+
+
+    Result<std::u16string_view> HeadlineStore::sortingHeadlineFromRecord(const uint8_t* record) const
+    {
+        HeadlineRecord rec{};
+        std::memcpy(&rec, record, sizeof(rec));
+
+        uint32_t sortingOffset = 0;
+        if (stride_ >= HEADLINE_EXTENDED_STRIDE)
+            std::memcpy(&sortingOffset, record + sizeof(HeadlineRecord), sizeof(sortingOffset));
+
+        if (sortingOffset != 0)
+            return stringAt(sortingOffset);
+
+        return stringAt(rec.headlineOffset);
     }
 }

@@ -7,14 +7,17 @@
 #include "MKD/resource/resource_loader.hpp"
 #include "MKD/output/keystore_exporter.hpp"
 #include "MKD/output/headline_exporter.hpp"
+#include "unicode/unicode.hpp"
 
 #include <format>
 #include <utility>
 
 namespace MKD
 {
-    Dictionary::Dictionary(DictionaryContent content, DictionaryResources resources)
+    Dictionary::Dictionary(DictionaryContent content, DictionaryResources resources,
+                           DictionarySearchConfiguration searchConfiguration)
         : content_(std::move(content)),
+          searchConfiguration_(std::move(searchConfiguration)),
           entries_(std::move(resources.entries)),
           graphics_(std::move(resources.graphics)),
           audio_(std::move(resources.audio)),
@@ -36,6 +39,11 @@ namespace MKD
     const DictionaryContent& Dictionary::content() const noexcept
     {
         return content_;
+    }
+
+    const DictionarySearchConfiguration& Dictionary::searchConfiguration() const noexcept
+    {
+        return searchConfiguration_;
     }
 
 
@@ -199,33 +207,28 @@ namespace MKD
         if (headlines_.empty())
             return std::unexpected("no headlines");
 
-        const EntryId id{
-            .pageId = entryId.pageId,
-            .itemId = entryId.itemId,
-        };
-
-        const auto compareEntryId = [](const EntryId& lhs, const EntryId& rhs) {
-            if (lhs.pageId != rhs.pageId)
-                return lhs.pageId < rhs.pageId;
-            return lhs.itemId < rhs.itemId;
-        };
-
-        const auto equalEntryId = [](const EntryId& lhs, const EntryId& rhs) {
-            return lhs.pageId == rhs.pageId && lhs.itemId == rhs.itemId;
-        };
-
         for (const auto& store : headlines_)
         {
-            auto it = std::lower_bound(store.begin(), store.end(), id,
-                                       [&](const HeadlineComponents& components, const EntryId& target) {
-                                           return compareEntryId(components.entryId, target);
-                                       });
-
-            if (it != store.end() && equalEntryId((*it).entryId, id))
-                return (*it).fullUtf8();
+            if (const auto components = store.componentsForEntryId(entryId))
+                return components->fullUtf8();
         }
 
         return std::unexpected("headline not found");
+    }
+
+
+    Result<std::string> Dictionary::sortingHeadlineForEntryId(const EntryId& entryId) const
+    {
+        if (headlines_.empty())
+            return std::unexpected("no headlines");
+
+        for (const auto& store : headlines_)
+        {
+            if (const auto headline = store.sortingHeadlineForEntryId(entryId))
+                return detail::unicode::toUtf8(*headline);
+        }
+
+        return std::unexpected("sorting headline not found");
     }
 
 

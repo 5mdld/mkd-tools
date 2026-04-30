@@ -1,3 +1,7 @@
+//
+// kiwakiwaaにより 2026/04/24 に作成されました。
+//
+
 #pragma once
 
 #include <array>
@@ -36,8 +40,6 @@ namespace MKD::detail::unicode
     inline constexpr CodepointRange kHiraganaLetterRange{0x3041, 0x3096};
     inline constexpr CodepointRange kKatakanaRange{0x30A0, 0x30FF};
     inline constexpr CodepointRange kKatakanaLetterRange{0x30A1, 0x30FA};
-    inline constexpr CodepointRange kCjkUnifiedIdeographsRange{0x4E00, 0x9FFF}; // TODO: only having these two sucks, not enough
-    inline constexpr CodepointRange kCjkUnifiedIdeographsExtensionARange{0x3400, 0x4DBF};
     inline constexpr Codepoint kHiraganaToKatakanaOffset = 0x60;
 
     inline constexpr Codepoint kHorizontalTab = 0x0009;
@@ -85,6 +87,8 @@ namespace MKD::detail::unicode
     inline constexpr Codepoint kCyrillicCapitalShortI = 0x0419;
     inline constexpr Codepoint kCyrillicSmallShortI = 0x0439;
 
+    inline constexpr CodepointRange kCjkUnifiedIdeographsRange{0x4E00, 0x9FFF};
+    inline constexpr CodepointRange kCjkUnifiedIdeographsExtensionARange{0x3400, 0x4DBF};
     inline constexpr CodepointRange kDictionaryKeyCjkExtensionBRange{0x20000, 0x2A6DF};
     inline constexpr CodepointRange kDictionaryKeyCjkExtensionCRange{0x2A700, 0x2B73F};
     inline constexpr CodepointRange kDictionaryKeyCjkExtensionDRange{0x2B740, 0x2B81F};
