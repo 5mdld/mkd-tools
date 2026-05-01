@@ -12,6 +12,7 @@
 #include <format>
 #include <mutex>
 #include <span>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -108,7 +109,6 @@ namespace MKD
     struct Keystore::Impl
     {
         MappedFile file;
-        std::string dictId;
         std::string filename;
         std::optional<KeystoreScope> scope;
         size_t wordsOffset = 0;
@@ -118,7 +118,6 @@ namespace MKD
         mutable std::unordered_map<uint64_t, std::vector<size_t>> inversePrefixIndex;
 
         Impl(MappedFile mappedFile,
-             std::string dict,
              std::string name,
              const std::optional<KeystoreScope> keystoreScope,
              const size_t words,
@@ -128,7 +127,6 @@ namespace MKD
              std::span<const uint32_t> index3,
              std::span<const ConversionEntry> conversions) noexcept
             : file(std::move(mappedFile))
-              , dictId(std::move(dict))
               , filename(std::move(name))
               , scope(keystoreScope)
               , wordsOffset(words)
@@ -201,12 +199,6 @@ namespace MKD
             return MKD::decodeEntryIds(file.data().subspan(abs), wideCount);
         }
 
-        [[nodiscard]] bool needsConversion() const noexcept
-        {
-            return !convTable.empty()
-                   && (dictId == "KNEJ.EJ" || dictId == "KNJE.JE");
-        }
-
         void applyConversion(std::vector<EntryId>& refs) const noexcept
         {
             for (auto& [page, entry] : refs)
@@ -241,7 +233,7 @@ namespace MKD
                 if (!entryIds)
                     continue;
 
-                if (needsConversion())
+                if (!!convTable.empty())
                     applyConversion(*entryIds);
 
                 std::unordered_set<uint64_t> seenForWord;
@@ -272,7 +264,7 @@ namespace MKD
     Keystore& Keystore::operator=(Keystore&&) noexcept = default;
 
 
-    Result<Keystore> Keystore::open(const std::filesystem::path& path, std::string dictId)
+    Result<Keystore> Keystore::open(const std::filesystem::path& path)
     {
         auto file = MappedFile::open(path);
         if (!file) return std::unexpected(file.error());
@@ -367,7 +359,6 @@ namespace MKD
 
         auto impl = std::make_unique<Impl>(
             std::move(*file),
-            std::move(dictId),
             std::move(filename),
             scope,
             hdr->wordsOffset,
@@ -415,7 +406,7 @@ namespace MKD
         auto entryIds = impl_->decodeEntryIds(entry->pagesOffset, entry->flags);
         if (!entryIds) return std::unexpected(entryIds.error());
 
-        if (impl_->needsConversion())
+        if (!impl_->convTable.empty())
             impl_->applyConversion(*entryIds);
 
         return entryIds;

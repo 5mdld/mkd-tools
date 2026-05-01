@@ -28,7 +28,7 @@ protected:
 
 TEST_F(KeystoreTest, LoadValidKeystoreFile)
 {
-    auto result2 = MKD::Keystore::open(testHeadwords_, "KNEJ");
+    auto result2 = MKD::Keystore::open(testHeadwords_);
     ASSERT_TRUE(result2.has_value()) << "Failed to load keystore: " << result2.error();
 
     auto& keystore = result2.value();
@@ -40,6 +40,19 @@ TEST_F(KeystoreTest, LoadValidKeystoreFile)
         auto lookupResult = keystore.keyAt(MKD::KeystoreIndex::Prefix, i);
         ASSERT_TRUE(lookupResult.has_value()) << "Failed to get key: " << lookupResult.error();
     }
+}
+
+TEST_F(KeystoreTest, AppliesEmbeddedConversionTable)
+{
+    auto result = MKD::Keystore::open(testHeadwords_);
+    ASSERT_TRUE(result.has_value()) << "Failed to load keystore: " << result.error();
+
+    auto entryIds = result->entryIdsAt(MKD::KeystoreIndex::Prefix, 0);
+    ASSERT_TRUE(entryIds.has_value()) << "Failed to decode entry ids: " << entryIds.error();
+    ASSERT_FALSE(entryIds->empty());
+
+    EXPECT_EQ(entryIds->front().pageId, 160466u);
+    EXPECT_EQ(entryIds->front().itemId, 0u);
 }
 
 TEST(KeystoreScopeTest, ParsesOriginalAppScopeAliases)

@@ -23,7 +23,7 @@ protected:
         keystorePath_ = dictionariesPath / "KJT" / "Contents" / "KJT" / "key" / "jyukugo.keystore";
 
         // Load the keystore
-        auto keystoreResult = MKD::Keystore::open(keystorePath_, "");
+        auto keystoreResult = MKD::Keystore::open(keystorePath_);
         ASSERT_TRUE(keystoreResult.has_value())
             << "Failed to load keystore: " << keystoreResult.error();
 

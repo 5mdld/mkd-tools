@@ -13,7 +13,6 @@
 #include <iterator>
 #include <memory>
 #include <optional>
-#include <string>
 #include <string_view>
 #include <vector>
 
@@ -105,13 +104,13 @@ namespace MKD
      * Index A — sorted by key length
      * Index B — sorted by key (for prefix search)
      * Index C — sorted by key suffix
-     * Index D — other / conversion-related
+     * Index D — other
      *
      *
      * CONVERSION TABLE (optional, v2 only)
      * ------------------------------------
-     * Located at convTableOffset. Used by specific dictionaries
-     * (KNEJ, KNJE, maybe others too...) to remap entry ids after lookup.
+     * Located at convTableOffset. When present, decoded key ids are
+     * remapped through this table to produce entry ids.
      */
 
     constexpr uint32_t KEYSTORE_V1 = 0x10000;
@@ -122,7 +121,7 @@ namespace MKD
         Length = 0, // Index A — sorted by key length
         Prefix = 1, // Index B — sorted by key (prefix search)
         Suffix = 2, // Index C — sorted by key suffix
-        Other  = 3, // Index D — conversion table / other
+        Other  = 3, // Index D — other
     };
 
     struct KeystoreEntry
@@ -139,7 +138,7 @@ namespace MKD
     public:
         class Iterator;
 
-        static Result<Keystore> open(const std::filesystem::path& path, std::string dictId);
+        static Result<Keystore> open(const std::filesystem::path& path);
 
         ~Keystore();
         Keystore(Keystore&&) noexcept;
@@ -150,12 +149,9 @@ namespace MKD
         /**
          * Look up an entry by its position within an index.
          *
-         * For dictionaries that require it (KNEJ, KNJE), entry ids are
-         * automatically converted via the embedded conversion table
-         *
          * @param type Which index to query
          * @param index Position within that index
-         * @return Lookup result with key and entry ids, or an error
+         * @return Lookup result with key metadata, or an error
          */
         [[nodiscard]] Result<KeystoreEntry> entryAt(KeystoreIndex type, size_t index) const;
 
@@ -169,7 +165,9 @@ namespace MKD
         [[nodiscard]] Result<std::string_view> keyAt(KeystoreIndex type, size_t index) const;
 
         /**
-         * Decode entry ids for a previously located keystore position
+         * Decode entry ids for a previously located keystore position.
+         * If the keystore has an embedded conversion table, ids are
+         * automatically remapped through it.
          *
          * @param type Which index to query
          * @param index Position within that index
