@@ -233,7 +233,7 @@ namespace MKD
                 if (!entryIds)
                     continue;
 
-                if (!!convTable.empty())
+                if (!convTable.empty())
                     applyConversion(*entryIds);
 
                 std::unordered_set<uint64_t> seenForWord;
