@@ -2,7 +2,7 @@
 // kiwakiwaaにより 2026/03/10 に作成されました。
 //
 
-#include "keystore_search.hpp"
+#include "MKD/resource/keystore_search.hpp"
 #include "keystore_compare.hpp"
 #include "unicode/unicode.hpp"
 
