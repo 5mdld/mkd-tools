@@ -17,12 +17,18 @@ jobs:
             name: Windows
           - os: ubuntu-latest
             name: Linux
+          - os: macos-latest
+            name: macOS
 
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.name }}
 
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
 
       - name: Install dependencies (Linux)
         if: runner.os == 'Linux'
@@ -38,19 +44,18 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           mkdir output
-          .\build\cli\Release\mkd-tools.exe -d .\test\test-data -e TESTDICT -o output
+          .\build\cli\Release\mkd-tools.exe -d .\test\test-data -e TESTDICT -o output --keystore-mode both --overwrite --pretty
 
-      - name: Run mkd-tools (Linux)
-        if: runner.os == 'Linux'
+      - name: Run mkd-tools (Unix)
+        if: runner.os != 'Windows'
         run: |
           mkdir output
-          ./build/cli/mkd-tools -d ./test/test-data -e TESTDICT -o output
+          ./build/cli/mkd-tools -d ./test/test-data -e TESTDICT -o output --keystore-mode both --overwrite --pretty
 
-      - name: List output files (Windows)
-        if: always() && runner.os == 'Windows'
-        shell: cmd
-        run: dir /s /b output
+      - name: Verify exported CI fixtures
+        run: python test/ci/verify_fixture_export.py output
 
-      - name: List output files (Linux)
-        if: always() && runner.os == 'Linux'
-        run: find output -type f
+      - name: List output files
+        if: always()
+        shell: bash
+        run: find output -type f | sort
