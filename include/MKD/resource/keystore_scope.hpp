@@ -17,13 +17,21 @@ namespace MKD
         Idiom = 1,
         Example = 2,
         English = 3,
-        Sense = 4,
+        Gogi = 4,
+        Metadata = 5,
         Kanji = 6,
         Collocation = 7,
+        CJ = 8,
+        JC = 9,
         Fulltext = 10,
-        Category = 11,
-        Compound = 100,
-        Numeral = 101
+        Group = 11,
+        CompoundNoun = 100,
+        Numeral = 101,
+
+        Sense = Gogi,
+        Modern = Metadata,
+        Category = Group,
+        Compound = CompoundNoun
     };
 
     inline constexpr std::string_view KEYSTORE_SCOPE_FILENAME_EXTENSION = ".keystore";
@@ -36,12 +44,15 @@ namespace MKD
             case KeystoreScope::Idiom: return "idiom";
             case KeystoreScope::Example: return "example";
             case KeystoreScope::English: return "english";
-            case KeystoreScope::Sense: return "sense";
+            case KeystoreScope::Gogi: return "gogi";
+            case KeystoreScope::Metadata: return "metadata";
             case KeystoreScope::Kanji: return "kanji";
             case KeystoreScope::Collocation: return "collocation";
+            case KeystoreScope::CJ: return "cj";
+            case KeystoreScope::JC: return "jc";
             case KeystoreScope::Fulltext: return "fulltext";
-            case KeystoreScope::Category: return "category";
-            case KeystoreScope::Compound: return "compound";
+            case KeystoreScope::Group: return "group";
+            case KeystoreScope::CompoundNoun: return "compound_noun";
             case KeystoreScope::Numeral: return "numeral";
         }
         return std::nullopt;
@@ -54,16 +65,20 @@ namespace MKD
 
     [[nodiscard]] constexpr std::optional<KeystoreScope> parseKeystoreScope(const std::string_view value) noexcept
     {
-        if (value == "headword") return KeystoreScope::Headword;
-        if (value == "idiom") return KeystoreScope::Idiom;
+        if (value == "headword" || value == "index" || value == "vocabulary") return KeystoreScope::Headword;
+        if (value == "idiom" || value == "idiom/phrasal verb" || value == "jyukugo"
+            || value == "kanyoku" || value == "phrase") return KeystoreScope::Idiom;
         if (value == "example") return KeystoreScope::Example;
         if (value == "english") return KeystoreScope::English;
-        if (value == "sense") return KeystoreScope::Sense;
-        if (value == "kanji") return KeystoreScope::Kanji;
+        if (value == "gogi" || value == "yakugo" || value == "sense") return KeystoreScope::Gogi;
+        if (value == "metadata" || value == "modern") return KeystoreScope::Metadata;
+        if (value == "kanji" || value == "oyaji") return KeystoreScope::Kanji;
         if (value == "collocation") return KeystoreScope::Collocation;
-        if (value == "fulltext") return KeystoreScope::Fulltext;
-        if (value == "category") return KeystoreScope::Category;
-        if (value == "compound") return KeystoreScope::Compound;
+        if (value == "cj") return KeystoreScope::CJ;
+        if (value == "jc") return KeystoreScope::JC;
+        if (value == "fulltext" || value == "full-text") return KeystoreScope::Fulltext;
+        if (value == "group" || value == "category") return KeystoreScope::Group;
+        if (value == "compound noun" || value == "compound_noun" || value == "compound") return KeystoreScope::CompoundNoun;
         if (value == "numeral") return KeystoreScope::Numeral;
         return std::nullopt;
     }

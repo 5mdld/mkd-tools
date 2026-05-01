@@ -72,10 +72,14 @@ namespace MKD
         {
             std::vector<Dictionary> dictionaries;
             dictionaries.reserve(metadata.contents.size());
+            const DictionarySearchConfiguration searchConfiguration{
+                .productSearchClass = metadata.productSearchClass,
+            };
 
             for (const auto& contentDef : metadata.contents)
             {
-                dictionaries.emplace_back(contentDef, loadResources(loader, contentDef));
+                dictionaries.emplace_back(contentDef, loadResources(loader, contentDef),
+                                          searchConfiguration);
             }
 
             return dictionaries;
@@ -85,10 +89,14 @@ namespace MKD
         {
             std::vector<Dictionary> dictionaries;
             dictionaries.reserve(metadata.contents.size());
+            const DictionarySearchConfiguration searchConfiguration{
+                .productSearchClass = metadata.productSearchClass,
+            };
 
             for (const auto& contentDef : metadata.contents)
             {
-                dictionaries.emplace_back(contentDef, DictionaryResources{});
+                dictionaries.emplace_back(contentDef, DictionaryResources{},
+                                          searchConfiguration);
             }
 
             return dictionaries;

@@ -66,6 +66,7 @@ namespace MKD
         std::u16string_view prefix;     // empty if absent
         std::u16string_view headline;
         std::u16string_view suffix;     // empty if absent
+        std::u16string_view sortingHeadline;
         EntryId entryId;
 
         [[nodiscard]] std::u16string full() const;
@@ -74,6 +75,7 @@ namespace MKD
         [[nodiscard]] std::string prefixUtf8() const;
         [[nodiscard]] std::string headlineUtf8() const;
         [[nodiscard]] std::string suffixUtf8() const;
+        [[nodiscard]] std::string sortingHeadlineUtf8() const;
     };
 
 
@@ -107,6 +109,17 @@ namespace MKD
          * @return Packed entry ID, or error if out of range
          */
         [[nodiscard]] Result<EntryId> entryIdAt(size_t index) const;
+
+        /**
+         * Look up headline components by entry ID
+         */
+        [[nodiscard]] Result<HeadlineComponents> componentsForEntryId(const EntryId& entryId,
+                                                                      bool allowFallback = true) const;
+
+        /**
+         * Return the sort headline field used by app-side dictionary search
+         */
+        [[nodiscard]] Result<std::u16string_view> sortingHeadlineForEntryId(const EntryId& entryId) const;
 
 
         /**
@@ -181,6 +194,7 @@ namespace MKD
          * Get pointer to the record at the given index
          */
         [[nodiscard]] const uint8_t* recordAt(size_t index) const noexcept;
+        [[nodiscard]] const uint8_t* recordForEntryId(const EntryId& entryId, bool allowFallback) const noexcept;
 
 
         /**
@@ -195,6 +209,7 @@ namespace MKD
          * Build HeadlineComponents from a raw record pointer
          */
         [[nodiscard]] Result<HeadlineComponents> componentsFromRecord(const uint8_t* record) const;
+        [[nodiscard]] Result<std::u16string_view> sortingHeadlineFromRecord(const uint8_t* record) const;
 
 
         MappedFile fileData_;

@@ -5,14 +5,13 @@
 #include "MKD/resource/resource_store.hpp"
 #include "resource_store_index.hpp"
 #include "resource_store_contents.hpp"
+#include "unicode/unicode.hpp"
 
 #include <algorithm>
 #include <cassert>
 #include <format>
 #include <ranges>
 #include <stdexcept>
-
-#include "utf8.h"
 
 namespace MKD
 {
@@ -21,16 +20,12 @@ namespace MKD
         if (data.empty())
             return std::string_view{};
 
-        const auto* begin = data.data();
-        const auto* end = begin + data.size();
-
-        if (const auto* it = utf8::find_invalid(begin, end); it != end)
+        if (const auto invalidOffset = detail::unicode::firstInvalidUtf8Offset(data))
         {
-            const auto offset = static_cast<size_t>(it - begin);
-            return std::unexpected(std::format("Invalid UTF-8 sequence at byte offset {}", offset));
+            return std::unexpected(std::format("Invalid UTF-8 sequence at byte offset {}", *invalidOffset));
         }
 
-        return std::string_view(reinterpret_cast<const char*>(begin), data.size());
+        return std::string_view(reinterpret_cast<const char*>(data.data()), data.size());
     }
 
 

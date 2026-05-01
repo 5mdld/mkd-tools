@@ -35,13 +35,21 @@ namespace MKD
     };
 
 
+    struct DictionarySearchConfiguration
+    {
+        std::optional<std::string> productSearchClass;
+    };
+
+
     class Dictionary
     {
     public:
-        explicit Dictionary(DictionaryContent content, DictionaryResources resources);
+        explicit Dictionary(DictionaryContent content, DictionaryResources resources,
+                            DictionarySearchConfiguration searchConfiguration = {});
 
         [[nodiscard]] const std::string& id() const noexcept;
         [[nodiscard]] const DictionaryContent& content() const noexcept;
+        [[nodiscard]] const DictionarySearchConfiguration& searchConfiguration() const noexcept;
 
         // returns nullptr if no content resource store is available
         [[nodiscard]] ResourceStore* entries() noexcept;
@@ -72,6 +80,7 @@ namespace MKD
         [[nodiscard]] ExportResult exportWithOptions(const ExportOptions& options) const;
 
         [[nodiscard]] Result<std::string> headlineForEntryId(const EntryId& entryId) const;
+        [[nodiscard]] Result<std::string> sortingHeadlineForEntryId(const EntryId& entryId) const;
 
     private:
         [[nodiscard]] Result<ExportResult> exportAudio(const ExportOptions& options) const;
@@ -80,6 +89,7 @@ namespace MKD
         [[nodiscard]] Result<ExportResult> exportHeadlines(const ExportOptions& options) const;
 
         DictionaryContent content_;
+        DictionarySearchConfiguration searchConfiguration_;
         std::optional<ResourceStore> entries_;
         std::optional<NamedResourceStore> graphics_;
         std::optional<std::variant<ResourceStore, NamedResourceStore>> audio_;

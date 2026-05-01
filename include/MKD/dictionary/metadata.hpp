@@ -55,6 +55,7 @@ namespace MKD
         std::string productIdentifier;
         std::optional<std::string> category;
         std::optional<std::string> version;
+        std::optional<std::string> productSearchClass;
         std::vector<DictionaryContent> contents;
 
     private:
@@ -100,6 +101,7 @@ struct glz::meta<MKD::DictionaryMetadata>
         "DSProductIdentifier", &T::productIdentifier,
         "DSProductCategory", &T::category,
         "DSProductVersion", &T::version,
+        "DSProductSearchClass", &T::productSearchClass,
         "DSProductContents", &T::contents
     );
 };
