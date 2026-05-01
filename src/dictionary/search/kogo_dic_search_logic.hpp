@@ -1,5 +1,5 @@
 //
-// KLKogoDicSearchLogic reconstruction.
+// kiwakiwaaにより 2026/05/01 に作成されました。
 //
 
 #pragma once

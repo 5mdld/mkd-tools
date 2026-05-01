@@ -143,6 +143,7 @@ namespace MKDCLI
             };
 
             resourceLine("Entries", dict.resourceCount(MKD::ResourceType::Contents));
+            resourceLine("Appendix entries", dict.resourceCount(MKD::ResourceType::AppendixEntries));
             resourceLine("Audio", dict.resourceCount(MKD::ResourceType::Audio));
             resourceLine("Graphics", dict.resourceCount(MKD::ResourceType::Graphics));
             resourceLine("Fonts", dict.resourceCount(MKD::ResourceType::Fonts));

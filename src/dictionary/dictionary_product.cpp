@@ -49,12 +49,13 @@ namespace MKD
             };
         }
 
-        DictionaryResources loadResources(ResourceLoader& loader, const DictionaryContent& contentDef)
+        DictionaryResources loadResources(const ResourceLoader& loader, const DictionaryContent& contentDef)
         {
             DictionaryResources resources;
             const auto& dictId = contentDef.identifier;
 
             resources.entries = loader.loadEntries(contentDef.directory, dictId);
+            resources.appendixEntryLists = loader.loadAppendixEntryLists(contentDef.directory);
             resources.audio = loader.loadAudio(contentDef.directory, dictId);
             resources.graphics = loader.loadGraphics(contentDef.directory, dictId);
 

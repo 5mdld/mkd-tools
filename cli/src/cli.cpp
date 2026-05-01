@@ -20,6 +20,7 @@ namespace MKDCLI
     {
         if (str == "audio") return MKD::ResourceType::Audio;
         if (str == "entries") return MKD::ResourceType::Contents;
+        if (str == "appendix-entries") return MKD::ResourceType::AppendixEntries;
         if (str == "graphics") return MKD::ResourceType::Graphics;
         if (str == "fonts") return MKD::ResourceType::Fonts;
         if (str == "keystores") return MKD::ResourceType::Keystores;
@@ -168,7 +169,7 @@ namespace MKDCLI
                         opts.onlyResources.push_back(*rt);
                     else
                         return std::unexpected("Unknown resource type: " + std::string(val->value())
-                                               + " (expected: audio, entries, graphics, fonts, keystores, headlines)");
+                                               + " (expected: audio, entries, appendix-entries, graphics, fonts, keystores, headlines)");
                     continue;
                 }
             }
@@ -280,7 +281,7 @@ namespace MKDCLI
                 << "  --only <type>                   Export only this resource type "
                 << Colour::dim("(repeatable)") << "\n"
                 << "                                  "
-                << Colour::dim("types: audio, entries, graphics, fonts, keystores, headlines") << "\n"
+                << Colour::dim("types: audio, entries, appendix-entries, graphics, fonts, keystores, headlines") << "\n"
                 << "  --overwrite                     Overwrite existing files\n"
                 << "  --pretty                        Pretty-print XML entry content\n"
                 << "  --keystore-mode <mode>          "

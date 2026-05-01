@@ -7,6 +7,7 @@
 #include "MKD/result.hpp"
 #include "MKD/dictionary/paths.hpp"
 #include "MKD/resource/font.hpp"
+#include "MKD/resource/appendix_entry_list.hpp"
 #include "MKD/resource/named_resource_store.hpp"
 #include "MKD/resource/resource_store.hpp"
 #include "MKD/resource/keystore.hpp"
@@ -39,6 +40,7 @@ namespace MKD
         [[nodiscard]] std::optional<ResourceStore> loadEntries(std::string_view contentDir, std::string_view dictId) const;
         [[nodiscard]] std::optional<NamedResourceStore> loadGraphics(std::string_view contentDir, std::string_view dictId) const;
         [[nodiscard]] std::optional<std::variant<ResourceStore, NamedResourceStore>> loadAudio(std::string_view contentDir, std::string_view dictId) const;
+        [[nodiscard]] std::vector<AppendixEntryList> loadAppendixEntryLists(std::string_view contentDir) const;
         [[nodiscard]] std::vector<Keystore> loadKeystores(std::string_view contentDir, std::string_view dictId) const;
         [[nodiscard]] std::vector<HeadlineStore> loadHeadlines(std::string_view contentDir) const;
         [[nodiscard]] std::vector<Font> loadFonts(std::string_view contentDir) const;

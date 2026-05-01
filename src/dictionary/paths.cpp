@@ -53,6 +53,8 @@ namespace MKD
         {
             case ResourceType::Contents:
                 return existingDir(base / "contents");
+            case ResourceType::AppendixEntries:
+                return existingDir(base);
             case ResourceType::Audio:
             case ResourceType::AudioLegacy:
                 return existingDir(base / "audio");

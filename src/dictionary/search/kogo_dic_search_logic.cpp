@@ -1,5 +1,5 @@
 //
-// KLKogoDicSearchLogic reconstruction.
+// kiwakiwaaにより 2026/05/01 に作成されました。
 //
 
 #include "kogo_dic_search_logic.hpp"

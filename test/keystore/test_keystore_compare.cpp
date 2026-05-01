@@ -4,7 +4,7 @@
 
 #include <gtest/gtest.h>
 #include "../test_listener.hpp"
-#include "../../../src/resource/keystore/keystore_compare.hpp"
+#include "resource/keystore/keystore_compare.hpp"
 
 using namespace MKD::detail;
 

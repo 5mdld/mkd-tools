@@ -5,6 +5,7 @@
 
 #include "MKD/dictionary/dictionary.hpp"
 #include "MKD/resource/resource_loader.hpp"
+#include "MKD/output/appendix_entry_exporter.hpp"
 #include "MKD/output/keystore_exporter.hpp"
 #include "MKD/output/headline_exporter.hpp"
 #include "unicode/unicode.hpp"
@@ -19,6 +20,7 @@ namespace MKD
         : content_(std::move(content)),
           searchConfiguration_(std::move(searchConfiguration)),
           entries_(std::move(resources.entries)),
+          appendixEntryLists_(std::move(resources.appendixEntryLists)),
           graphics_(std::move(resources.graphics)),
           audio_(std::move(resources.audio)),
           stylesheet_(std::move(resources.stylesheet)),
@@ -122,6 +124,12 @@ namespace MKD
     }
 
 
+    const std::vector<AppendixEntryList>& Dictionary::appendixEntryLists() const noexcept
+    {
+        return appendixEntryLists_;
+    }
+
+
     NamedResourceStore* Dictionary::graphics() noexcept
     {
         if (!graphics_ || graphics_->empty())
@@ -184,6 +192,13 @@ namespace MKD
                 return audio_ ? std::visit([](const auto& r) { return r.size(); }, *audio_) : 0;
             case ResourceType::Contents:
                 return entries_ ? entries_->size() : 0;
+            case ResourceType::AppendixEntries:
+            {
+                size_t total = 0;
+                for (const auto& list : appendixEntryLists_)
+                    total += list.size();
+                return total;
+            }
             case ResourceType::Graphics:
                 return graphics_ ? graphics_->size() : 0;
             case ResourceType::Fonts:
@@ -292,6 +307,7 @@ namespace MKD
         runPhase(ResourceType::Contents, [&] {
             return ResourceExporter::exportAll(*entries_, options, ResourceType::Contents);
         });
+        runPhase(ResourceType::AppendixEntries, [&] { return exportAppendixEntries(options); });
         runPhase(ResourceType::Fonts, [&] { return exportFonts(options); });
         runPhase(ResourceType::Graphics, [&] {
             return ResourceExporter::exportAll(*graphics_, options, ResourceType::Graphics);
@@ -308,6 +324,12 @@ namespace MKD
         return std::visit([&options](const auto& audioResource) {
             return ResourceExporter::exportAll(audioResource, options, ResourceType::Audio);
         }, *audio_);
+    }
+
+
+    Result<ExportResult> Dictionary::exportAppendixEntries(const ExportOptions& options) const
+    {
+        return AppendixEntryExporter::exportEntryLists(appendixEntryLists_, headlines_, options);
     }
 
 

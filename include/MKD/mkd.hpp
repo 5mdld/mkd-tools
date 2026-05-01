@@ -13,6 +13,7 @@
 #include "MKD/dictionary/paths.hpp"
 
 #include "MKD/output/headline_exporter.hpp"
+#include "MKD/output/appendix_entry_exporter.hpp"
 #include "MKD/output/keystore_exporter.hpp"
 #include "MKD/output/resource_exporter.hpp"
 
@@ -24,6 +25,7 @@
 #endif
 
 #include "MKD/resource/resource_loader.hpp"
+#include "MKD/resource/appendix_entry_list.hpp"
 #include "MKD/resource/keystore.hpp"
 #include "MKD/resource/keystore_search.hpp"
 #include "MKD/resource/search_mode.hpp"

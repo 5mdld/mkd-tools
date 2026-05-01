@@ -4,11 +4,82 @@
 
 #include "MKD/resource/resource_loader.hpp"
 
+#include <pugixml.h>
+
 #include <algorithm>
+#include <unordered_map>
 #include <ranges>
 
 namespace MKD
 {
+    namespace
+    {
+        using AppendixTitleMap = std::unordered_map<std::string, std::string>;
+
+        pugi::xml_node nextElementSibling(pugi::xml_node node)
+        {
+            for (node = node.next_sibling(); node; node = node.next_sibling())
+            {
+                if (node.type() == pugi::node_element)
+                    return node;
+            }
+            return {};
+        }
+
+        std::optional<std::string> plistStringValue(pugi::xml_node dict, std::string_view key)
+        {
+            for (auto node = dict.first_child(); node; node = node.next_sibling())
+            {
+                if (node.type() != pugi::node_element || std::string_view(node.name()) != "key")
+                    continue;
+
+                if (std::string_view(node.child_value()) != key)
+                    continue;
+
+                const auto value = nextElementSibling(node);
+                if (value && std::string_view(value.name()) == "string")
+                    return value.child_value();
+
+                return std::nullopt;
+            }
+
+            return std::nullopt;
+        }
+
+        void collectAppendixEntryTitles(pugi::xml_node node, AppendixTitleMap& titles)
+        {
+            if (node.type() == pugi::node_element && std::string_view(node.name()) == "dict")
+            {
+                const auto contents = plistStringValue(node, "contents");
+                if (contents && contents->ends_with(".entries"))
+                {
+                    if (auto name = plistStringValue(node, "name"); name && !name->empty())
+                        titles.emplace(*contents, std::move(*name));
+                }
+            }
+
+            for (auto child = node.first_child(); child; child = child.next_sibling())
+                collectAppendixEntryTitles(child, titles);
+        }
+
+        AppendixTitleMap loadAppendixEntryTitles(const fs::path& productRoot)
+        {
+            const auto path = productRoot / "Contents" / "Appendix.plist";
+            if (!fs::is_regular_file(path))
+                return {};
+
+            pugi::xml_document doc;
+            const auto pathString = path.string();
+            if (!doc.load_file(pathString.c_str()))
+                return {};
+
+            AppendixTitleMap titles;
+            collectAppendixEntryTitles(doc.document_element(), titles);
+            return titles;
+        }
+    }
+
+
     ResourceLoader::ResourceLoader(const DictionaryPaths& paths)
         : paths_(paths)
     {
@@ -30,6 +101,53 @@ namespace MKD
     std::optional<std::variant<ResourceStore, NamedResourceStore>> ResourceLoader::loadAudio(std::string_view contentDir, std::string_view dictId) const
     {
         return tryLoadEither(ResourceType::Audio, contentDir, dictId);
+    }
+
+
+    std::vector<AppendixEntryList> ResourceLoader::loadAppendixEntryLists(std::string_view contentDir) const
+    {
+        const auto contentsRoot = paths_.productRoot() / "Contents";
+        const auto contentRoot = contentsRoot / contentDir;
+        if (!fs::is_directory(contentRoot))
+            return {};
+
+        std::vector<fs::path> files;
+        std::error_code ec;
+        for (fs::recursive_directory_iterator it(contentRoot, ec), end; it != end; it.increment(ec))
+        {
+            if (ec)
+                break;
+
+            if (it->is_regular_file() && it->path().extension() == ".entries")
+                files.push_back(it->path());
+        }
+
+        std::ranges::sort(files, [](const fs::path& lhs, const fs::path& rhs) {
+            return lhs.generic_string() < rhs.generic_string();
+        });
+
+        const auto titles = loadAppendixEntryTitles(paths_.productRoot());
+        std::vector<AppendixEntryList> lists;
+        lists.reserve(files.size());
+
+        for (const auto& file : files)
+        {
+            std::string title;
+            auto relativePath = fs::relative(file, contentsRoot, ec);
+            if (ec)
+            {
+                ec.clear();
+                relativePath.clear();
+            }
+
+            if (const auto it = titles.find(relativePath.generic_string()); it != titles.end())
+                title = it->second;
+
+            if (auto list = AppendixEntryList::load(file, std::move(title)))
+                lists.push_back(std::move(*list));
+        }
+
+        return lists;
     }
 
 

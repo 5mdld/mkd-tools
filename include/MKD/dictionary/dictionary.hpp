@@ -12,6 +12,7 @@
 #include "MKD/output/resource_exporter.hpp"
 #include "MKD/resource/named_resource_store.hpp"
 #include "MKD/resource/resource_store.hpp"
+#include "MKD/resource/appendix_entry_list.hpp"
 #include "MKD/resource/font.hpp"
 #include "MKD/resource/keystore.hpp"
 #include "MKD/resource/headline_store.hpp"
@@ -25,6 +26,7 @@ namespace MKD
     struct DictionaryResources
     {
         std::optional<ResourceStore> entries;
+        std::vector<AppendixEntryList> appendixEntryLists;
         std::optional<NamedResourceStore> graphics;
         std::optional<std::variant<ResourceStore, NamedResourceStore>> audio;
         std::optional<Stylesheet> stylesheet;
@@ -63,6 +65,7 @@ namespace MKD
 
         [[nodiscard]] ResourceStore::Iterator entryBegin() const;
         [[nodiscard]] ResourceStore::Iterator entryEnd() const;
+        [[nodiscard]] const std::vector<AppendixEntryList>& appendixEntryLists() const noexcept;
 
         // returns nullptr if no nrsc resources available
         [[nodiscard]] NamedResourceStore* graphics() noexcept;
@@ -84,6 +87,7 @@ namespace MKD
 
     private:
         [[nodiscard]] Result<ExportResult> exportAudio(const ExportOptions& options) const;
+        [[nodiscard]] Result<ExportResult> exportAppendixEntries(const ExportOptions& options) const;
         [[nodiscard]] Result<ExportResult> exportFonts(const ExportOptions& options) const;
         [[nodiscard]] Result<ExportResult> exportKeystores(const ExportOptions& options) const;
         [[nodiscard]] Result<ExportResult> exportHeadlines(const ExportOptions& options) const;
@@ -91,6 +95,7 @@ namespace MKD
         DictionaryContent content_;
         DictionarySearchConfiguration searchConfiguration_;
         std::optional<ResourceStore> entries_;
+        std::vector<AppendixEntryList> appendixEntryLists_;
         std::optional<NamedResourceStore> graphics_;
         std::optional<std::variant<ResourceStore, NamedResourceStore>> audio_;
         std::optional<Stylesheet> stylesheet_;

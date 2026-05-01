@@ -17,6 +17,7 @@ namespace MKD
         Audio, // .nrsc
         AudioLegacy, // .rsc
         Contents,
+        AppendixEntries,
         Graphics,
         Fonts,
         Keystores,
@@ -69,6 +70,14 @@ namespace MKD
                     .extension     = ".rsc",
                     .seqWidth      = 4,
                     .firstSequence = 1
+                };
+            case ResourceType::AppendixEntries:
+                return {
+                    .name          = "AppendixEntries",
+                    .blobPrefix    = "",
+                    .extension     = ".entries",
+                    .seqWidth      = 0,
+                    .firstSequence = 0
                 };
             case ResourceType::Graphics:
                 return {

@@ -26,9 +26,10 @@ You can also point to a dictionary directory with `-d <path>`.
 mkd-tools export <dict_id>
 mkd-tools -d /path/to/dicts export <dict_id>
 mkd-tools export <dict_id> --only entries --pretty
+mkd-tools export <dict_id> --only appendix-entries
 ```
 
-Use `--only` to limit export to specific resource types (`audio`, `entries`, `graphics`, `fonts`, `keystores`, `headlines`). `--pretty` will format XML entry content.
+Use `--only` to limit export to specific resource types (`audio`, `entries`, `appendix-entries`, `graphics`, `fonts`, `keystores`, `headlines`). `--pretty` will format XML entry content.
 
 Output goes to `~/Documents/mkd-export` by default, configurable with `-o`.
 
