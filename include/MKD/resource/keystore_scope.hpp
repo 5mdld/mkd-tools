@@ -18,6 +18,7 @@ namespace MKD
         Example = 2,
         English = 3,
         Gogi = 4,
+        Metadata = 5,
         Kanji = 6,
         Collocation = 7,
         CJ = 8,
@@ -28,6 +29,7 @@ namespace MKD
         Numeral = 101,
 
         Sense = Gogi,
+        Modern = Metadata,
         Category = Group,
         Compound = CompoundNoun
     };
@@ -43,6 +45,7 @@ namespace MKD
             case KeystoreScope::Example: return "example";
             case KeystoreScope::English: return "english";
             case KeystoreScope::Gogi: return "gogi";
+            case KeystoreScope::Metadata: return "metadata";
             case KeystoreScope::Kanji: return "kanji";
             case KeystoreScope::Collocation: return "collocation";
             case KeystoreScope::CJ: return "cj";
@@ -68,6 +71,7 @@ namespace MKD
         if (value == "example") return KeystoreScope::Example;
         if (value == "english") return KeystoreScope::English;
         if (value == "gogi" || value == "yakugo" || value == "sense") return KeystoreScope::Gogi;
+        if (value == "metadata" || value == "modern") return KeystoreScope::Metadata;
         if (value == "kanji" || value == "oyaji") return KeystoreScope::Kanji;
         if (value == "collocation") return KeystoreScope::Collocation;
         if (value == "cj") return KeystoreScope::CJ;

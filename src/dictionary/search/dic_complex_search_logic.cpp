@@ -2,7 +2,7 @@
 // kiwakiwaaにより 2026/05/01 に作成されました。
 //
 
-#include "kldic_complex_search_logic.hpp"
+#include "dic_complex_search_logic.hpp"
 
 #include "unicode/unicode.hpp"
 
@@ -10,7 +10,7 @@
 
 namespace MKD::detail::search
 {
-    Result<SearchResult> KLDicComplexSearchLogic::searchInDictionary(
+    Result<SearchResult> DicComplexSearchLogic::searchInDictionary(
         const std::string_view query,
         const size_t limit)
     {
@@ -21,19 +21,19 @@ namespace MKD::detail::search
     }
 
 
-    bool KLDicComplexSearchLogic::usesComplexSearchForScope(SearchScope, const Dictionary&) const
+    bool DicComplexSearchLogic::usesComplexSearchForScope(SearchScope, const Dictionary&) const
     {
         return false;
     }
 
 
-    uint32_t KLDicComplexSearchLogic::normalizedHeadlineAnchorOffset() const noexcept
+    uint32_t DicComplexSearchLogic::normalizedHeadlineAnchorOffset() const noexcept
     {
         return 2048;
     }
 
 
-    Result<SearchResult> KLDicComplexSearchLogic::complexSearchInDictionary(const std::string_view query) const
+    Result<SearchResult> DicComplexSearchLogic::complexSearchInDictionary(const std::string_view query) const
     {
         auto normalizedKeys = normalizedKeysForQuery(query);
         if (normalizedKeys.empty())
@@ -71,7 +71,7 @@ namespace MKD::detail::search
     }
 
 
-    Result<SearchResult> KLDicComplexSearchLogic::intersectComponentResults(
+    Result<SearchResult> DicComplexSearchLogic::intersectComponentResults(
         const std::vector<std::string>& components) const
     {
         SearchResult accumulated;
@@ -101,7 +101,7 @@ namespace MKD::detail::search
     }
 
 
-    SearchResult KLDicComplexSearchLogic::filterByNormalizedSortingHeadline(
+    SearchResult DicComplexSearchLogic::filterByNormalizedSortingHeadline(
         const SearchResult& result,
         const std::vector<std::string>& normalizedKeys) const
     {

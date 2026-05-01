@@ -12,7 +12,8 @@ namespace MKD::detail::search
     enum class SearchLogicClass
     {
         Dic,
-        KLKanwa
+        Kanwa,
+        Kogo
     };
 
     [[nodiscard]] SearchLogicClass searchLogicClassForDictionary(const Dictionary& dictionary);

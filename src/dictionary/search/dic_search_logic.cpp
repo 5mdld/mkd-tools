@@ -295,7 +295,7 @@ namespace MKD::detail::search
     }
 
 
-    std::vector<std::string> DicSearchLogic::normalizedKeysForQuery(const std::string_view query)
+    std::vector<std::string> DicSearchLogic::normalizedKeysForQuery(const std::string_view query) const
     {
         const auto normalized = unicode::normalizeDictionaryKey(
             query,

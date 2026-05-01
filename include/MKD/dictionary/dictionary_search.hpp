@@ -23,6 +23,7 @@ namespace MKD
         Example = 2,
         English = 3,
         Gogi = 4,
+        Modern = 5,
         Kanji = 6,
         Collocation = 7,
         CJ = 8,
@@ -33,6 +34,8 @@ namespace MKD
         Numeral = 101,
 
         Sense = Gogi,
+        Gendai = Modern,
+        Metadata = Modern,
         Category = Group,
         Compound = CompoundNoun
     };
@@ -45,6 +48,8 @@ namespace MKD
         if (name == "Example") return SearchScope::Example;
         if (name == "English") return SearchScope::English;
         if (name == "Gogi" || name == "Yakugo") return SearchScope::Gogi;
+        if (name == "Modern" || name == "Gendai" || name == "Metadata" || name == "MetaData")
+            return SearchScope::Modern;
         if (name == "Kanji" || name == "Oyaji") return SearchScope::Kanji;
         if (name == "Collocation") return SearchScope::Collocation;
         if (name == "CJ") return SearchScope::CJ;
@@ -75,6 +80,7 @@ namespace MKD
         //   0 = direct match
         //   4 = scope fallback
         //   8 = jp fallback
+        //   0x10000 = modern metadata result
         uint32_t flags = 0;
         std::vector<std::string> matchedKeys;
 

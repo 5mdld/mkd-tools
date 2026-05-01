@@ -5,8 +5,9 @@
 #include "search_logic_factory.hpp"
 
 #include "dic_search_logic.hpp"
-#include "kldic_complex_search_logic.hpp"
-#include "klkanwa_dic_search_logic.hpp"
+#include "dic_complex_search_logic.hpp"
+#include "kanwa_dic_search_logic.hpp"
+#include "kogo_dic_search_logic.hpp"
 
 namespace MKD::detail::search
 {
@@ -14,7 +15,9 @@ namespace MKD::detail::search
     {
         const auto& productSearchClass = dictionary.searchConfiguration().productSearchClass;
         if (productSearchClass && *productSearchClass == "KLKanwaDicSearchLogic")
-            return SearchLogicClass::KLKanwa;
+            return SearchLogicClass::Kanwa;
+        if (productSearchClass && *productSearchClass == "KLKogoDicSearchLogic")
+            return SearchLogicClass::Kogo;
 
         return SearchLogicClass::Dic;
     }
@@ -26,8 +29,10 @@ namespace MKD::detail::search
     {
         switch (searchLogicClassForDictionary(dictionary))
         {
-            case SearchLogicClass::KLKanwa:
-                return std::make_unique<KLKanwaDicSearchLogic>(dictionary, cancelled);
+            case SearchLogicClass::Kanwa:
+                return std::make_unique<KanwaDicSearchLogic>(dictionary, cancelled);
+            case SearchLogicClass::Kogo:
+                return std::make_unique<KogoDicSearchLogic>(dictionary, cancelled);
             case SearchLogicClass::Dic:
                 return std::make_unique<DicSearchLogic>(dictionary, cancelled);
         }

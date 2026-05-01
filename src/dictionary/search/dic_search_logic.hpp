@@ -31,7 +31,7 @@ namespace MKD::detail::search
         [[nodiscard]] virtual Result<SearchResult> searchSingleKey(std::string_view key, size_t limit);
         [[nodiscard]] Result<SearchResult> japaneseCompoundSearch(std::string_view key) const;
         [[nodiscard]] Result<SearchResult> simpleSearch(std::string_view key, SearchMode mode) const;
-        [[nodiscard]] static std::vector<std::string> normalizedKeysForQuery(std::string_view query) ;
+        [[nodiscard]] virtual std::vector<std::string> normalizedKeysForQuery(std::string_view query) const;
 
         const Dictionary& dictionary_;
         std::atomic<bool>& cancelled_;

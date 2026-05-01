@@ -4,14 +4,14 @@
 
 #pragma once
 
-#include "kldic_complex_search_logic.hpp"
+#include "dic_complex_search_logic.hpp"
 
 namespace MKD::detail::search
 {
-    class KLKanwaDicSearchLogic final : public KLDicComplexSearchLogic
+    class KanwaDicSearchLogic final : public DicComplexSearchLogic
     {
     public:
-        using KLDicComplexSearchLogic::KLDicComplexSearchLogic;
+        using DicComplexSearchLogic::DicComplexSearchLogic;
 
     protected:
         [[nodiscard]] bool usesComplexSearchForScope(SearchScope scope, const Dictionary& dictionary) const override;

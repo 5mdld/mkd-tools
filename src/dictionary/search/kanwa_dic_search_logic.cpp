@@ -2,17 +2,17 @@
 // kiwakiwaaにより 2026/05/01 に作成されました。
 //
 
-#include "klkanwa_dic_search_logic.hpp"
+#include "kanwa_dic_search_logic.hpp"
 
 namespace MKD::detail::search
 {
-    bool KLKanwaDicSearchLogic::usesComplexSearchForScope(const SearchScope scope, const Dictionary&) const
+    bool KanwaDicSearchLogic::usesComplexSearchForScope(const SearchScope scope, const Dictionary&) const
     {
         return scope == SearchScope::Example || scope == SearchScope::Gogi;
     }
 
 
-    Result<SearchResult> KLKanwaDicSearchLogic::searchSingleKey(const std::string_view key, size_t)
+    Result<SearchResult> KanwaDicSearchLogic::searchSingleKey(const std::string_view key, size_t)
     {
         if (scope_ == SearchScope::Idiom && mode_ <= SearchMode::Suffix)
         {
@@ -22,6 +22,6 @@ namespace MKD::detail::search
             return result;
         }
 
-        return KLDicComplexSearchLogic::searchSingleKey(key, 0);
+        return DicComplexSearchLogic::searchSingleKey(key, 0);
     }
 }

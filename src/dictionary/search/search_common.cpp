@@ -71,6 +71,7 @@ namespace MKD::detail::search
             case KeystoreScope::Example: return SearchScope::Example;
             case KeystoreScope::English: return SearchScope::English;
             case KeystoreScope::Gogi: return SearchScope::Gogi;
+            case KeystoreScope::Metadata: return SearchScope::Modern;
             case KeystoreScope::Kanji: return SearchScope::Kanji;
             case KeystoreScope::Collocation: return SearchScope::Collocation;
             case KeystoreScope::CJ: return SearchScope::CJ;

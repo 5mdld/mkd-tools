@@ -642,4 +642,26 @@ namespace MKD::detail::unicode
 
         return result;
     }
+
+
+    std::string normalizeKanjiNumberString(const std::string_view text)
+    {
+        std::string normalized;
+        normalized.reserve(text.size());
+        bool changed = false;
+
+        for (const unsigned char ch : text)
+        {
+            if (ch >= '0' && ch <= '9')
+            {
+                normalized.append(unicode::kKanjiNumberChars[ch - '0']);
+                changed = true;
+                continue;
+            }
+
+            normalized.push_back(static_cast<char>(ch));
+        }
+
+        return changed ? normalized : std::string(text);
+    }
 }

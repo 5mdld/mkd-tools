@@ -66,4 +66,6 @@ namespace MKD::detail::unicode
         std::string_view text,
         DictionaryKeyNormalizeOption options = DictionaryKeyNormalizeOption::None
     );
+
+    [[nodiscard]] std::string normalizeKanjiNumberString(std::string_view text);
 }

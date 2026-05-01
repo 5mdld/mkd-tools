@@ -6,6 +6,7 @@
 
 #include <array>
 #include <cstdint>
+#include <string_view>
 
 namespace MKD::detail::unicode
 {
@@ -105,6 +106,10 @@ namespace MKD::detail::unicode
         CodepointRange{0x20000, 0x2A6D6},
         CodepointRange{0x2A700, 0x2B734},
         CodepointRange{0x2B740, 0x2B81D}
+    };
+
+    inline constexpr std::array<std::string_view, 10> kKanjiNumberChars = {
+        "〇", "一", "二", "三", "四", "五", "六", "七", "八", "九",
     };
 
     [[nodiscard]] constexpr bool isUnicodeScalarValue(const Codepoint cp) noexcept

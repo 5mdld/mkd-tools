@@ -169,6 +169,63 @@ TEST_F(DictionarySearchTest, KOGO3_HeadwordSearch)
     const DictionarySearch search(dict);
 
     const auto result = measureSearchTime("KOGO3 headword", [&]() {
+        return search.search("かわご");
+    });
+
+    ASSERT_TRUE(result.has_value());
+    ASSERT_TRUE(result->entries.size() == 1);
+    ASSERT_FALSE(result->empty());
+    printInfo(result->matchedKeys, result->entries);
+}
+
+TEST_F(DictionarySearchTest, SKOGO_ModernSearch)
+{
+    const auto dict = loadDictionary("SKOGO");
+    const DictionarySearch search(dict);
+
+    SearchOptions options;
+    options.scope = SearchScope::Modern;
+
+    const auto result = measureSearchTime("SKOGO modern", [&]() {
+        return search.search("あう", options);
+    });
+
+    ASSERT_TRUE(result.has_value());
+    ASSERT_FALSE(result->empty());
+    EXPECT_TRUE(result->flags & 0x10000);
+    printInfo(result->matchedKeys, result->entries);
+}
+
+TEST_F(DictionarySearchTest, SKOGO_GendaiHeadwordSort)
+{
+    const auto dict = loadDictionary("SKOGO");
+    const DictionarySearch search(dict);
+
+    const auto result = measureSearchTime("SKOGO gendai headword", [&]() {
+        return search.search("あう");
+    });
+
+    for (auto& entry : result->entries)
+    {
+        auto headline = dict.headlineForEntryId(entry);
+        ASSERT_TRUE(headline.has_value());
+    }
+
+    ASSERT_TRUE(result.has_value());
+    ASSERT_FALSE(result->empty());
+    EXPECT_GE(result->entries.front().pageId, 19249);
+    EXPECT_LE(result->entries.front().pageId, 25337);
+    ASSERT_GE(result->entries.size(), 2);
+    EXPECT_LT(result->entries[1].pageId, 19249);
+    printInfo(result->matchedKeys, result->entries);
+}
+
+TEST_F(DictionarySearchTest, OKG11_HeadwordSearch)
+{
+    const auto dict = loadDictionary("OKG11");
+    const DictionarySearch search(dict);
+
+    const auto result = measureSearchTime("OKG11 headword", [&]() {
         return search.search("あはれ");
     });
 

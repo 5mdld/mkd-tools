@@ -8,7 +8,7 @@
 
 namespace MKD::detail::search
 {
-    class KLDicComplexSearchLogic : public DicSearchLogic
+    class DicComplexSearchLogic : public DicSearchLogic
     {
     public:
         using DicSearchLogic::DicSearchLogic;
