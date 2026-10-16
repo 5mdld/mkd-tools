@@ -49,27 +49,41 @@ namespace MKD
             };
         }
 
-        DictionaryResources loadResources(const ResourceLoader& loader, const DictionaryContent& contentDef)
+        Result<DictionaryResources> loadResources(const ResourceLoader& loader, const DictionaryContent& contentDef)
         {
             DictionaryResources resources;
-            const auto& dictId = contentDef.identifier;
-
-            resources.entries = loader.loadEntries(contentDef.directory, dictId);
-            resources.appendixEntryLists = loader.loadAppendixEntryLists(contentDef.directory);
-            resources.audio = loader.loadAudio(contentDef.directory, dictId);
-            resources.graphics = loader.loadGraphics(contentDef.directory, dictId);
-
-            auto stylesheets = loader.loadStylesheets(contentDef.directory, dictId);
-            resources.stylesheet = std::move(stylesheets.normal);
-            resources.nightmodeStylesheet = std::move(stylesheets.nightmode);
-
-            resources.fonts = loader.loadFonts(contentDef.directory);
-            resources.keystores = loader.loadKeystores(contentDef.directory, dictId);
-            resources.headlines = loader.loadHeadlines(contentDef.directory);
+            const auto& directory = contentDef.directory;
+            const auto& id = contentDef.identifier;
+            auto entries = loader.loadEntries(directory, id);
+            if (!entries) return std::unexpected(entries.error());
+            resources.entries = std::move(*entries);
+            auto appendices = loader.loadAppendixEntryLists(directory);
+            if (!appendices) return std::unexpected(appendices.error());
+            resources.appendixEntryLists = std::move(*appendices);
+            auto audio = loader.loadAudio(directory, id);
+            if (!audio) return std::unexpected(audio.error());
+            resources.audio = std::move(*audio);
+            auto graphics = loader.loadGraphics(directory);
+            if (!graphics) return std::unexpected(graphics.error());
+            resources.graphics = std::move(*graphics);
+            auto fonts = loader.loadFonts(directory);
+            if (!fonts) return std::unexpected(fonts.error());
+            resources.fonts = std::move(*fonts);
+            auto keystores = loader.loadKeystores(directory);
+            if (!keystores) return std::unexpected(keystores.error());
+            resources.keystores = std::move(*keystores);
+            auto headlines = loader.loadHeadlines(directory);
+            if (!headlines) return std::unexpected(headlines.error());
+            resources.headlines = std::move(*headlines);
+            auto styles = loader.loadStylesheets(directory);
+            if (!styles) return std::unexpected(styles.error());
+            resources.stylesheet = std::move(styles->normal);
+            resources.nightmodeStylesheet = std::move(styles->nightmode);
             return resources;
         }
 
-        std::vector<Dictionary> buildDictionaries(const DictionaryMetadata& metadata, ResourceLoader& loader)
+        Result<std::vector<Dictionary>> buildDictionaries(const DictionaryMetadata& metadata,
+                                                          const ResourceLoader& loader)
         {
             std::vector<Dictionary> dictionaries;
             dictionaries.reserve(metadata.contents.size());
@@ -79,8 +93,10 @@ namespace MKD
 
             for (const auto& contentDef : metadata.contents)
             {
-                dictionaries.emplace_back(contentDef, loadResources(loader, contentDef),
-                                          searchConfiguration);
+                auto resources = loadResources(loader, contentDef);
+                if (!resources)
+                    return std::unexpected(std::format("Content '{}': {}", contentDef.identifier, resources.error()));
+                dictionaries.emplace_back(contentDef, std::move(*resources), searchConfiguration);
             }
 
             return dictionaries;
@@ -140,7 +156,9 @@ namespace MKD
 
         ResourceLoader loader(base->paths);
         auto dictionaries = buildDictionaries(base->metadata, loader);
-        return DictionaryProduct(std::move(base->metadata), std::move(base->paths), std::move(dictionaries));
+        if (!dictionaries)
+            return std::unexpected(dictionaries.error());
+        return DictionaryProduct(std::move(base->metadata), std::move(base->paths), std::move(*dictionaries));
     }
 
 

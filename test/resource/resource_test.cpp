@@ -362,6 +362,26 @@ namespace MKD::test
         EXPECT_EQ(entry->headline, u"a");
     }
 
+    TEST_F(ResourceFormatTest, LoaderDistinguishesAbsenceFromCorruption)
+    {
+        std::filesystem::create_directories(directory / "Contents" / "DICT");
+        auto paths = DictionaryPaths::create(directory);
+        ASSERT_TRUE(paths);
+        ResourceLoader loader(*paths);
+        auto absent = loader.loadEntries("DICT", "id");
+        ASSERT_TRUE(absent);
+        EXPECT_FALSE(*absent);
+        std::filesystem::create_directories(directory / "Contents" / "DICT" / "contents");
+        EXPECT_FALSE(loader.loadEntries("DICT", "id"));
+        std::filesystem::create_directories(directory / "Contents" / "DICT" / "graphics");
+        EXPECT_FALSE(loader.loadGraphics("DICT"));
+        std::filesystem::create_directories(directory / "Contents" / "DICT" / "audio");
+        words("Contents/DICT/audio/index.nidx", {0, 100});
+        EXPECT_FALSE(loader.loadAudio("DICT", "id"));
+        std::filesystem::create_directories(directory / "Contents" / "DICT" / "key");
+        words("Contents/DICT/key/bad.keystore", {0});
+        EXPECT_FALSE(loader.loadKeystores("DICT"));
+    }
     TEST_F(ResourceFormatTest, MovingARetainedSpanLeavesAnEmptySource)
     {
         RetainedSpan original(std::vector<uint8_t>{'a'});
@@ -448,6 +468,19 @@ namespace MKD::test
         directStore();
         words("other.map", {0, 0});
         EXPECT_FALSE(ResourceStore::open(directory));
+    }
+
+    TEST_F(ResourceFormatTest, ProductOpeningPropagatesMalformedResourceErrors)
+    {
+        const auto fixture = std::filesystem::path(__FILE__).parent_path().parent_path() / "test-data" / "TESTDICT";
+        const auto product = directory / "TESTDICT";
+        std::filesystem::copy(fixture, product, std::filesystem::copy_options::recursive);
+        const auto index = product / "Contents" / "TESTDICT" / "graphics" / "index.nidx";
+        { std::ofstream file(index, std::ios::binary | std::ios::trunc); file.put(0); }
+        auto opened = DictionaryProduct::openAtPath(product);
+        ASSERT_FALSE(opened);
+        EXPECT_NE(opened.error().find("Graphics"), std::string::npos);
+        EXPECT_NE(opened.error().find("TESTDICT"), std::string::npos);
     }
 
     TEST_F(ResourceFormatTest, ArbitrarySmallInputsFailWithoutUncheckedMemoryAccess)
@@ -680,6 +713,44 @@ namespace MKD::test
         EXPECT_EQ(stream.str(), "OTTOx");
         stream.setstate(std::ios::badbit);
         EXPECT_FALSE(font->writeTo(stream));
+    }
+
+    TEST_F(ResourceFormatTest, ProductMetadataLoadingDoesNotOpenResources)
+    {
+        const auto fixture = std::filesystem::path(__FILE__).parent_path().parent_path() / "test-data/TESTDICT";
+        const auto product = directory / "TESTDICT";
+        std::filesystem::copy(fixture, product, std::filesystem::copy_options::recursive);
+        words("TESTDICT/Contents/TESTDICT/graphics/index.nidx", {0});
+        auto metadata = DictionaryProduct::loadMetadata(product);
+        ASSERT_TRUE(metadata) << metadata.error();
+        ASSERT_EQ(metadata->dictionaries().size(), 1);
+        EXPECT_EQ(metadata->dictionaries()[0].id(), "Test.dict");
+        EXPECT_FALSE(metadata->dictionaries()[0].hasEntries());
+        EXPECT_FALSE(DictionaryProduct::openAtPath(product));
+    }
+
+    TEST_F(ResourceFormatTest, ProductOpeningLoadsAndValidatesAllContents)
+    {
+        const auto fixture = std::filesystem::path(__FILE__).parent_path().parent_path() / "test-data/TESTDICT";
+        const auto product = directory / "TESTDICT";
+        std::filesystem::copy(fixture, product, std::filesystem::copy_options::recursive);
+        const auto metadata = product / "Contents/TESTDICT.json";
+        std::ofstream json(metadata);
+        json << R"({"DSProductContents":[
+            {"DSContentDirectory":"TESTDICT","DSContentIdentifier":"Test.dict"},
+            {"DSContentDirectory":"SECOND","DSContentIdentifier":"Second.dict"}]})";
+        json.close();
+        std::filesystem::copy(product / "Contents/TESTDICT", product / "Contents/SECOND",
+                              std::filesystem::copy_options::recursive);
+        auto opened = DictionaryProduct::openAtPath(product);
+        ASSERT_TRUE(opened) << opened.error();
+        ASSERT_EQ(opened->dictionaries().size(), 2);
+        EXPECT_EQ(opened->dictionaries()[0].id(), "Test.dict");
+        EXPECT_EQ(opened->dictionaries()[1].id(), "Second.dict");
+        EXPECT_TRUE(opened->dictionaries()[0].hasEntries());
+        EXPECT_TRUE(opened->dictionaries()[1].hasEntries());
+        words("TESTDICT/Contents/SECOND/graphics/index.nidx", {0});
+        EXPECT_FALSE(DictionaryProduct::openAtPath(product));
     }
 
 }

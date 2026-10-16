@@ -9,7 +9,6 @@
 #include <filesystem>
 #include <string>
 
-namespace fs = std::filesystem;
 
 namespace MKD
 {
@@ -21,7 +20,7 @@ namespace MKD
          * @param cssPath Path to a .css file
          * @return Stylesheet instance with file name and CSS text data
          */
-        static Result<Stylesheet> load(const fs::path& cssPath);
+        static Result<Stylesheet> open(const std::filesystem::path& cssPath);
 
         /**
          * Returns stylesheet file name.
@@ -40,4 +39,3 @@ namespace MKD
         std::string data_;
     };
 }
-

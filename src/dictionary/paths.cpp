@@ -11,22 +11,6 @@ using namespace std::literals::string_view_literals;
 
 namespace MKD
 {
-    namespace detail
-    {
-        std::optional<fs::path> findResourcePath(
-            const fs::path& contentDir,
-            std::span<const std::string_view> candidateNames)
-        {
-            for (const auto& name : candidateNames)
-            {
-                if (fs::path path = contentDir / name; fs::exists(path / "index.nidx"))
-                    return std::move(path);
-            }
-            return std::nullopt;
-        }
-    }
-
-
     Result<DictionaryPaths> DictionaryPaths::create(fs::path productRoot)
     {
         auto contentsRoot = productRoot / "Contents";
@@ -44,40 +28,54 @@ namespace MKD
     }
 
 
-    std::optional<fs::path> DictionaryPaths::tryResolve(
+    Result<std::optional<fs::path>> DictionaryPaths::resolve(
         const ResourceType type, std::string_view contentDir) const
     {
         const auto base = contentsRoot_ / contentDir;
 
         switch (type)
         {
-            case ResourceType::Contents:
-                return existingDir(base / "contents");
-            case ResourceType::AppendixEntries:
-                return existingDir(base);
-            case ResourceType::Audio:
-            case ResourceType::AudioLegacy:
-                return existingDir(base / "audio");
-            case ResourceType::Graphics:
+        case ResourceType::Contents:
+            return existingDir(base / "contents");
+        case ResourceType::AppendixEntries:
+            return existingDir(base);
+        case ResourceType::Audio:
+        case ResourceType::AudioLegacy:
+            return existingDir(base / "audio");
+        case ResourceType::Graphics:
             {
                 static constexpr std::array candidates = {"graphics"sv, "img"sv};
-                if (auto path = detail::findResourcePath(base, candidates))
-                    return *path;
-                return std::nullopt;
+                for (const auto name : candidates)
+                {
+                    auto path = existingDir(base / name);
+                    if (!path || *path)
+                        return path;
+                }
+                return std::optional<fs::path>{};
             }
-            case ResourceType::Keystores:
-                return existingDir(base / "key");
-            case ResourceType::Headlines:
-                return existingDir(base / "headline");
-            case ResourceType::Fonts:
-                return existingDir(base / "fonts");
+        case ResourceType::Keystores:
+            return existingDir(base / "key");
+        case ResourceType::Headlines:
+            return existingDir(base / "headline");
+        case ResourceType::Fonts:
+            return existingDir(base / "fonts");
         }
         std::unreachable();
     }
 
 
-    std::optional<fs::path> DictionaryPaths::existingDir(const fs::path& path)
+    Result<std::optional<fs::path>> DictionaryPaths::existingDir(const fs::path& path)
     {
-        return fs::is_directory(path) ? std::optional(path) : std::nullopt;
+        std::error_code ec;
+        const auto status = fs::status(path, ec);
+        if (ec == std::errc::no_such_file_or_directory)
+            return std::optional<fs::path>{};
+        if (ec)
+            return std::unexpected("Cannot inspect '" + path.string() + "': " + ec.message());
+        if (!fs::exists(status))
+            return std::optional<fs::path>{};
+        if (!fs::is_directory(status))
+            return std::unexpected("Resource path is not a directory: " + path.string());
+        return std::optional(path);
     }
 }

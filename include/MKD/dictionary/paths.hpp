@@ -18,21 +18,18 @@ namespace MKD
     class DictionaryPaths
     {
     public:
-
         static Result<DictionaryPaths> create(fs::path productRoot);
 
-        [[nodiscard]] std::optional<fs::path> tryResolve(ResourceType type, std::string_view contentDir) const;
+        [[nodiscard]] Result<std::optional<fs::path>> resolve(ResourceType type, std::string_view contentDir) const;
 
         [[nodiscard]] const fs::path& productRoot() const noexcept { return productRoot_; }
 
     private:
-
         DictionaryPaths(fs::path productRoot, fs::path contentsRoot);
 
-        static std::optional<fs::path> existingDir(const fs::path& path);
+        static Result<std::optional<fs::path>> existingDir(const fs::path& path);
 
         fs::path productRoot_;
         fs::path contentsRoot_;
     };
-
 }

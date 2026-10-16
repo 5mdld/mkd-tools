@@ -9,9 +9,9 @@
 
 namespace MKD
 {
-    Result<Stylesheet> Stylesheet::load(const fs::path& cssPath)
+    Result<Stylesheet> Stylesheet::open(const std::filesystem::path& cssPath)
     {
-        if (!fs::is_regular_file(cssPath))
+        if (!std::filesystem::is_regular_file(cssPath))
             return std::unexpected(std::format("Stylesheet file not found: {}", cssPath.string()));
 
         std::ifstream file(cssPath, std::ios::in | std::ios::binary);
