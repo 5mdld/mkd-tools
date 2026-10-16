@@ -1,3 +1,7 @@
+//
+// kiwakiwaaにより 2026/03/28 に作成されました。
+//
+
 // Copyright (c) 2026 kiwakiwaa
 // https://github.com/kiwakiwaa
 // SPDX-License-Identifier: GPL-3.0-only
