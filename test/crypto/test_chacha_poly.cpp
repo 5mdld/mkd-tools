@@ -1,23 +1,23 @@
+//
+// kiwakiwaaにより 2026/03/27 に作成されました。
+//
+
 #include <gtest/gtest.h>
 
 #include <CryptoKit/CryptoKit.hpp>
 #include <Foundation/Foundation.hpp>
 
+#include <array>
 #include <cstring>
 #include <vector>
 
 TEST(ChaChaPoly, RoundTrip)
 {
-    NS::ScopedAutoreleasePool pPool;
+    NS::ScopedAutoreleasePool pool;
 
-    // create a 256 bit symmetric key
-    CK::SymmetricKey* pKey = CK::SymmetricKey::symmetricKey(256);
+    constexpr std::array<uint8_t, 32> keyBytes{0x01};
+    CK::SymmetricKey* pKey = CK::SymmetricKey::symmetricKey(NS::Data::dataWithBytes(keyBytes.data(), keyBytes.size()));
     ASSERT_TRUE(pKey) << "Failed to create symmetric key";
-
-    // key should be 32 bytes
-    NS::Data* pKeyData = pKey->rawData();
-    ASSERT_NE(pKeyData, nullptr);
-    EXPECT_EQ(pKeyData->length(), 32u);
 
     constexpr auto plaintext = "Hello, ChaChaPoly from C++";
     const auto plaintextLen = std::strlen(plaintext);
@@ -27,17 +27,13 @@ TEST(ChaChaPoly, RoundTrip)
     CK::SealedBox* pSealedBox = CK::ChaChaPoly::seal(pPlaintext, pKey);
     ASSERT_NE(pSealedBox, nullptr) << "Encryption failed";
 
-    NS::Data* pNonce = pSealedBox->nonce();
-    NS::Data* pCiphertext = pSealedBox->ciphertext();
-    NS::Data* pTag = pSealedBox->tag();
     NS::Data* pCombined = pSealedBox->combined();
 
-    EXPECT_EQ(pNonce->length(), 12u); // ChaChaPoly nonce is 12 bytes
-    EXPECT_EQ(pCiphertext->length(), plaintextLen);
-    EXPECT_EQ(pTag->length(), 16u); // Poly1305 tag is 16 bytes
-    EXPECT_EQ(pCombined->length(), 12u + plaintextLen + 16u);
-
-    EXPECT_NE(std::memcmp(pCiphertext->bytes(), plaintext, plaintextLen), 0);
+    ASSERT_NE(pCombined, nullptr);
+    // The combined representation contains a 12-byte nonce and a 16-byte tag.
+    ASSERT_EQ(pCombined->length(), 12u + plaintextLen + 16u);
+    const auto* combinedBytes = static_cast<const uint8_t*>(pCombined->bytes());
+    EXPECT_NE(std::memcmp(combinedBytes + 12, plaintext, plaintextLen), 0);
 
     NS::Data* pDecrypted = CK::ChaChaPoly::open(pSealedBox, pKey);
     ASSERT_NE(pDecrypted, nullptr) << "Decryption failed";
@@ -45,14 +41,14 @@ TEST(ChaChaPoly, RoundTrip)
     // roundtrip
     EXPECT_EQ(pDecrypted->length(), plaintextLen);
     EXPECT_EQ(std::memcmp(pDecrypted->bytes(), plaintext, plaintextLen), 0);
-
 }
 
 TEST(ChaChaPoly, RoundTripFromCombined)
 {
-    NS::ScopedAutoreleasePool pPool;
+    NS::ScopedAutoreleasePool pool;
 
-    CK::SymmetricKey* pKey = CK::SymmetricKey::symmetricKey(256);
+    constexpr std::array<uint8_t, 32> keyBytes{0x01};
+    CK::SymmetricKey* pKey = CK::SymmetricKey::symmetricKey(NS::Data::dataWithBytes(keyBytes.data(), keyBytes.size()));
 
     constexpr auto plaintext = "Reconstruct from combined bytes";
     const auto plaintextLen = std::strlen(plaintext);
@@ -73,15 +69,16 @@ TEST(ChaChaPoly, RoundTripFromCombined)
     ASSERT_NE(pDecrypted, nullptr);
     EXPECT_EQ(pDecrypted->length(), plaintextLen);
     EXPECT_EQ(std::memcmp(pDecrypted->bytes(), plaintext, plaintextLen), 0);
-
 }
 
 TEST(ChaChaPoly, WrongKeyFails)
 {
-    NS::ScopedAutoreleasePool pPool;
+    NS::ScopedAutoreleasePool pool;
 
-    CK::SymmetricKey* pKey1 = CK::SymmetricKey::symmetricKey(256);
-    CK::SymmetricKey* pKey2 = CK::SymmetricKey::symmetricKey(256);
+    constexpr std::array<uint8_t, 32> key1{0x01};
+    constexpr std::array<uint8_t, 32> key2{0x02};
+    CK::SymmetricKey* pKey1 = CK::SymmetricKey::symmetricKey(NS::Data::dataWithBytes(key1.data(), key1.size()));
+    CK::SymmetricKey* pKey2 = CK::SymmetricKey::symmetricKey(NS::Data::dataWithBytes(key2.data(), key2.size()));
 
     constexpr auto plaintext = "Secret message";
     NS::Data* pPlaintext = NS::Data::dataWithBytes(plaintext, std::strlen(plaintext));
@@ -91,14 +88,14 @@ TEST(ChaChaPoly, WrongKeyFails)
 
     NS::Data* pDecrypted = CK::ChaChaPoly::open(pSealedBox, pKey2);
     EXPECT_EQ(pDecrypted, nullptr) << "Decryption should fail with wrong key";
-
 }
 
 TEST(ChaChaPoly, TamperedCombinedFails)
 {
-    NS::ScopedAutoreleasePool pPool;
+    NS::ScopedAutoreleasePool pool;
 
-    CK::SymmetricKey* pKey = CK::SymmetricKey::symmetricKey(256);
+    constexpr std::array<uint8_t, 32> keyBytes{0x01};
+    CK::SymmetricKey* pKey = CK::SymmetricKey::symmetricKey(NS::Data::dataWithBytes(keyBytes.data(), keyBytes.size()));
     ASSERT_TRUE(pKey);
 
     constexpr auto plaintext = "Tamper check";
@@ -124,12 +121,11 @@ TEST(ChaChaPoly, TamperedCombinedFails)
 
     NS::Data* pDecrypted = CK::ChaChaPoly::open(pTamperedBox, pKey);
     EXPECT_EQ(pDecrypted, nullptr) << "Tampered payload should fail authentication";
-
 }
 
 TEST(ChaChaPoly, MalformedCombinedRejected)
 {
-    NS::ScopedAutoreleasePool pPool;
+    NS::ScopedAutoreleasePool pool;
 
     // ChaChaPoly combined payload is nonce (12) + ciphertext (>=0) + tag (16).
     std::vector<uint8_t> malformed(27, 0xA5);
@@ -138,12 +134,11 @@ TEST(ChaChaPoly, MalformedCombinedRejected)
 
     CK::SealedBox* pBox = CK::SealedBox::sealedBox(pMalformed);
     EXPECT_EQ(pBox, nullptr);
-
 }
 
 TEST(ChaChaPoly, KeyFromData)
 {
-    NS::ScopedAutoreleasePool pPool;
+    NS::ScopedAutoreleasePool pool;
 
     // create key from some known bytes
     constexpr uint8_t keyBytes[32] = {
@@ -156,11 +151,6 @@ TEST(ChaChaPoly, KeyFromData)
     CK::SymmetricKey* pKey = CK::SymmetricKey::symmetricKey(pKeyData);
     ASSERT_TRUE(pKey);
 
-    NS::Data* pRawData = pKey->rawData();
-    ASSERT_NE(pRawData, nullptr);
-    EXPECT_EQ(pRawData->length(), 32u);
-    EXPECT_EQ(std::memcmp(pRawData->bytes(), keyBytes, 32), 0);
-
     constexpr auto plaintext = "Known key test";
     NS::Data* pPlaintext = NS::Data::dataWithBytes(plaintext, std::strlen(plaintext));
 
@@ -170,14 +160,14 @@ TEST(ChaChaPoly, KeyFromData)
     NS::Data* pDecrypted = CK::ChaChaPoly::open(pSealedBox, pKey);
     ASSERT_NE(pDecrypted, nullptr);
     EXPECT_EQ(std::memcmp(pDecrypted->bytes(), plaintext, std::strlen(plaintext)), 0);
-
 }
 
 TEST(ChaChaPoly, LargeData)
 {
-    NS::ScopedAutoreleasePool pPool;
+    NS::ScopedAutoreleasePool pool;
 
-    CK::SymmetricKey* pKey = CK::SymmetricKey::symmetricKey(256);
+    constexpr std::array<uint8_t, 32> keyBytes{0x01};
+    CK::SymmetricKey* pKey = CK::SymmetricKey::symmetricKey(NS::Data::dataWithBytes(keyBytes.data(), keyBytes.size()));
 
     constexpr size_t dataSize = 1024 * 1024;
     std::vector<uint8_t> largeData(dataSize);
@@ -193,5 +183,4 @@ TEST(ChaChaPoly, LargeData)
     ASSERT_NE(pDecrypted, nullptr);
     EXPECT_EQ(pDecrypted->length(), dataSize);
     EXPECT_EQ(std::memcmp(pDecrypted->bytes(), largeData.data(), dataSize), 0);
-
 }

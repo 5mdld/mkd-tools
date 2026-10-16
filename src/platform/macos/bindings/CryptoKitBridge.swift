@@ -6,18 +6,9 @@ import Foundation
 @objc(CKSymmetricKey) public class CKSymmetricKey: NSObject {
     let key: SymmetricKey
 
-    @objc public init(bitCount: Int) {
-        self.key = SymmetricKey(size: .init(bitCount: bitCount))
-        super.init()
-    }
-
     @objc public init(data: NSData) {
         self.key = SymmetricKey(data: data as Data)
         super.init()
-    }
-
-    @objc public var rawData: NSData {
-        return key.withUnsafeBytes { Data($0) } as NSData
     }
 }
 
@@ -39,18 +30,6 @@ import Foundation
 
     @objc public var combined: NSData {
         return box.combined as NSData
-    }
-
-    @objc public var nonce: NSData {
-        return Data(box.nonce) as NSData
-    }
-
-    @objc public var ciphertext: NSData {
-        return box.ciphertext as NSData
-    }
-
-    @objc public var tag: NSData {
-        return box.tag as NSData
     }
 }
 

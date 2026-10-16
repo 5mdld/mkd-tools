@@ -10,19 +10,10 @@
 
 namespace NS
 {
-    enum StringEncoding : UInteger
-    {
-        ASCIIStringEncoding = 1,
-        UTF8StringEncoding = 4,
-    };
-
-    class String : public Copying<String>
+    class String : public Referencing<String>
     {
     public:
         static String* stringWithUTF8String(const char* pString);
-
-        static String* alloc();
-        String* initWithBytes(const void* pBytes, UInteger length, StringEncoding encoding);
 
         const char* utf8String() const;
     };
@@ -31,16 +22,6 @@ namespace NS
 _NS_INLINE NS::String* NS::String::stringWithUTF8String(const char* pString)
 {
     return Object::sendMessage<String*>(_NS_PRIVATE_CLS(NSString), _NS_PRIVATE_SEL(stringWithUTF8String_), pString);
-}
-
-_NS_INLINE NS::String* NS::String::alloc()
-{
-    return Object::alloc<String>(_NS_PRIVATE_CLS(NSString));
-}
-
-_NS_INLINE NS::String* NS::String::initWithBytes(const void* pBytes, const UInteger length, const StringEncoding encoding)
-{
-    return Object::sendMessage<String*>(this, _NS_PRIVATE_SEL(initWithBytes_length_encoding_), pBytes, length, encoding);
 }
 
 _NS_INLINE const char* NS::String::utf8String() const

@@ -4,24 +4,23 @@
 
 #include "platform/parallel.hpp"
 
-#include <Dispatch/Dispatch.hpp>
-#include <utility>
+#include <dispatch/dispatch.h>
 
 namespace MKD::detail
 {
-    namespace
-    {
-        void applyTrampoline(void* pContext, const size_t index)
-        {
-            const auto* payload = static_cast<std::pair<void (*)(size_t, void*), void*>*>(pContext);
-            payload->first(index, payload->second);
-        }
-    }
-
     void parallel_dispatch(const size_t count, void* ctx, void (*fn)(size_t, void*))
     {
-        auto* queue = Dispatch::globalQueue(QOS_CLASS_USER_INITIATED, 0);
-        std::pair payload{fn, ctx};
-        Dispatch::apply(count, queue, &payload, applyTrampoline);
+        struct Context
+        {
+            void* data;
+            void (*function)(size_t, void*);
+        } context{ctx, fn};
+
+        dispatch_apply_f(count, dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), &context,
+                         [](void* rawContext, const size_t index)
+                         {
+                             const auto& context = *static_cast<Context*>(rawContext);
+                             context.function(index, context.data);
+                         });
     }
 }

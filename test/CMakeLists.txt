@@ -42,7 +42,7 @@ if (APPLE)
     )
 
     target_link_libraries(cryptokit-tests PRIVATE
-            CRYPTOKIT_CPP
+            mkd-macos-bindings
             GTest::gtest
             GTest::gtest_main
     )

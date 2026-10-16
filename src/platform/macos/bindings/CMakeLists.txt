@@ -26,16 +26,16 @@ add_custom_command(
         COMMENT "Compiling CryptoKit Swift bridge"
 )
 
-add_library(CRYPTOKIT_CPP
+add_library(mkd-macos-bindings
         definitions.cpp
         ${SWIFT_BRIDGE_OBJ}
 )
 
-target_include_directories(CRYPTOKIT_CPP PUBLIC
+target_include_directories(mkd-macos-bindings PUBLIC
         "${CMAKE_CURRENT_SOURCE_DIR}"
 )
 
-target_link_libraries(CRYPTOKIT_CPP PUBLIC
+target_link_libraries(mkd-macos-bindings PUBLIC
         "-framework CryptoKit"
         "-framework Foundation"
         "-L$ENV{SDKROOT}/usr/lib/swift"

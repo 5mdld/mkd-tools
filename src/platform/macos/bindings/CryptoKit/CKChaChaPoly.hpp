@@ -12,15 +12,11 @@
 
 #pragma once
 
-//-------------------------------------------------------------------------------------------------------------------------------------------------------------
-
 #include "CKDefines.hpp"
 #include "CKPrivate.hpp"
 #include "CKSymmetricKey.hpp"
 #include "CKSealedBox.hpp"
 #include <Foundation/Foundation.hpp>
-
-//-------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 namespace CK
 {
@@ -33,8 +29,6 @@ namespace CK
     };
 }
 
-//-------------------------------------------------------------------------------------------------------------------------------------------------------------
-
 _CK_INLINE CK::SealedBox* CK::ChaChaPoly::seal(NS::Data* pData, CK::SymmetricKey* pKey)
 {
     return NS::Object::sendMessage<SealedBox*>(_CK_PRIVATE_CLS(CKChaChaPoly), _CK_PRIVATE_SEL(seal_using_), pData, pKey);
@@ -44,5 +38,3 @@ _CK_INLINE NS::Data* CK::ChaChaPoly::open(CK::SealedBox* pSealedBox, CK::Symmetr
 {
     return NS::Object::sendMessage<NS::Data*>(_CK_PRIVATE_CLS(CKChaChaPoly), _CK_PRIVATE_SEL(open_using_), pSealedBox, pKey);
 }
-
-//-------------------------------------------------------------------------------------------------------------------------------------------------------------

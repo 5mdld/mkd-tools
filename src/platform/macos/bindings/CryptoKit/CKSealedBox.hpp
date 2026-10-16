@@ -12,13 +12,9 @@
 
 #pragma once
 
-//-------------------------------------------------------------------------------------------------------------------------------------------------------------
-
 #include "CKDefines.hpp"
 #include "CKPrivate.hpp"
 #include <Foundation/Foundation.hpp>
-
-//-------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 namespace CK
 {
@@ -32,16 +28,8 @@ namespace CK
         SealedBox* init(NS::Data* pCombined);
 
         NS::Data* combined() const;
-
-        NS::Data* nonce() const;
-
-        NS::Data* ciphertext() const;
-
-        NS::Data* tag() const;
     };
 }
-
-//-------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 _CK_INLINE CK::SealedBox* CK::SealedBox::alloc()
 {
@@ -63,20 +51,3 @@ _CK_INLINE NS::Data* CK::SealedBox::combined() const
 {
     return NS::Object::sendMessage<NS::Data*>(this, _CK_PRIVATE_SEL(combined));
 }
-
-_CK_INLINE NS::Data* CK::SealedBox::nonce() const
-{
-    return NS::Object::sendMessage<NS::Data*>(this, _CK_PRIVATE_SEL(nonce));
-}
-
-_CK_INLINE NS::Data* CK::SealedBox::ciphertext() const
-{
-    return NS::Object::sendMessage<NS::Data*>(this, _CK_PRIVATE_SEL(ciphertext));
-}
-
-_CK_INLINE NS::Data* CK::SealedBox::tag() const
-{
-    return NS::Object::sendMessage<NS::Data*>(this, _CK_PRIVATE_SEL(tag));
-}
-
-//-------------------------------------------------------------------------------------------------------------------------------------------------------------

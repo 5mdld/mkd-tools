@@ -7,7 +7,7 @@ target_sources(mkd PRIVATE
 )
 
 target_link_libraries(mkd PRIVATE
-        CRYPTOKIT_CPP
+        mkd-macos-bindings
         "-framework Foundation"
         "-framework Security"
         "-framework CoreServices"

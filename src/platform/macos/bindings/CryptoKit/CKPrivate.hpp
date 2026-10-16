@@ -12,17 +12,11 @@
 
 #pragma once
 
-//-------------------------------------------------------------------------------------------------------------------------------------------------------------
-
 #include "CKDefines.hpp"
 #include <objc/runtime.h>
 
-//-------------------------------------------------------------------------------------------------------------------------------------------------------------
-
 #define _CK_PRIVATE_CLS(symbol) (CK::Private::Class::s_k##symbol)
 #define _CK_PRIVATE_SEL(accessor) (CK::Private::Selector::s_k##accessor)
-
-//-------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 #if defined(CK_PRIVATE_IMPLEMENTATION)
 #define _CK_PRIVATE_VISIBILITY __attribute__((visibility("default")))
@@ -32,8 +26,6 @@
 #define _CK_PRIVATE_DEF_CLS(symbol) extern void* s_k##symbol
 #define _CK_PRIVATE_DEF_SEL(accessor, symbol) extern SEL s_k##accessor
 #endif
-
-//-------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 extern "C" void CKBridgeInitialize();
 
@@ -70,16 +62,11 @@ namespace CK
         namespace Selector
         {
             // CKSymmetricKey
-            _CK_PRIVATE_DEF_SEL(initWithBitCount_, "initWithBitCount:");
             _CK_PRIVATE_DEF_SEL(initWithData_, "initWithData:");
-            _CK_PRIVATE_DEF_SEL(rawData, "rawData");
 
             // CKSealedBox
             _CK_PRIVATE_DEF_SEL(initWithCombined_, "initWithCombined:");
             _CK_PRIVATE_DEF_SEL(combined, "combined");
-            _CK_PRIVATE_DEF_SEL(nonce, "nonce");
-            _CK_PRIVATE_DEF_SEL(ciphertext, "ciphertext");
-            _CK_PRIVATE_DEF_SEL(tag, "tag");
 
             // CKChaChaPoly
             _CK_PRIVATE_DEF_SEL(seal_using_, "seal:using:");
@@ -87,5 +74,3 @@ namespace CK
         }
     }
 }
-
-//-------------------------------------------------------------------------------------------------------------------------------------------------------------
