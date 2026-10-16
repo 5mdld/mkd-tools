@@ -3,492 +3,345 @@
 //
 
 #include "MKD/resource/keystore.hpp"
-#include "platform/mmap_file.hpp"
+#include "MKD/platform/mmap_file.hpp"
+#include "binary/binary_view.hpp"
+#include "entry_id_codec.hpp"
 
 #include <array>
-#include <bit>
-#include <algorithm>
-#include <cstring>
 #include <format>
 #include <mutex>
-#include <span>
-#include <string>
 #include <unordered_map>
 #include <unordered_set>
 
-static_assert(std::endian::native == std::endian::little, "Keystore assumes little-endian byte order");
-
 namespace MKD
 {
-    namespace
-    {
-        struct FileHeader
-        {
-            uint32_t version;
-            uint32_t magic1;
-            uint32_t wordsOffset;
-            uint32_t indexOffset;
-        };
-
-        struct FileHeaderV2Ext
-        {
-            uint32_t convTableOffset;
-            uint32_t magic5;
-            uint32_t magic6;
-            uint32_t magic7;
-        };
-
-        struct IndexSectionHeader
-        {
-            uint32_t magic; // must be 0x04
-            uint32_t offsetA;
-            uint32_t offsetB;
-            uint32_t offsetC;
-            uint32_t offsetD;
-        };
-
-        static_assert(sizeof(FileHeader) == 16);
-        static_assert(sizeof(FileHeaderV2Ext) == 16);
-        static_assert(sizeof(IndexSectionHeader) == 20);
-
-
-        template<typename T>
-        const T* ptrAt(const MappedFile& file, const size_t offset)
-        {
-            if (offset + sizeof(T) > file.size()) return nullptr;
-            return reinterpret_cast<const T*>(file.data().data() + offset);
-        }
-
-
-        Result<std::span<const uint32_t>> parseIndex(
-            const MappedFile& file,
-            const size_t sectionBase,
-            const uint32_t start,
-            const uint32_t end)
-        {
-            if (start == 0)
-                return std::span<const uint32_t>{};
-
-            if (end <= start)
-                return std::unexpected("Invalid index range");
-
-            const size_t bytes = end - start;
-            if (bytes < 4 || bytes % 4 != 0)
-                return std::unexpected("Invalid index size");
-
-            auto span = file.slice(sectionBase + start, bytes);
-            if (!span) return std::unexpected(span.error());
-
-            const auto* data = reinterpret_cast<const uint32_t*>(span->data());
-            const size_t total = bytes / sizeof(uint32_t);
-
-            if (data[0] + 1 != total)
-                return std::unexpected(std::format(
-                    "Index count mismatch: stored {} but have {} offsets",
-                    data[0], total - 1));
-
-            return std::span(data + 1, total - 1);
-        }
-
-        [[nodiscard]] uint64_t packEntryId(const EntryId& id) noexcept
-        {
-            return (static_cast<uint64_t>(id.pageId) << 16) | id.itemId;
-        }
-    }
-
-
-    struct ConversionEntry
-    {
-        uint32_t page;
-        uint16_t item;
-        uint16_t padding;
-    };
-
-    static_assert(sizeof(ConversionEntry) == 8);
-
     struct Keystore::Impl
     {
-        MappedFile file;
-        std::string filename;
-        std::optional<KeystoreScope> scope;
-        size_t wordsOffset = 0;
-        std::span<const uint32_t> indices[4] = {};
-        std::span<const ConversionEntry> convTable;
-        mutable std::once_flag inverseIndexInit;
-        mutable std::unordered_map<uint64_t, std::vector<size_t>> inversePrefixIndex;
-
-        Impl(MappedFile mappedFile,
-             std::string name,
-             const std::optional<KeystoreScope> keystoreScope,
-             const size_t words,
-             std::span<const uint32_t> index0,
-             std::span<const uint32_t> index1,
-             std::span<const uint32_t> index2,
-             std::span<const uint32_t> index3,
-             std::span<const ConversionEntry> conversions) noexcept
-            : file(std::move(mappedFile))
-              , filename(std::move(name))
-              , scope(keystoreScope)
-              , wordsOffset(words)
-              , indices{index0, index1, index2, index3}
-              , convTable(conversions)
-        {
-        }
-
         struct WordEntry
         {
             std::string_view key;
-            size_t pagesOffset;
+            uint32_t pagesOffset;
             uint8_t flags;
         };
 
-        [[nodiscard]] Result<uint32_t> wordOffset(KeystoreIndex type, size_t index) const
+        struct Layout
         {
-            const auto i = static_cast<size_t>(type);
-            if (i >= 4)
-                return std::unexpected("Invalid index type");
+            detail::BinaryView words;
+            detail::BinaryView indices;
+            std::optional<detail::BinaryView> conversions;
+        };
 
-            const auto& arr = indices[i];
-            if (arr.empty())
-                return std::unexpected("Index not present");
-            if (index >= arr.size())
-                return std::unexpected(std::format(
-                    "Index out of bounds: {} >= {}", index, arr.size()));
+        static Result<uint32_t> readVersion2Header(detail::BinaryView data);
+        static Result<Layout> readLayout(detail::BinaryView data);
+        static Result<std::array<detail::BinaryView, 4>> readIndices(detail::BinaryView section);
+        static Result<detail::BinaryView> readConversions(std::optional<detail::BinaryView> section);
+        static Result<std::unique_ptr<Impl>> read(MappedFile file, std::string filename);
 
-            return arr[index];
+        MappedFile file;
+        std::string filename;
+        std::optional<KeystoreScope> scope;
+        detail::BinaryView words;
+        std::array<detail::BinaryView, 4> indices;
+        detail::BinaryView conversions;
+        mutable std::once_flag inverseInit;
+        mutable Result<void> inverseStatus;
+        mutable std::unordered_map<EntryId, std::vector<size_t>> inverse;
+
+        Impl(MappedFile file, std::string filename, detail::BinaryView words)
+            : file(std::move(file)), filename(std::move(filename)),
+              scope(parseKeystoreScopeFilename(this->filename)), words(words)
+        {
+        }
+
+        static Result<detail::BinaryView> parseIndex(detail::BinaryView section, const size_t start, const size_t end)
+        {
+            if (start == 0)
+                return detail::BinaryView{};
+            if (start < 20 || end <= start)
+                return std::unexpected("Invalid keystore index range");
+
+            auto data = section.slice(start, end - start);
+            if (!data)
+                return std::unexpected(data.error());
+
+            auto count = data->readLittle<uint32_t>(0);
+            if (!count)
+                return std::unexpected(count.error());
+
+            auto offsets = data->table(4, *count, 4);
+            if (!offsets || offsets->bytes().size() != data->bytes().size() - 4)
+                return std::unexpected("Keystore index count does not match its size");
+
+            return offsets;
+        }
+
+        [[nodiscard]] Result<uint32_t> wordOffset(KeystoreIndex type, const size_t index) const
+        {
+            const auto position = static_cast<size_t>(type);
+            if (position >= indices.size())
+                return std::unexpected("Invalid keystore index type");
+
+            if (index >= indices[position].bytes().size() / 4)
+                return std::unexpected("Keystore index out of bounds");
+
+            return indices[position].readLittle<uint32_t>(index * 4);
         }
 
         [[nodiscard]] Result<WordEntry> parseWordEntry(const uint32_t offset) const
         {
-            const size_t abs = wordsOffset + offset;
+            auto word = words.tail(offset);
+            if (!word)
+                return std::unexpected(word.error());
 
-            if (abs + 6 > file.size())
-                return std::unexpected("Word offset out of bounds");
+            auto header = word->slice(0, 5);
+            if (!header)
+                return std::unexpected(header.error());
 
-            const uint8_t* ptr = file.data().data() + abs;
-
-            uint32_t pagesOffset;
-            std::memcpy(&pagesOffset, ptr, sizeof(uint32_t));
-
-            const uint8_t flags = ptr[4];
-
-            const auto* strBegin = reinterpret_cast<const char*>(ptr + 5);
-            const size_t maxLen = file.size() - (abs + 5);
-
-            const auto* nullPos = static_cast<const char*>(std::memchr(strBegin, 0, maxLen));
-            if (!nullPos)
-                return std::unexpected("Unterminated word string");
+            auto key = word->nullTerminatedString(5);
+            if (!key)
+                return std::unexpected(key.error());
 
             return WordEntry{
-                .key = std::string_view(strBegin, static_cast<size_t>(nullPos - strBegin)),
-                .pagesOffset = pagesOffset,
-                .flags = flags,
+                .key = *key,
+                .pagesOffset = *header->readLittle<uint32_t>(0),
+                .flags = *header->readLittle<uint8_t>(4),
             };
         }
 
-        [[nodiscard]] Result<std::vector<EntryId>> decodeEntryIds(const size_t pagesOffset, const uint8_t wordFlags) const
+        [[nodiscard]] Result<std::vector<EntryId>> decodeIds(const WordEntry& word) const
         {
-            const bool wideCount = (wordFlags & 0x04) != 0;
-            const size_t countSize = wideCount ? 4 : 2;
-            const size_t abs = wordsOffset + pagesOffset;
+            auto data = words.tail(word.pagesOffset);
+            if (!data)
+                return std::unexpected(data.error());
 
-            if (abs + countSize > file.size())
-                return std::unexpected(std::format(
-                    "Pages offset out of bounds: {} + {} > {}", abs, countSize, file.size()));
+            auto ids = detail::keystore::decodeEntryIds(data->bytes(), (word.flags & 0x04) != 0);
+            if (!ids)
+                return std::unexpected(ids.error());
 
-            return MKD::decodeEntryIds(file.data().subspan(abs), wideCount);
+            for (auto& id : *ids)
+                if (id.pageId < conversions.bytes().size() / 8)
+                {
+                    const size_t offset = static_cast<size_t>(id.pageId) * 8;
+                    id = {*conversions.readLittle<uint32_t>(offset), *conversions.readLittle<uint16_t>(offset + 4)};
+                }
+            return ids;
         }
 
-        void applyConversion(std::vector<EntryId>& refs) const noexcept
+        Result<void> buildInverse() const
         {
-            for (auto& [page, entry] : refs)
+            const auto& prefix = indices[static_cast<size_t>(KeystoreIndex::Prefix)];
+            for (size_t i = 0; i < prefix.bytes().size() / 4; ++i)
             {
-                if (page < convTable.size())
-                {
-                    const auto& mapped = convTable[page];
-                    page = mapped.page;
-                    entry = mapped.item;
-                }
+                auto word = parseWordEntry(*prefix.readLittle<uint32_t>(i * 4));
+                if (!word)
+                    return std::unexpected(word.error());
+
+                auto ids = decodeIds(*word);
+                if (!ids)
+                    return std::unexpected(ids.error());
+
+                std::unordered_set<EntryId> seen;
+                for (const auto& id : *ids)
+                    if (seen.insert(id).second)
+                        inverse[id].push_back(i);
             }
-        }
-
-        void buildInversePrefixIndex() const
-        {
-            inversePrefixIndex.clear();
-
-            const auto& prefixIndex = indices[static_cast<size_t>(KeystoreIndex::Prefix)];
-            inversePrefixIndex.reserve(prefixIndex.size());
-
-            for (size_t i = 0; i < prefixIndex.size(); ++i)
-            {
-                auto offset = wordOffset(KeystoreIndex::Prefix, i);
-                if (!offset)
-                    continue;
-
-                auto entry = parseWordEntry(*offset);
-                if (!entry)
-                    continue;
-
-                auto entryIds = decodeEntryIds(entry->pagesOffset, entry->flags);
-                if (!entryIds)
-                    continue;
-
-                if (!convTable.empty())
-                    applyConversion(*entryIds);
-
-                std::unordered_set<uint64_t> seenForWord;
-                seenForWord.reserve(entryIds->size());
-
-                for (const auto& id : *entryIds)
-                {
-                    const auto packed = packEntryId(id);
-                    if (!seenForWord.insert(packed).second)
-                        continue;
-
-                    inversePrefixIndex[packed].push_back(i);
-                }
-            }
+            return {};
         }
     };
 
-
-    Keystore::Keystore(std::unique_ptr<Impl> impl) noexcept
-        : impl_(std::move(impl))
+    Keystore::Keystore(std::unique_ptr<Impl> impl) noexcept : impl_(std::move(impl))
     {
     }
 
     Keystore::~Keystore() = default;
-
     Keystore::Keystore(Keystore&&) noexcept = default;
-
     Keystore& Keystore::operator=(Keystore&&) noexcept = default;
 
+    Result<uint32_t> Keystore::Impl::readVersion2Header(detail::BinaryView data)
+    {
+        auto extension = data.slice(16, 16);
+        if (!extension)
+            return std::unexpected(extension.error());
+
+        for (size_t offset = 4; offset < 16; offset += 4)
+            if (*extension->readLittle<uint32_t>(offset) != 0)
+                return std::unexpected("Invalid keystore v2 magic");
+
+        return extension->readLittle<uint32_t>(0);
+    }
+
+    Result<Keystore::Impl::Layout> Keystore::Impl::readLayout(detail::BinaryView data)
+    {
+        auto header = data.slice(0, 16);
+        if (!header)
+            return std::unexpected(header.error());
+
+        const auto version = *header->readLittle<uint32_t>(0);
+        if (version != detail::keystore::version1 && version != detail::keystore::version2)
+            return std::unexpected(std::format("Invalid keystore version: 0x{:x}", version));
+
+        if (*header->readLittle<uint32_t>(4) != 0)
+            return std::unexpected("Invalid keystore magic");
+
+        const bool version2 = version == detail::keystore::version2;
+        auto conversionOffset = version2 ? readVersion2Header(data) : Result<uint32_t>(0);
+        if (!conversionOffset)
+            return std::unexpected(conversionOffset.error());
+
+        const size_t indexEnd = *conversionOffset == 0 ? data.bytes().size() : *conversionOffset;
+        const auto wordsOffset = *header->readLittle<uint32_t>(8);
+        const auto indexOffset = *header->readLittle<uint32_t>(12);
+        if (wordsOffset < (version2 ? 32u : 16u) || wordsOffset >= indexOffset || indexOffset >= indexEnd)
+            return std::unexpected("Invalid keystore section ordering");
+
+        auto words = data.slice(wordsOffset, indexOffset - wordsOffset);
+        auto indices = data.slice(indexOffset, indexEnd - indexOffset);
+        if (!words || !indices)
+            return std::unexpected("Keystore section exceeds file size");
+
+        std::optional<detail::BinaryView> conversions;
+        if (*conversionOffset != 0)
+        {
+            auto section = data.tail(*conversionOffset);
+            if (!section)
+                return std::unexpected(section.error());
+            conversions = *section;
+        }
+        return Layout{.words = *words, .indices = *indices, .conversions = conversions};
+    }
+
+    Result<std::array<detail::BinaryView, 4>> Keystore::Impl::readIndices(detail::BinaryView section)
+    {
+        auto header = section.slice(0, 20);
+        if (!header)
+            return std::unexpected(header.error());
+
+        if (*header->readLittle<uint32_t>(0) != 4)
+            return std::unexpected("Invalid keystore index magic");
+
+        std::array<detail::BinaryView, 4> indices;
+        size_t end = section.bytes().size();
+        // Absent arrays do not move the boundary of the preceding array.
+        for (size_t i = indices.size(); i-- > 0;)
+        {
+            const auto start = *header->readLittle<uint32_t>(4 + i * 4);
+            auto index = parseIndex(section, start, end);
+            if (!index)
+                return std::unexpected(std::format("Keystore index {}: {}", i, index.error()));
+            indices[i] = std::move(*index);
+            if (start != 0)
+                end = start;
+        }
+        return indices;
+    }
+
+    Result<detail::BinaryView> Keystore::Impl::readConversions(std::optional<detail::BinaryView> section)
+    {
+        if (!section)
+            return detail::BinaryView{};
+
+        auto count = section->readLittle<uint32_t>(0);
+        if (!count)
+            return std::unexpected(count.error());
+
+        return section->table(4, *count, 8);
+    }
+
+    Result<std::unique_ptr<Keystore::Impl>> Keystore::Impl::read(MappedFile file, std::string filename)
+    {
+        auto layout = readLayout(detail::BinaryView(file.data()));
+        if (!layout)
+            return std::unexpected(layout.error());
+
+        auto indices = readIndices(layout->indices);
+        if (!indices)
+            return std::unexpected(indices.error());
+
+        auto conversions = readConversions(layout->conversions);
+        if (!conversions)
+            return std::unexpected(conversions.error());
+
+        auto impl = std::make_unique<Impl>(std::move(file), std::move(filename), layout->words);
+        impl->indices = std::move(*indices);
+        impl->conversions = std::move(*conversions);
+        return impl;
+    }
 
     Result<Keystore> Keystore::open(const std::filesystem::path& path)
     {
         auto file = MappedFile::open(path);
-        if (!file) return std::unexpected(file.error());
+        if (!file)
+            return std::unexpected(file.error());
 
-        const size_t fileSize = file->size();
+        auto impl = Impl::read(std::move(*file), path.filename().string());
+        if (!impl)
+            return std::unexpected(impl.error());
 
-        const auto* hdr = ptrAt<FileHeader>(*file, 0);
-        if (!hdr)
-            return std::unexpected("File too small for header");
-
-        if (hdr->version != KEYSTORE_V1 && hdr->version != KEYSTORE_V2)
-            return std::unexpected(std::format("Invalid keystore version: 0x{:x}", hdr->version));
-
-        if (hdr->magic1 != 0)
-            return std::unexpected("Invalid magic1 field");
-
-        if (hdr->wordsOffset >= hdr->indexOffset)
-            return std::unexpected("Invalid offset ordering: wordsOffset >= indexOffset");
-
-        uint32_t convTableOffset = 0;
-
-        if (hdr->version == KEYSTORE_V2)
-        {
-            const auto* ext = ptrAt<FileHeaderV2Ext>(*file, sizeof(FileHeader));
-            if (!ext)
-                return std::unexpected("File too small for v2 header");
-
-            if (ext->magic5 != 0 || ext->magic6 != 0 || ext->magic7 != 0)
-                return std::unexpected("Invalid magic fields in v2 header");
-
-            convTableOffset = ext->convTableOffset;
-
-            if (convTableOffset != 0 && hdr->indexOffset >= convTableOffset)
-                return std::unexpected("Invalid conversion table offset");
-        }
-
-        const size_t indexBase = hdr->indexOffset;
-        const size_t indexEnd = convTableOffset != 0 ? convTableOffset : fileSize;
-
-        const auto* idxHdr = ptrAt<IndexSectionHeader>(*file, indexBase);
-        if (!idxHdr)
-            return std::unexpected("Index section header truncated");
-
-        if (idxHdr->magic != 0x04)
-            return std::unexpected(std::format("Invalid index magic: expected 0x04, got 0x{:x}",
-                                               idxHdr->magic));
-
-        const auto sectionSize = static_cast<uint32_t>(indexEnd - indexBase);
-        const std::array offsets = {
-            idxHdr->offsetA, idxHdr->offsetB,
-            idxHdr->offsetC, idxHdr->offsetD, sectionSize
-        };
-
-        auto endOf = [&](size_t i) -> uint32_t {
-            for (size_t j = i + 1; j < offsets.size(); ++j)
-                if (offsets[j] != 0) return offsets[j];
-            return sectionSize;
-        };
-
-        static constexpr const char* indexNames[] = {"A", "B", "C", "D"};
-        std::span<const uint32_t> indices[4];
-
-        for (size_t i = 0; i < 4; ++i)
-        {
-            auto idx = parseIndex(*file, indexBase, offsets[i], endOf(i));
-            if (!idx)
-                return std::unexpected(std::format("Index {}: {}", indexNames[i], idx.error()));
-            indices[i] = *idx;
-        }
-
-        std::span<const ConversionEntry> convTable;
-
-        if (convTableOffset != 0)
-        {
-            const auto* countPtr = ptrAt<uint32_t>(*file, convTableOffset);
-            if (!countPtr)
-                return std::unexpected("Conversion table header truncated");
-
-            const uint32_t count = *countPtr;
-            const size_t required = sizeof(uint32_t) + static_cast<size_t>(count) * sizeof(ConversionEntry);
-
-            if (convTableOffset + required > fileSize)
-                return std::unexpected("Conversion table extends past end of file");
-
-            const auto* entries = reinterpret_cast<const ConversionEntry*>(
-                file->data().data() + convTableOffset + sizeof(uint32_t));
-            convTable = std::span(entries, count);
-        }
-
-        auto filename = path.filename().string();
-        const auto scope = parseKeystoreScopeFilename(filename);
-
-        auto impl = std::make_unique<Impl>(
-            std::move(*file),
-            std::move(filename),
-            scope,
-            hdr->wordsOffset,
-            indices[0],
-            indices[1],
-            indices[2],
-            indices[3],
-            convTable);
-
-
-        return Keystore(std::move(impl));
+        return Keystore(std::move(*impl));
     }
-
 
     Result<KeystoreEntry> Keystore::entryAt(const KeystoreIndex type, const size_t index) const
     {
-        auto off = impl_->wordOffset(type, index);
-        if (!off) return std::unexpected(off.error());
+        auto offset = impl_->wordOffset(type, index);
+        if (!offset)
+            return std::unexpected(offset.error());
 
-        auto entry = impl_->parseWordEntry(*off);
-        if (!entry) return std::unexpected(entry.error());
+        auto word = impl_->parseWordEntry(*offset);
+        if (!word)
+            return std::unexpected(word.error());
 
-        return KeystoreEntry{
-            .key = entry->key,
-            .index = index,
-            .flags = entry->flags,
-        };
+        return KeystoreEntry{.key = word->key, .index = index, .flags = word->flags};
     }
 
     Result<std::string_view> Keystore::keyAt(const KeystoreIndex type, const size_t index) const
     {
         auto entry = entryAt(type, index);
-        if (!entry) return std::unexpected(entry.error());
+        if (!entry)
+            return std::unexpected(entry.error());
         return entry->key;
     }
 
     Result<std::vector<EntryId>> Keystore::entryIdsAt(const KeystoreIndex type, const size_t index) const
     {
-        auto off = impl_->wordOffset(type, index);
-        if (!off) return std::unexpected(off.error());
+        auto offset = impl_->wordOffset(type, index);
+        if (!offset)
+            return std::unexpected(offset.error());
 
-        auto entry = impl_->parseWordEntry(*off);
-        if (!entry) return std::unexpected(entry.error());
+        auto word = impl_->parseWordEntry(*offset);
+        if (!word)
+            return std::unexpected(word.error());
 
-        auto entryIds = impl_->decodeEntryIds(entry->pagesOffset, entry->flags);
-        if (!entryIds) return std::unexpected(entryIds.error());
-
-        if (!impl_->convTable.empty())
-            impl_->applyConversion(*entryIds);
-
-        return entryIds;
+        return impl_->decodeIds(*word);
     }
 
-
-    size_t Keystore::indexSize(const KeystoreIndex type) const noexcept
+    size_t Keystore::indexSize(KeystoreIndex type) const noexcept
     {
-        const auto i = static_cast<size_t>(type);
-        return i < 4 ? impl_->indices[i].size() : 0;
+        const auto position = static_cast<size_t>(type);
+        return position < 4 ? impl_->indices[position].bytes().size() / 4 : 0;
     }
-
 
     std::string_view Keystore::filename() const noexcept { return impl_->filename; }
     std::optional<KeystoreScope> Keystore::scope() const noexcept { return impl_->scope; }
 
-    std::vector<std::string_view> Keystore::keysForEntry(const EntryId& id) const
+    Result<std::vector<std::string_view>> Keystore::keysForEntry(const EntryId& id) const
     {
-        std::call_once(impl_->inverseIndexInit, [this] {
-            impl_->buildInversePrefixIndex();
-        });
-
-        const auto entryKey = packEntryId(id);
-        const auto hit = impl_->inversePrefixIndex.find(entryKey);
-        if (hit == impl_->inversePrefixIndex.end())
-            return {};
+        std::call_once(impl_->inverseInit, [this] { impl_->inverseStatus = impl_->buildInverse(); });
+        if (!impl_->inverseStatus)
+            return std::unexpected(impl_->inverseStatus.error());
 
         std::vector<std::string_view> keys;
-        keys.reserve(hit->second.size());
-        std::unordered_set<std::string_view> seen;
-        seen.reserve(hit->second.size());
-
-        for (const auto index : hit->second)
+        if (const auto hit = impl_->inverse.find(id); hit != impl_->inverse.end())
         {
-            auto key = keyAt(KeystoreIndex::Prefix, index);
-            if (!key)
-                continue;
-
-            if (seen.insert(*key).second)
-                keys.push_back(*key);
+            std::unordered_set<std::string_view> seen;
+            for (const auto index : hit->second)
+            {
+                auto key = keyAt(KeystoreIndex::Prefix, index);
+                if (!key)
+                    return std::unexpected(key.error());
+                if (seen.insert(*key).second)
+                    keys.push_back(*key);
+            }
         }
-
         return keys;
-    }
-
-    Keystore::Iterator Keystore::begin(const KeystoreIndex type) const noexcept
-    {
-        return Iterator{this, type, 0};
-    }
-
-    Keystore::Iterator Keystore::end(const KeystoreIndex type) const noexcept
-    {
-        return Iterator{this, type, indexSize(type)};
-    }
-
-    Keystore::Iterator::Iterator(const Keystore* keystore, const KeystoreIndex type, const size_t index) noexcept
-        : keystore_(keystore), type_(type), index_(index)
-    {
-    }
-
-    Keystore::Iterator::value_type Keystore::Iterator::operator*() const
-    {
-        if (keystore_ == nullptr)
-            return {};
-
-        auto entry = keystore_->entryAt(type_, index_);
-        if (!entry)
-            return {};
-
-        return *entry;
-    }
-
-    Keystore::Iterator& Keystore::Iterator::operator++()
-    {
-        ++index_;
-        return *this;
-    }
-
-    Keystore::Iterator Keystore::Iterator::operator++(int)
-    {
-        auto copy = *this;
-        ++(*this);
-        return copy;
     }
 }

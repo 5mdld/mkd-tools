@@ -10,6 +10,7 @@
 #include <format>
 #include <fstream>
 #include <numeric>
+#include <limits>
 
 namespace MKD
 {
@@ -37,14 +38,22 @@ namespace MKD
 
     Result<void> KeystoreWriter::add(std::string_view key, std::vector<EntryId> pages)
     {
-        if (key.empty())
+        if (key.empty() || key.contains('\0'))
             return std::unexpected("Search key must not be empty");
 
         if (pages.empty())
             return std::unexpected("Entry ids must not be empty");
 
+        if (pages.size() > 65535 || std::ranges::any_of(pages, [](const EntryId& id) { return id.pageId > 0xFFFFFF; }))
+            return std::unexpected("Entry IDs exceed the keystore encoding limits");
+
         auto& existing = entries_[std::string(key)];
-        detail::mergePages(existing, pages);
+        auto merged = existing;
+        detail::mergePages(merged, pages);
+        if (merged.size() > 65535)
+            return std::unexpected("Too many entry IDs for one keystore key");
+
+        existing = std::move(merged);
         return {};
     }
 
@@ -57,15 +66,24 @@ namespace MKD
         for (auto key : keys)
         {
             if (key.empty()) continue;
-            auto& existing = entries_[std::string(key)];
-            detail::mergePages(existing, std::span(&page, 1));
+            if (auto result = add(key, {page}); !result)
+                return result;
         }
         return {};
     }
 
-    Result<void> KeystoreWriter::finalize(const fs::path& filePath) const
+    Result<void> KeystoreWriter::finalize(const std::filesystem::path& filePath) const
     {
+        if (version_ != detail::keystore::version1 && version_ != detail::keystore::version2)
+            return std::unexpected("Unsupported keystore version");
+
         auto entries = collectEntries();
+        uint64_t fileSize = 32 + 20 + 4 * (4 + uint64_t{4} * entries.size());
+        for (const auto& entry : entries)
+            fileSize += 8 + entry.key.size() + uint64_t{6} * entry.entryIds.size();
+
+        if (fileSize > std::numeric_limits<uint32_t>::max())
+            return std::unexpected("Keystore exceeds the format size limit");
 
         auto words = buildWordsSection(entries);
         if (!words)
@@ -80,7 +98,7 @@ namespace MKD
         auto indexD = serializeIndexArray(idx.other);
 
         // calculate file layout offsets
-        const bool isV2 = version_ == KEYSTORE_V2;
+        const bool isV2 = version_ == detail::keystore::version2;
         const size_t headerSize = isV2 ? 32 : 16;
         const size_t wordsOffset = headerSize;
         const size_t indexSectionOffset = wordsOffset + words->data.size();
@@ -225,14 +243,11 @@ namespace MKD
             }
             else if (pageBytes == 2)
             {
-                buf.writeByte(static_cast<uint8_t>(page >> 8));
-                buf.writeByte(static_cast<uint8_t>(page));
+                buf.writeBig<uint32_t, 2>(page);
             }
             else if (pageBytes == 3)
             {
-                buf.writeByte(static_cast<uint8_t>(page >> 16));
-                buf.writeByte(static_cast<uint8_t>(page >> 8));
-                buf.writeByte(static_cast<uint8_t>(page));
+                buf.writeBig<uint32_t, 3>(page);
             }
 
             if (itemBytes == 1)
@@ -241,8 +256,7 @@ namespace MKD
             }
             else if (itemBytes == 2)
             {
-                buf.writeByte(static_cast<uint8_t>(item >> 8));
-                buf.writeByte(static_cast<uint8_t>(item));
+                buf.writeBig(item);
             }
 
             // skip extra and type fields
@@ -323,7 +337,8 @@ namespace MKD
         std::vector<size_t> indices(n);
         std::iota(indices.begin(), indices.end(), 0);
 
-        auto toOffsets = [&](const std::vector<size_t>& order) {
+        auto toOffsets = [&](const std::vector<size_t>& order)
+        {
             std::vector<uint32_t> offsets;
             offsets.reserve(order.size());
             for (const size_t i : order)
@@ -334,8 +349,10 @@ namespace MKD
         // Index A sorted by codepoint count, then case-folded comparison
         {
             auto order = indices;
-            std::ranges::sort(order, [&](const size_t a, const size_t b) {
-                return detail::keystore::compare(entries[a].key, entries[b].key, detail::keystore::CompareMode::Length) < 0;
+            std::ranges::sort(order, [&](const size_t a, const size_t b)
+            {
+                return detail::keystore::compare(entries[a].key, entries[b].key, detail::keystore::CompareMode::Length)
+                    < 0;
             });
             result.length = toOffsets(order);
         }
@@ -343,8 +360,10 @@ namespace MKD
         // Index B prefix case-insensitive, skip spaces/hyphens
         {
             auto order = indices;
-            std::ranges::sort(order, [&](const size_t a, const size_t b) {
-                return detail::keystore::compare(entries[a].key, entries[b].key, detail::keystore::CompareMode::Forward) < 0;
+            std::ranges::sort(order, [&](const size_t a, const size_t b)
+            {
+                return detail::keystore::compare(entries[a].key, entries[b].key, detail::keystore::CompareMode::Forward)
+                    < 0;
             });
             result.prefix = toOffsets(order);
         }
@@ -352,8 +371,10 @@ namespace MKD
         // Index C suffix reversed key comparison
         {
             auto order = indices;
-            std::ranges::sort(order, [&](const size_t a, const size_t b) {
-                return detail::keystore::compare(entries[a].key, entries[b].key, detail::keystore::CompareMode::Backward) < 0;
+            std::ranges::sort(order, [&](const size_t a, const size_t b)
+            {
+                return detail::keystore::compare(entries[a].key, entries[b].key,
+                                                 detail::keystore::CompareMode::Backward) < 0;
             });
             result.suffix = toOffsets(order);
         }

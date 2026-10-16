@@ -61,7 +61,8 @@ namespace MKD
     }
 
 
-    Result<std::vector<KeystoreExporter::ForwardEntry>> KeystoreExporter::collectEntries(const Keystore& keystore, const KeystoreIndex index)
+    Result<std::vector<KeystoreExporter::ForwardEntry>> KeystoreExporter::collectEntries(
+        const Keystore& keystore, const KeystoreIndex index)
     {
         const size_t count = keystore.indexSize(index);
         std::vector<ForwardEntry> entries;
@@ -118,31 +119,20 @@ namespace MKD
     }
 
 
-    Result<ExportResult> KeystoreExporter::writeInverse(const Keystore& keystore, std::span<const ForwardEntry> entries, const fs::path& path)
+    Result<ExportResult> KeystoreExporter::writeInverse(const Keystore& keystore, std::span<const ForwardEntry> entries,
+                                                        const fs::path& path)
     {
         std::error_code ec;
         fs::create_directories(path.parent_path(), ec);
         if (ec)
             return std::unexpected(std::format("Cannot create directory: {}", ec.message()));
 
-        // Pack (page, item) into a single uint64
-        constexpr auto pack = [](const EntryId& ref) -> uint64_t {
-            return (static_cast<uint64_t>(ref.pageId) << 16) | ref.itemId;
-        };
-
-        std::unordered_set<uint64_t> seen;
-        seen.reserve(entries.size());
-        std::vector<uint64_t> sorted;
-        sorted.reserve(entries.size());
-
+        std::unordered_set<EntryId> seen;
+        std::vector<EntryId> sorted;
         for (const auto& entry : entries)
-        {
-            for (const auto& ref : entry.entryIds)
-            {
-                if (const auto packed = pack(ref); seen.insert(packed).second)
-                    sorted.push_back(packed);
-            }
-        }
+            for (const auto& id : entry.entryIds)
+                if (seen.insert(id).second)
+                    sorted.push_back(id);
 
         std::ranges::sort(sorted);
 
@@ -153,18 +143,17 @@ namespace MKD
         ExportResult result;
         result.totalResources = sorted.size();
 
-        for (const auto packed : sorted)
+        for (const auto& id : sorted)
         {
-            const auto page = static_cast<uint32_t>(packed >> 16);
-            const auto entry = static_cast<uint16_t>(packed & 0xFFFF);
-            const EntryId id{.pageId = page, .itemId = entry};
-            const auto keys = keystore.keysForEntry(id);
+            auto keys = keystore.keysForEntry(id);
+            if (!keys)
+                return std::unexpected(keys.error());
 
-            out << std::format("{:06}-{:04X}", page, entry) <<'\t';
-            for (size_t i = 0; i < keys.size(); ++i)
+            out << std::format("{:06}-{:04X}", id.pageId, id.itemId) << '\t';
+            for (size_t i = 0; i < keys->size(); ++i)
             {
                 if (i > 0) out << '\t';
-                out << keys[i];
+                out << (*keys)[i];
             }
             out << '\n';
             result.exported++;

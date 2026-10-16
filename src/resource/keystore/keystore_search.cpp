@@ -17,11 +17,11 @@ namespace MKD
         {
             switch (mode)
             {
-                case SearchMode::Prefix:
-                case SearchMode::Exact:
-                    return keystore::CompareMode::Forward;
-                case SearchMode::Suffix:
-                    return keystore::CompareMode::Backward;
+            case SearchMode::Prefix:
+            case SearchMode::Exact:
+                return keystore::CompareMode::Forward;
+            case SearchMode::Suffix:
+                return keystore::CompareMode::Backward;
             }
             std::unreachable();
         }
@@ -31,27 +31,38 @@ namespace MKD
         {
             switch (mode)
             {
-                case SearchMode::Prefix:
-                case SearchMode::Exact: // todo should use KeystoreIndex::Length later
-                    return KeystoreIndex::Prefix;
-                case SearchMode::Suffix:
-                    return KeystoreIndex::Suffix;
+            case SearchMode::Prefix:
+            case SearchMode::Exact: // todo should use KeystoreIndex::Length later
+                return KeystoreIndex::Prefix;
+            case SearchMode::Suffix:
+                return KeystoreIndex::Suffix;
             }
             std::unreachable();
         }
 
-        size_t indexLowerBound(const Keystore& keystore,
-                               const KeystoreIndex indexType,
-                               std::string_view searchKey,
-                               const keystore::CompareMode mode)
+        Result<size_t> indexLowerBound(const Keystore& keystore,
+                                       const KeystoreIndex indexType,
+                                       std::string_view searchKey,
+                                       const keystore::CompareMode mode)
         {
-            const auto range = std::ranges::subrange(keystore.begin(indexType), keystore.end(indexType));
-            const auto it = std::lower_bound(range.begin(), range.end(), searchKey,
-                                             [mode](const KeystoreEntry& entry, std::string_view value) {
-                                                 return detail::keystore::compare(entry.key, value, mode) < 0;
-                                             });
-
-            return static_cast<size_t>(std::ranges::distance(range.begin(), it));
+            size_t first = 0;
+            size_t count = keystore.indexSize(indexType);
+            while (count != 0)
+            {
+                const size_t step = count / 2;
+                const size_t middle = first + step;
+                auto key = keystore.keyAt(indexType, middle);
+                if (!key)
+                    return std::unexpected(key.error());
+                if (keystore::compare(*key, searchKey, mode) < 0)
+                {
+                    first = middle + 1;
+                    count -= step + 1;
+                }
+                else
+                    count = step;
+            }
+            return first;
         }
 
 
@@ -108,18 +119,23 @@ namespace MKD
         if (indexSize == 0)
             return std::unexpected("Index is empty or does not exist");
 
-        const size_t lowerBound = detail::indexLowerBound(keystore, indexType, query, cmpMode);
+        auto lowerBound = detail::indexLowerBound(keystore, indexType, query, cmpMode);
+        if (!lowerBound) return std::unexpected(lowerBound.error());
         size_t upperBound = indexSize; // find upper bound via "next key"
 
-        if (lowerBound < indexSize)
+        if (*lowerBound < indexSize)
         {
             const std::string nextKey = detail::createNextKey(query, mode);
             if (!nextKey.empty())
-                upperBound = detail::indexLowerBound(keystore, indexType, nextKey, cmpMode);
+            {
+                auto upper = detail::indexLowerBound(keystore, indexType, nextKey, cmpMode);
+                if (!upper) return std::unexpected(upper.error());
+                upperBound = *upper;
+            }
         }
 
         return KeystoreSearchRange{
-            .begin = lowerBound,
+            .begin = *lowerBound,
             .end = upperBound,
             .indexType = indexType
         };
@@ -143,7 +159,7 @@ namespace MKD
         for (size_t i = range->begin; i < range->end; i++)
         {
             auto entry = keystore.entryAt(range->indexType, i);
-            if (!entry) continue; // shouldnt happen
+            if (!entry) return std::unexpected(entry.error());
 
             // Flag 0x08 on the word entry marks exact-search-only keys.
             // For non-exact searches, skip these entries.
@@ -159,7 +175,7 @@ namespace MKD
 
             auto entryIds = keystore.entryIdsAt(range->indexType, i);
             if (!entryIds)
-                continue;
+                return std::unexpected(entryIds.error());
 
             results.push_back({
                 .key = entry->key,

@@ -222,8 +222,9 @@ TEST_F(KeystoreSearchTest, KeysForEntryFindsInverseMappings)
     const auto entryId = results->front().entryIds.front();
     const auto keys = keystore_->keysForEntry(entryId);
 
-    EXPECT_FALSE(keys.empty()) << "Expected at least one inverse key for entry id";
-    EXPECT_TRUE(std::ranges::any_of(keys, [&](std::string_view key) {
+    ASSERT_TRUE(keys) << keys.error();
+    EXPECT_FALSE(keys->empty()) << "Expected at least one inverse key for entry id";
+    EXPECT_TRUE(std::ranges::any_of(*keys, [&](std::string_view key) {
         return key == results->front().key;
     })) << "Inverse keys should include the original key hit";
 }

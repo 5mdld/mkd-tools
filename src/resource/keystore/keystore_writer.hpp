@@ -6,20 +6,20 @@
 
 #include "MKD/result.hpp"
 #include "MKD/resource/keystore.hpp"
+#include "entry_id_codec.hpp"
 
 #include <filesystem>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
-namespace fs = std::filesystem;
 
 namespace MKD
 {
     class KeystoreWriter
     {
     public:
-        explicit KeystoreWriter(uint32_t version = KEYSTORE_V1);
+        explicit KeystoreWriter(uint32_t version = detail::keystore::version1);
 
         /**
          * Add a search key mapping to one or more entry ids
@@ -46,7 +46,7 @@ namespace MKD
          *
          * @param filePath Output .keystore file path
          */
-        [[nodiscard]] Result<void> finalize(const fs::path& filePath) const;
+        [[nodiscard]] Result<void> finalize(const std::filesystem::path& filePath) const;
 
         [[nodiscard]] size_t size() const noexcept;
         [[nodiscard]] bool empty() const noexcept;

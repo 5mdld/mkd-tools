@@ -13,6 +13,7 @@
 #include "resource/rsc/resource_store_writer.hpp"
 #include "resource/nrsc/named_resource_store_index.hpp"
 #include "resource/nrsc/named_resource_store_writer.hpp"
+#include "resource/keystore/entry_id_codec.hpp"
 #include "resource/keystore/keystore_writer.hpp"
 
 #include <array>
@@ -295,6 +296,50 @@ namespace MKD::test
         EXPECT_TRUE(decoded->empty());
     }
 
+    TEST_F(ResourceFormatTest, KeystoreCodecHandlesMixedEndianFieldsAndTruncation)
+    {
+        const std::array<uint8_t, 9> bytes{1, 0, 0x24, 0x12, 0x34, 0x56, 0x78, 0x9a, 0};
+        auto ids = detail::keystore::decodeEntryIds(bytes);
+        ASSERT_TRUE(ids) << ids.error();
+        ASSERT_EQ(ids->size(), 1);
+        EXPECT_EQ(ids->front(), (EntryId{0x123456, 0x789a}));
+        for (size_t size = 0; size < 8; ++size)
+            EXPECT_FALSE(detail::keystore::decodeEntryIds(std::span(bytes).first(size)));
+        const std::array<uint8_t, 4> hugeCount{0xff, 0xff, 0xff, 0xff};
+        EXPECT_FALSE(detail::keystore::decodeEntryIds(hugeCount, true));
+    }
+
+    TEST_F(ResourceFormatTest, KeystoreRoundTripAndInverseLookup)
+    {
+        KeystoreWriter writer;
+        ASSERT_TRUE(writer.add("key", {{0x123456, 0x789a}}));
+        ASSERT_TRUE(writer.finalize(directory / "headword.keystore"));
+        auto store = Keystore::open(directory / "headword.keystore");
+        ASSERT_TRUE(store) << store.error();
+        auto ids = store->entryIdsAt(KeystoreIndex::Prefix, 0);
+        ASSERT_TRUE(ids);
+        EXPECT_EQ(ids->front(), (EntryId{0x123456, 0x789a}));
+        auto keys = store->keysForEntry(ids->front());
+        ASSERT_TRUE(keys);
+        EXPECT_EQ(*keys, std::vector<std::string_view>{"key"});
+        for (auto entry : store->entries(KeystoreIndex::Prefix))
+        {
+            ASSERT_TRUE(entry);
+            EXPECT_EQ(entry->key, "key");
+        }
+    }
+
+    TEST_F(ResourceFormatTest, InvalidKeystoreOffsetsReachTheCallerAsErrors)
+    {
+        words("bad.keystore", {0x10000, 0, 16, 20, 0, 4, 20, 0, 0, 0, 1, 0xFFFFFFFF});
+        auto store = Keystore::open(directory / "bad.keystore");
+        ASSERT_TRUE(store) << store.error();
+        EXPECT_FALSE(store->entryAt(KeystoreIndex::Length, 0));
+        for (auto entry : store->entries(KeystoreIndex::Length))
+            EXPECT_FALSE(entry);
+        EXPECT_FALSE(keystoreSearch(*store, "a", SearchMode::Exact));
+    }
+
     TEST_F(ResourceFormatTest, MovingARetainedSpanLeavesAnEmptySource)
     {
         RetainedSpan original(std::vector<uint8_t>{'a'});
@@ -319,6 +364,29 @@ namespace MKD::test
         auto item = store->get(10);
         ASSERT_TRUE(item) << item.error();
         EXPECT_TRUE(item->empty());
+    }
+
+    TEST_F(ResourceFormatTest, VersionTwoKeystoresApplyTheEmbeddedConversionTable)
+    {
+        detail::BinaryBuffer bytes;
+        for (uint32_t value : {0x20000, 0, 32, 42, 70, 0, 0, 0, 7}) bytes.writeLittle(value);
+        bytes.writeByte(0);
+        bytes.writeByte('k');
+        bytes.writeByte(0);
+        bytes.writeLittle(uint16_t{1});
+        bytes.writeByte(0);
+        for (uint32_t value : {4, 0, 20, 0, 0, 1, 0, 1, 42}) bytes.writeLittle(value);
+        bytes.writeLittle(uint16_t{7});
+        bytes.writeLittle(uint16_t{0});
+        write("converted.keystore", bytes.data());
+        auto store = Keystore::open(directory / "converted.keystore");
+        ASSERT_TRUE(store) << store.error();
+        auto ids = store->entryIdsAt(KeystoreIndex::Prefix, 0);
+        ASSERT_TRUE(ids);
+        EXPECT_EQ(*ids, (std::vector<EntryId>{{42, 7}}));
+        auto keys = store->keysForEntry({42, 7});
+        ASSERT_TRUE(keys);
+        EXPECT_EQ(*keys, std::vector<std::string_view>{"k"});
     }
 
     TEST_F(ResourceFormatTest, DuplicateIndexFilesAreRejected)
@@ -361,6 +429,18 @@ namespace MKD::test
         auto index = NamedResourceStoreIndex::open(directory);
         ASSERT_TRUE(index);
         EXPECT_TRUE(index->itemAt(0)->second.isCompressed());
+    }
+
+    TEST_F(ResourceFormatTest, EntryIdsWorkAsStandardUnorderedKeys)
+    {
+        std::unordered_set<EntryId> ids;
+        ids.insert({42, 7});
+        ids.insert({42, 7});
+        ids.insert({42, 8});
+        ids.insert({43, 7});
+        EXPECT_EQ(ids.size(), 3);
+        EXPECT_TRUE(ids.contains({42, 7}));
+        EXPECT_FALSE(ids.contains({43, 8}));
     }
 
     TEST_F(ResourceFormatTest, ExistingRscOutputsSkipInvalidPayloadsBeforeReading)

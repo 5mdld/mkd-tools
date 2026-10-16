@@ -2,131 +2,88 @@
 // kiwakiwaaにより 2026/02/11 に作成されました。
 //
 
-#include "MKD/resource/entry_id.hpp"
+#include "entry_id_codec.hpp"
+#include "binary/binary_view.hpp"
 
-#include <cstring>
 #include <format>
 
-namespace MKD
+namespace MKD::detail::keystore
 {
-    Result<DecodedEntry> decodeKeystoreEntry(
-        const std::span<const uint8_t> data)
+    Result<DecodedEntry> decodeKeystoreEntry(std::span<const uint8_t> data)
     {
-        if (data.empty())
-            return std::unexpected("Empty data for keystore entry");
+        const BinaryView input(data);
+        auto flags = input.readLittle<uint8_t>(0);
+        if (!flags)
+            return std::unexpected(flags.error());
 
-        const uint8_t flags = data[0];
         size_t offset = 1;
         DecodedEntry entry{};
+        // The flags select byte widths, while multibyte values are big endian.
+        const auto field = [&](const uint8_t bits, bool page) -> Result<uint32_t>
+        {
+            Result<uint32_t> value = uint32_t{0};
+            size_t width = 0;
+            if (bits & 1) width = 1;
+            else if (bits & 2) width = 2;
+            else if (page && (bits & 4)) width = 3;
+            switch (width)
+            {
+            case 1: value = input.readBig<uint32_t, 1>(offset);
+                break;
+            case 2: value = input.readBig<uint32_t, 2>(offset);
+                break;
+            case 3: value = input.readBig<uint32_t, 3>(offset);
+                break;
+            default: break;
+            }
+            if (value)
+                offset += width;
+            return value;
+        };
 
-        if (flags & 0x01)
+        auto page = field(*flags & 0x07, true);
+        if (!page) return std::unexpected(page.error());
+        auto item = field((*flags >> 4) & 0x03, false);
+        if (!item) return std::unexpected(item.error());
+        auto extra = field((*flags >> 6) & 0x03, false);
+        if (!extra) return std::unexpected(extra.error());
+        entry.page = *page;
+        entry.item = static_cast<uint16_t>(*item);
+        entry.extra = static_cast<uint16_t>(*extra);
+        if (*flags & 0x08)
         {
-            if (offset + 1 > data.size())
-                return std::unexpected("Truncated page field");
-            entry.page = data[offset];
-            offset += 1;
-        }
-        else if (flags & 0x02)
-        {
-            if (offset + 2 > data.size())
-                return std::unexpected("Truncated page field");
-            entry.page = (static_cast<uint32_t>(data[offset]) << 8) |
-                         data[offset + 1];
-            offset += 2;
-        }
-        else if (flags & 0x04)
-        {
-            if (offset + 3 > data.size())
-                return std::unexpected("Truncated page field");
-            entry.page = (static_cast<uint32_t>(data[offset]) << 16) |
-                         (static_cast<uint32_t>(data[offset + 1]) << 8) |
-                         data[offset + 2];
-            offset += 3;
-        }
-
-        if (flags & 0x10)
-        {
-            if (offset + 1 > data.size())
-                return std::unexpected("Truncated item field");
-            entry.item = data[offset];
-            offset += 1;
-        }
-        else if (flags & 0x20)
-        {
-            if (offset + 2 > data.size())
-                return std::unexpected("Truncated item field");
-            entry.item = (static_cast<uint16_t>(data[offset]) << 8) |
-                         data[offset + 1];
-            offset += 2;
-        }
-
-        if (flags & 0x40)
-        {
-            if (offset + 1 > data.size())
-                return std::unexpected("Truncated extra field");
-            entry.extra = data[offset];
-            offset += 1;
-        }
-        else if (flags & 0x80)
-        {
-            if (offset + 2 > data.size())
-                return std::unexpected("Truncated extra field");
-            entry.extra = (static_cast<uint16_t>(data[offset]) << 8) |
-                          data[offset + 1];
-            offset += 2;
-        }
-
-        if (flags & 0x08)
-        {
-            if (offset + 1 > data.size())
-                return std::unexpected("Truncated type field");
-            entry.type = data[offset];
-            offset += 1;
+            auto type = input.readLittle<uint8_t>(offset++);
+            if (!type) return std::unexpected(type.error());
+            entry.type = *type;
             entry.hasType = true;
         }
-
         entry.bytesConsumed = offset;
         return entry;
     }
 
-    Result<std::vector<EntryId>> decodeEntryIds(const std::span<const uint8_t> data, const bool wideCount)
+    Result<std::vector<EntryId>> decodeEntryIds(std::span<const uint8_t> data, bool wideCount)
     {
-        const size_t countSize = wideCount ? 4 : 2;
+        const BinaryView input(data);
+        auto count = wideCount ? input.readLittle<uint32_t>(0) : input.readLittle<uint32_t, 2>(0);
+        if (!count)
+            return std::unexpected(count.error());
 
-        if (data.size() < countSize)
-            return std::unexpected(std::format(
-                "Entry id block too small: {} bytes", data.size()));
+        auto remaining = input.tail(wideCount ? 4 : 2);
+        if (!remaining)
+            return std::unexpected(remaining.error());
+        if (*count > remaining->bytes().size())
+            return std::unexpected("Entry count exceeds the encoded data size");
 
-        uint32_t count;
-        if (wideCount)
+        std::vector<EntryId> result;
+        result.reserve(*count);
+        for (uint32_t i = 0; i < *count; ++i)
         {
-            std::memcpy(&count, data.data(), sizeof(uint32_t));
-        }
-        else
-        {
-            uint16_t count16;
-            std::memcpy(&count16, data.data(), sizeof(uint16_t));
-            count = count16;
-        }
-
-        auto remaining = data.subspan(countSize);
-        std::vector<EntryId> refs;
-        refs.reserve(count);
-
-        for (uint32_t i = 0; i < count; ++i)
-        {
-            auto decoded = decodeKeystoreEntry(remaining);
+            auto decoded = decodeKeystoreEntry(remaining->bytes());
             if (!decoded)
-                return std::unexpected(std::format(
-                    "Failed to decode entry {}/{}: {}", i, count, decoded.error()));
-
-            if (decoded->bytesConsumed > remaining.size())
-                return std::unexpected("Entry overflows entry id data block");
-
-            refs.push_back({decoded->page, decoded->item});
-            remaining = remaining.subspan(decoded->bytesConsumed);
+                return std::unexpected(std::format("Entry {}: {}", i, decoded.error()));
+            result.push_back({decoded->page, decoded->item});
+            remaining = remaining->tail(decoded->bytesConsumed);
         }
-
-        return refs;
+        return result;
     }
 }
