@@ -29,7 +29,7 @@ protected:
 
 TEST_F(HeadlineTest, LoadValidHeadlineStore)
 {
-    auto headlineStoreResult = HeadlineStore::load(testHeadline_);
+    auto headlineStoreResult = HeadlineStore::open(testHeadline_);
     ASSERT_TRUE(headlineStoreResult.has_value()) << "Failed to load headline store: " << headlineStoreResult.error();
 
     const auto& headlineStore = headlineStoreResult.value();

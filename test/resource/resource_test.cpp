@@ -340,6 +340,28 @@ namespace MKD::test
         EXPECT_FALSE(keystoreSearch(*store, "a", SearchMode::Exact));
     }
 
+    TEST_F(ResourceFormatTest, HeadlinesDecodeUnalignedUtf16AndPreserveFallback)
+    {
+        detail::BinaryBuffer bytes;
+        for (uint32_t value : {0, 0, 1, 24, 49, 24, 7}) bytes.writeLittle(value);
+        bytes.writeLittle(uint16_t{0});
+        bytes.writeLittle(uint16_t{0});
+        for (uint32_t value : {0, 0, 0, 4}) bytes.writeLittle(value);
+        bytes.writeByte(0);
+        for (uint16_t value : {u'a', u'\0', u'b', u'\0'}) bytes.writeLittle(value);
+        write("headline.headlinestore", bytes.data());
+        auto store = HeadlineStore::open(directory / "headline.headlinestore");
+        ASSERT_TRUE(store) << store.error();
+        auto entry = store->entryAt(0);
+        ASSERT_TRUE(entry);
+        EXPECT_EQ(entry->headline, u"a");
+        EXPECT_EQ(entry->sortingHeadline, u"b");
+        EXPECT_TRUE(store->componentsForEntryId({7, 3}));
+        EXPECT_FALSE(store->componentsForEntryId({7, 3}, false));
+        auto moved = std::move(*store);
+        EXPECT_EQ(entry->headline, u"a");
+    }
+
     TEST_F(ResourceFormatTest, MovingARetainedSpanLeavesAnEmptySource)
     {
         RetainedSpan original(std::vector<uint8_t>{'a'});
@@ -389,11 +411,66 @@ namespace MKD::test
         EXPECT_EQ(*keys, std::vector<std::string_view>{"k"});
     }
 
+    TEST_F(ResourceFormatTest, AppendixTablesUseCheckedOffsetsAndBorrowedLabels)
+    {
+        detail::BinaryBuffer bytes;
+        for (uint32_t value : {1, 1, 1, 0, 0, 0, 0, 44, 48, 7}) bytes.writeLittle(value);
+        bytes.writeLittle(uint16_t{2});
+        bytes.writeLittle(uint16_t{0});
+        bytes.writeLittle(uint32_t{52});
+        bytes.writeLittle(uint32_t{u'a'});
+        bytes.writeByte('x');
+        bytes.writeByte(0);
+        write("list.entries", bytes.data());
+        auto list = AppendixEntryList::open(directory / "list.entries");
+        ASSERT_TRUE(list) << list.error();
+        auto entry = list->entryAt(0);
+        ASSERT_TRUE(entry);
+        EXPECT_EQ(entry->entryId, (EntryId{7, 2}));
+        EXPECT_EQ(*entry->label, "x");
+        EXPECT_EQ(*entry->firstCharacter, u'a');
+        words("bad.entries", {0xFFFFFFFF, 1, 1, 0, 0, 0, 0, 0, 0});
+        EXPECT_FALSE(AppendixEntryList::open(directory / "bad.entries"));
+    }
+
+    TEST_F(ResourceFormatTest, MissingTerminatorsAndOverlappingHeadlineSectionsAreRejected)
+    {
+        words("bad.headlinestore", {0, 0, 1, 24, 44, 20, 1, 0, 0, 0, 0, 0x00610061});
+        EXPECT_FALSE(HeadlineStore::open(directory / "bad.headlinestore"));
+        words("bad.headlinestore", {0, 0, 1, 24, 40, 20, 1, 0, 0, 0, 0, 0});
+        EXPECT_FALSE(HeadlineStore::open(directory / "bad.headlinestore"));
+        words("bad.headlinestore", {0, 0, 0xFFFFFFFF, 24, 24, 24});
+        EXPECT_FALSE(HeadlineStore::open(directory / "bad.headlinestore"));
+    }
+
     TEST_F(ResourceFormatTest, DuplicateIndexFilesAreRejected)
     {
         directStore();
         words("other.map", {0, 0});
         EXPECT_FALSE(ResourceStore::open(directory));
+    }
+
+    TEST_F(ResourceFormatTest, ArbitrarySmallInputsFailWithoutUncheckedMemoryAccess)
+    {
+        std::mt19937 generator(42);
+        for (size_t i = 0; i < 128; ++i)
+        {
+            std::vector<uint8_t> bytes(i);
+            for (auto& byte : bytes)
+                byte = static_cast<uint8_t>(generator());
+            write("fuzz.keystore", bytes);
+            write("fuzz.headlinestore", bytes);
+            write("fuzz.entries", bytes);
+            write("index.nidx", bytes);
+            write("contents.map", bytes);
+            EXPECT_NO_THROW((void)Keystore::open(directory / "fuzz.keystore"));
+            EXPECT_NO_THROW((void)HeadlineStore::open(directory / "fuzz.headlinestore"));
+            EXPECT_NO_THROW((void)AppendixEntryList::open(directory / "fuzz.entries"));
+            EXPECT_NO_THROW((void)NamedResourceStoreIndex::open(directory));
+            EXPECT_NO_THROW((void)ResourceStoreIndex::open(directory));
+            EXPECT_NO_THROW((void)detail::keystore::decodeEntryIds(bytes));
+            EXPECT_NO_THROW((void)ResourceStoreCrypto::decrypt(bytes, {}));
+        }
     }
 
     TEST_F(ResourceFormatTest, FontFragmentsReassembleAcrossBlobFiles)
@@ -443,6 +520,33 @@ namespace MKD::test
         EXPECT_FALSE(ids.contains({43, 8}));
     }
 
+    TEST_F(ResourceFormatTest, FullHeadlineComposesUtf16Components)
+    {
+        const HeadlineComponents components{
+            .prefix = u"〈",
+            .headline = u"辞書",
+            .suffix = u"〉",
+            .sortingHeadline = u"じしょ",
+            .entryId = {42, 7},
+        };
+        EXPECT_EQ(components.full(), u"〈辞書〉");
+        EXPECT_TRUE(HeadlineComponents{}.full().empty());
+    }
+
+    TEST_F(ResourceFormatTest, HeadlineExportAccountsForTheExactUtf8BytesWritten)
+    {
+        const auto fixture = std::filesystem::path(__FILE__).parent_path().parent_path() /
+            "test-data" / "TESTDICT" / "Contents" / "TESTDICT" / "headline" / "headline.headlinestore";
+        auto store = HeadlineStore::open(fixture);
+        ASSERT_TRUE(store) << store.error();
+        ExportOptions options;
+        options.outputDirectory = directory;
+        options.createSubdirectories = false;
+        auto result = HeadlineExporter::exportHeadlines(*store, options);
+        ASSERT_TRUE(result) << result.error();
+        EXPECT_EQ(result->exported, store->size());
+        EXPECT_EQ(result->totalBytes, std::filesystem::file_size(directory / (std::string(store->filename()) + ".tsv")));
+    }
     TEST_F(ResourceFormatTest, ExistingRscOutputsSkipInvalidPayloadsBeforeReading)
     {
         directStore();
@@ -509,6 +613,24 @@ namespace MKD::test
         EXPECT_EQ(*moved.indexOf(10), 0);
         EXPECT_EQ(moved.itemAt(0)->second.chunkGlobalOffset, 5);
         EXPECT_EQ(moved.findById(20)->chunkGlobalOffset, 0);
+    }
+
+    TEST_F(ResourceFormatTest, MappedHeadlinesReturnOwnedComponents)
+    {
+        const auto fixture = std::filesystem::path(__FILE__).parent_path().parent_path() /
+            "test-data/TESTDICT/Contents/TESTDICT/headline/headline.headlinestore";
+        HeadlineComponents components;
+        std::u16string expected;
+        {
+            auto store = HeadlineStore::open(fixture);
+            ASSERT_TRUE(store);
+            auto entry = store->entryAt(0);
+            ASSERT_TRUE(entry);
+            expected = entry->full();
+            components = std::move(*entry);
+        }
+        EXPECT_EQ(components.full(), expected);
+        EXPECT_FALSE(expected.empty());
     }
 
     TEST_F(ResourceFormatTest, FontOpeningAndTypeDetectionDoNotReadTheRemainingFragments)

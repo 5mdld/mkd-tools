@@ -3,6 +3,7 @@
 //
 
 #include "MKD/output/headline_exporter.hpp"
+#include "unicode/unicode.hpp"
 
 #include <format>
 #include <fstream>
@@ -39,8 +40,15 @@ namespace MKD
             );
         }
 
-        for (const auto& components : store)
+        for (auto entry : store.entries())
         {
+            if (!entry)
+            {
+                ++result.failed;
+                result.errors.push_back(entry.error());
+                continue;
+            }
+            const auto& components = *entry;
             if (auto rowResult = writeRow(out, components); !rowResult)
             {
                 result.failed++;
@@ -53,9 +61,7 @@ namespace MKD
             else
             {
                 result.exported++;
-                result.totalBytes += components.headlineUtf8().size()
-                        + components.prefixUtf8().size()
-                        + components.suffixUtf8().size() + 4;
+                result.totalBytes += *rowResult;
             }
         }
 
@@ -63,24 +69,23 @@ namespace MKD
     }
 
 
-    Result<void> HeadlineExporter::writeRow(std::ofstream& out, const HeadlineComponents& components)
+    Result<size_t> HeadlineExporter::writeRow(std::ofstream& out, const HeadlineComponents& components)
     {
-        out << std::format("{:06}-{:04X}", components.entryId.pageId, components.entryId.itemId) << '\t';
-        if (!components.headline.empty())
-            out << components.headlineUtf8() << '\t';
-
-        if (!components.prefix.empty())
-            out << components.prefixUtf8() << '\t';
-
-        if (!components.suffix.empty())
-            out << components.suffixUtf8() << '\t';
-
-        out << '\n';
-
-        if (!out)
+        auto row = std::format("{:06}-{:04X}\t", components.entryId.pageId, components.entryId.itemId);
+        for (const auto field : {
+                 std::u16string_view(components.headline), std::u16string_view(components.prefix),
+                 std::u16string_view(components.suffix)
+             })
         {
-            return std::unexpected("Failed to write TSV row");
+            if (field.empty())
+                continue;
+            row.append(detail::unicode::toUtf8(field));
+            row.push_back('\t');
         }
-        return {};
+        row.push_back('\n');
+        out.write(row.data(), static_cast<std::streamsize>(row.size()));
+        if (!out)
+            return std::unexpected("Failed to write TSV row");
+        return row.size();
     }
 }

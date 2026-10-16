@@ -213,7 +213,7 @@ namespace MKD
         for (const auto& store : headlines_)
         {
             if (const auto components = store.componentsForEntryId(entryId))
-                return components->fullUtf8();
+                return detail::unicode::toUtf8(components->full());
         }
 
         return std::unexpected("headline not found");

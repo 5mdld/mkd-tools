@@ -1,6 +1,5 @@
 target_sources(mkd PRIVATE
         appendix_entry_list.cpp
-        common.cpp
         retained_span.cpp
         font.cpp
         resource_loader.cpp

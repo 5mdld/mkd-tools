@@ -143,7 +143,7 @@ namespace MKD
             if (const auto it = titles.find(relativePath.generic_string()); it != titles.end())
                 title = it->second;
 
-            if (auto list = AppendixEntryList::load(file, std::move(title)))
+            if (auto list = AppendixEntryList::open(file, std::move(title)))
                 lists.push_back(std::move(*list));
         }
 
@@ -168,7 +168,7 @@ namespace MKD
             ResourceType::Headlines,
             contentDir,
             [](const auto& e) { return e.path().extension() == ".headlinestore"; },
-            [&](const auto& e) { return HeadlineStore::load(e.path()); }
+            [&](const auto& e) { return HeadlineStore::open(e.path()); }
         );
     }
 

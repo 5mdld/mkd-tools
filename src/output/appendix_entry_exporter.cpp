@@ -72,7 +72,7 @@ namespace MKD
             for (const auto& store : headlines)
             {
                 if (const auto components = store.componentsForEntryId(id))
-                    return components->fullUtf8();
+                    return detail::unicode::toUtf8(components->full());
             }
 
             return {};

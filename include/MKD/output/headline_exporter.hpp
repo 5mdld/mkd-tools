@@ -26,9 +26,7 @@ namespace MKD
          */
         static Result<ExportResult> exportHeadlines(const HeadlineStore& store, const ExportOptions& options);
 
-
     private:
-
-        static Result<void> writeRow(std::ofstream& out, const HeadlineComponents& components);
+        static Result<size_t> writeRow(std::ofstream& out, const HeadlineComponents& components);
     };
 }

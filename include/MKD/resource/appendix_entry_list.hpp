@@ -1,4 +1,6 @@
-
+//
+// kiwakiwaaにより 2026/05/01 に作成されました。
+//
 
 #pragma once
 
@@ -11,44 +13,9 @@
 #include <string>
 #include <string_view>
 
-namespace fs = std::filesystem;
 
 namespace MKD
 {
-    /**
-     * Appendix entry list (.entries)
-     * =============================
-     *
-     * Entry-list appendix files are raw entry matrices.
-     *
-     * File Structure:
-     * ┌──────────────────────────────────────────────────────────────┐
-     * │ Header                                                       │
-     * │  - count                       (4 bytes, uint32 LE)          │
-     * │  - rows                        (4 bytes, uint32 LE)          │
-     * │  - columns                     (4 bytes, uint32 LE)          │
-     * │  - reserved[4]                 (uint32[4])                   │
-     * │  - labelTableOffset            (uint32, 0 if absent)         │
-     * │  - firstCharacterTableOffset   (uint32, 0 if absent)         │
-     * ├──────────────────────────────────────────────────────────────┤
-     * │ Records Array (count × 8 bytes)                              │
-     * │  - pageID                      (4 bytes, uint32 LE)          │
-     * │  - itemID                      (4 bytes, uint16 LE)          │
-     * │  - dictionaryID                (4 bytes, uint16 LE)          │
-     * ├──────────────────────────────────────────────────────────────┤
-     * │ Strings Region (variable length)                             │
-     * │  Null-terminated UTF-16LE strings, referenced by byte offset │
-     * └──────────────────────────────────────────────────────────────┘
-     * The dictionary id is present in the file because the application can
-     * route entries across product contents.
-     *
-     * - labelTableOffset points to count uint32 offsets. Each offset is from
-     *   the start of the file to a null-terminated UTF-8 label.
-     *
-     * - firstCharacterTableOffset points to count 4-byte slots. The first two
-     *   bytes of each slot are a UTF-16 code unit.
-     */
-
     struct AppendixEntry
     {
         EntryId entryId;
@@ -56,10 +23,11 @@ namespace MKD
         std::optional<char16_t> firstCharacter;
     };
 
+    /** An appendix entry matrix. Entry labels are borrowed from the list. */
     class AppendixEntryList
     {
     public:
-        static Result<AppendixEntryList> load(const fs::path& filePath, std::string title = {});
+        static Result<AppendixEntryList> open(const std::filesystem::path& filePath, std::string title = {});
 
         ~AppendixEntryList();
 
