@@ -8,7 +8,7 @@
 
 TEST(ChaChaPoly, RoundTrip)
 {
-    NS::AutoreleasePool* pPool = NS::AutoreleasePool::alloc()->init();
+    NS::ScopedAutoreleasePool pPool;
 
     // create a 256 bit symmetric key
     CK::SymmetricKey* pKey = CK::SymmetricKey::symmetricKey(256);
@@ -46,12 +46,11 @@ TEST(ChaChaPoly, RoundTrip)
     EXPECT_EQ(pDecrypted->length(), plaintextLen);
     EXPECT_EQ(std::memcmp(pDecrypted->bytes(), plaintext, plaintextLen), 0);
 
-    pPool->drain();
 }
 
 TEST(ChaChaPoly, RoundTripFromCombined)
 {
-    NS::AutoreleasePool* pPool = NS::AutoreleasePool::alloc()->init();
+    NS::ScopedAutoreleasePool pPool;
 
     CK::SymmetricKey* pKey = CK::SymmetricKey::symmetricKey(256);
 
@@ -75,12 +74,11 @@ TEST(ChaChaPoly, RoundTripFromCombined)
     EXPECT_EQ(pDecrypted->length(), plaintextLen);
     EXPECT_EQ(std::memcmp(pDecrypted->bytes(), plaintext, plaintextLen), 0);
 
-    pPool->drain();
 }
 
 TEST(ChaChaPoly, WrongKeyFails)
 {
-    NS::AutoreleasePool* pPool = NS::AutoreleasePool::alloc()->init();
+    NS::ScopedAutoreleasePool pPool;
 
     CK::SymmetricKey* pKey1 = CK::SymmetricKey::symmetricKey(256);
     CK::SymmetricKey* pKey2 = CK::SymmetricKey::symmetricKey(256);
@@ -94,12 +92,11 @@ TEST(ChaChaPoly, WrongKeyFails)
     NS::Data* pDecrypted = CK::ChaChaPoly::open(pSealedBox, pKey2);
     EXPECT_EQ(pDecrypted, nullptr) << "Decryption should fail with wrong key";
 
-    pPool->drain();
 }
 
 TEST(ChaChaPoly, TamperedCombinedFails)
 {
-    NS::AutoreleasePool* pPool = NS::AutoreleasePool::alloc()->init();
+    NS::ScopedAutoreleasePool pPool;
 
     CK::SymmetricKey* pKey = CK::SymmetricKey::symmetricKey(256);
     ASSERT_TRUE(pKey);
@@ -128,12 +125,11 @@ TEST(ChaChaPoly, TamperedCombinedFails)
     NS::Data* pDecrypted = CK::ChaChaPoly::open(pTamperedBox, pKey);
     EXPECT_EQ(pDecrypted, nullptr) << "Tampered payload should fail authentication";
 
-    pPool->drain();
 }
 
 TEST(ChaChaPoly, MalformedCombinedRejected)
 {
-    NS::AutoreleasePool* pPool = NS::AutoreleasePool::alloc()->init();
+    NS::ScopedAutoreleasePool pPool;
 
     // ChaChaPoly combined payload is nonce (12) + ciphertext (>=0) + tag (16).
     std::vector<uint8_t> malformed(27, 0xA5);
@@ -143,12 +139,11 @@ TEST(ChaChaPoly, MalformedCombinedRejected)
     CK::SealedBox* pBox = CK::SealedBox::sealedBox(pMalformed);
     EXPECT_EQ(pBox, nullptr);
 
-    pPool->drain();
 }
 
 TEST(ChaChaPoly, KeyFromData)
 {
-    NS::AutoreleasePool* pPool = NS::AutoreleasePool::alloc()->init();
+    NS::ScopedAutoreleasePool pPool;
 
     // create key from some known bytes
     constexpr uint8_t keyBytes[32] = {
@@ -176,12 +171,11 @@ TEST(ChaChaPoly, KeyFromData)
     ASSERT_NE(pDecrypted, nullptr);
     EXPECT_EQ(std::memcmp(pDecrypted->bytes(), plaintext, std::strlen(plaintext)), 0);
 
-    pPool->drain();
 }
 
 TEST(ChaChaPoly, LargeData)
 {
-    NS::AutoreleasePool* pPool = NS::AutoreleasePool::alloc()->init();
+    NS::ScopedAutoreleasePool pPool;
 
     CK::SymmetricKey* pKey = CK::SymmetricKey::symmetricKey(256);
 
@@ -200,5 +194,4 @@ TEST(ChaChaPoly, LargeData)
     EXPECT_EQ(pDecrypted->length(), dataSize);
     EXPECT_EQ(std::memcmp(pDecrypted->bytes(), largeData.data(), dataSize), 0);
 
-    pPool->drain();
 }

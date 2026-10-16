@@ -188,12 +188,12 @@ namespace MKD
             if (encrypted.size() < 28)
                 return std::unexpected("Encrypted receipt is too small");
 
-            NS::AutoreleasePool* pool = NS::AutoreleasePool::alloc()->init();
+            NS::ScopedAutoreleasePool pool;
 
             const std::string keyMaterial = deriveKeyMaterial(1);
             if (keyMaterial.size() != 32)
             {
-                pool->drain();
+
                 return std::unexpected("Derived key material is not 32 bytes");
             }
 
@@ -201,7 +201,7 @@ namespace MKD
             auto* key = CK::SymmetricKey::symmetricKey(keyData);
             if (!key)
             {
-                pool->drain();
+
                 return std::unexpected("Failed to construct receipt symmetric key");
             }
 
@@ -209,14 +209,14 @@ namespace MKD
             auto* box = CK::SealedBox::sealedBox(combined);
             if (!box)
             {
-                pool->drain();
+
                 return std::unexpected("Failed to parse receipt as ChaChaPoly sealed box");
             }
 
             const auto* decrypted = CK::ChaChaPoly::open(box, key);
             if (!decrypted)
             {
-                pool->drain();
+
                 return std::unexpected("Failed to decrypt receipt");
             }
 
@@ -224,18 +224,17 @@ namespace MKD
             if (!result.empty())
                 std::memcpy(result.data(), decrypted->bytes(), result.size());
 
-            pool->drain();
             return result;
         }
 
         Result<std::vector<uint8_t>> encryptReceipt(const std::span<const uint8_t> plaintext)
         {
-            NS::AutoreleasePool* pool = NS::AutoreleasePool::alloc()->init();
+            NS::ScopedAutoreleasePool pool;
 
             const std::string keyMaterial = deriveKeyMaterial(1);
             if (keyMaterial.size() != 32)
             {
-                pool->drain();
+
                 return std::unexpected("Derived key material is not 32 bytes");
             }
 
@@ -243,7 +242,7 @@ namespace MKD
             auto* key = CK::SymmetricKey::symmetricKey(keyData);
             if (!key)
             {
-                pool->drain();
+
                 return std::unexpected("Failed to construct receipt symmetric key");
             }
 
@@ -251,14 +250,14 @@ namespace MKD
             const auto* box = CK::ChaChaPoly::seal(plainData, key);
             if (!box)
             {
-                pool->drain();
+
                 return std::unexpected("Failed to encrypt receipt");
             }
 
             const auto* combined = box->combined();
             if (!combined)
             {
-                pool->drain();
+
                 return std::unexpected("Failed to read encrypted combined bytes");
             }
 
@@ -266,7 +265,6 @@ namespace MKD
             if (!encrypted.empty())
                 std::memcpy(encrypted.data(), combined->bytes(), encrypted.size());
 
-            pool->drain();
             return encrypted;
         }
 

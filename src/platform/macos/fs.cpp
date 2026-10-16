@@ -10,21 +10,20 @@ namespace MKD::macOS
 {
     std::filesystem::path getContainerPathByGroupIdentifier(const std::string& groupIdentifier)
     {
-        NS::AutoreleasePool* pool = NS::AutoreleasePool::alloc()->init();
+        NS::ScopedAutoreleasePool pool;
 
         const NS::String* groupId = NS::String::stringWithUTF8String(groupIdentifier.c_str());
         const NS::URL* containerURL = NS::FileManager::defaultManager()->
                 containerURLForSecurityApplicationGroupIdentifier(groupId);
         if (!containerURL)
         {
-            pool->drain();
+
             return {};
         }
 
         const NS::String* pathString = containerURL->path();
         std::filesystem::path result{pathString ? pathString->utf8String() : ""};
 
-        pool->drain();
         return result;
     }
 

@@ -29,6 +29,26 @@ namespace NS
 
         void drain();
     };
+
+    class [[nodiscard]] ScopedAutoreleasePool
+    {
+    public:
+        ScopedAutoreleasePool()
+            : pool_(AutoreleasePool::alloc()->init())
+        {
+        }
+
+        ~ScopedAutoreleasePool()
+        {
+            pool_->drain();
+        }
+
+        ScopedAutoreleasePool(const ScopedAutoreleasePool&) = delete;
+        ScopedAutoreleasePool& operator=(const ScopedAutoreleasePool&) = delete;
+
+    private:
+        AutoreleasePool* const pool_;
+    };
 }
 
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------
