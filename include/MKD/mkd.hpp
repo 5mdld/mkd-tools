@@ -22,6 +22,7 @@
 #ifdef __APPLE__
 #include "MKD/platform/macos/macos_dictionary_source.hpp"
 #include "MKD/platform/macos/monokakido_receipt.hpp"
+#include "MKD/receipt/purchase_receipt.hpp"
 #endif
 
 #include "MKD/resource/resource_loader.hpp"

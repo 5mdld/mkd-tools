@@ -8,6 +8,7 @@ set(MKD_PLATFORM_MACOS_SOURCES
         bookmark_store.cpp
         fs.cpp
         macos_dictionary_source.cpp
+        chacha_poly.cpp
         monokakido_receipt.cpp
         parallel.cpp
         scoped_security_access.cpp
