@@ -7,8 +7,8 @@ A C++23 toolkit for reading and exporting 物書堂 dictionary resources.
 Requires a C++23 compiler and CMake.
 
 ```
-cmake -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build
+cmake --preset release
+cmake --build --preset release
 ```
 
 ### Usage

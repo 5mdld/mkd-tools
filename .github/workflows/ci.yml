@@ -14,11 +14,25 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            name: Windows
+            name: Windows (MSVC)
           - os: ubuntu-latest
-            name: Linux
+            name: Linux (GCC, Ninja)
+            generator: Ninja
+            cc: gcc-14
+            cxx: g++-14
+            packages: g++-14 ninja-build libssl-dev
+          - os: ubuntu-latest
+            name: Linux (Clang, Makefiles)
+            generator: Unix Makefiles
+            cc: clang-20
+            cxx: clang++-20
+            cxxflags: -stdlib=libc++
+            packages: clang-20 libc++-20-dev libc++abi-20-dev libssl-dev
           - os: macos-latest
-            name: macOS
+            name: macOS (Apple Clang)
+            generator: Ninja
+            cc: clang
+            cxx: clang++
 
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.name }}
@@ -32,25 +46,34 @@ jobs:
 
       - name: Install dependencies (Linux)
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y libssl-dev
+        run: sudo apt-get update && sudo apt-get install -y ${{ matrix.packages }}
 
-      - name: Configure CMake
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DMKD_BUILD_CLI=ON -DBUILD_TESTING=OFF
+      - name: Configure CMake (Windows)
+        if: runner.os == 'Windows'
+        run: cmake --preset release
+
+      - name: Configure CMake (Unix)
+        if: runner.os != 'Windows'
+        env:
+          CC: ${{ matrix.cc }}
+          CXX: ${{ matrix.cxx }}
+          CXXFLAGS: ${{ matrix.cxxflags }}
+        run: cmake --preset release -G "${{ matrix.generator }}"
 
       - name: Build
-        run: cmake --build build --config Release
+        run: cmake --build --preset release --target mkd-cli --parallel
 
       - name: Run mkd-tools (Windows)
         if: runner.os == 'Windows'
         run: |
           mkdir output
-          .\build\cli\Release\mkd-tools.exe -d .\test\test-data export TESTDICT -o output --keystore-mode both --overwrite --pretty
+          .\build\release\cli\Release\mkd-tools.exe -d .\test\test-data export TESTDICT -o output --keystore-mode both --overwrite --pretty
 
       - name: Run mkd-tools (Unix)
         if: runner.os != 'Windows'
         run: |
           mkdir output
-          ./build/cli/mkd-tools -d ./test/test-data export TESTDICT -o output --keystore-mode both --overwrite --pretty
+          ./build/release/cli/mkd-tools -d ./test/test-data export TESTDICT -o output --keystore-mode both --overwrite --pretty
 
       - name: Verify exported CI fixtures
         run: python test/ci/verify_fixture_export.py output/Test.dict

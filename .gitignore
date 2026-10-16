@@ -9,6 +9,7 @@ Thumbs.db
 ._*
 
 # CMake build directories
+CMakeUserPresets.json
 cmake-build-*/
 CMakeFiles/
 CMakeCache.txt

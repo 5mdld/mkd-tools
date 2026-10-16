@@ -67,7 +67,7 @@ namespace MKDCLI
             std::print(out, " ({:.1f} MiB)", result.totalBytes / bytesPerMiB);
         }
 
-        std::println(out);
+        std::println(out, "");
 
         if (!result.errors.empty())
         {
