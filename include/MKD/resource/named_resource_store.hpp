@@ -5,22 +5,19 @@
 #pragma once
 
 #include "MKD/result.hpp"
-#include "MKD/resource/common.hpp"
 #include "MKD/resource/retained_span.hpp"
 
 #include <filesystem>
-#include <iterator>
-
-
-namespace fs = std::filesystem;
+#include <memory>
+#include <ranges>
+#include <string>
+#include <string_view>
 
 namespace MKD
 {
-
-    // Resource item that can be returned to users
     struct NamedResourceStoreItem
     {
-        std::string_view id;
+        std::string id;
         RetainedSpan data;
     };
 
@@ -31,79 +28,26 @@ namespace MKD
         NamedResourceStore(NamedResourceStore&&) noexcept;
         NamedResourceStore& operator=(NamedResourceStore&&) noexcept;
 
-        /**
-         * Factory method to open a .nrsc resource from a directory
-         * @param directoryPath Directory path containing the resources
-         * @return Nrsc resource class or error string if failure
-         */
-        static Result<NamedResourceStore> open(const fs::path& directoryPath);
-
-        /**
-         * Get resource by string ID
-         * - Calls findById from NrscIndex to do a binary search in the index
-         * @param id String ID of the resource
-         * @return Data view of resource data, error string if failure
-         */
+        static Result<NamedResourceStore> open(const std::filesystem::path& directory);
         [[nodiscard]] Result<RetainedSpan> get(std::string_view id) const;
-
-        /**
-         * Get resource by index
-         * - Calls getByIndex from NrscIndex
-         * @param index
-         * @return
-         */
-        [[nodiscard]] Result<NamedResourceStoreItem> getByIndex(size_t index) const;
-
-        /**
-         * Get total number of resources
-         * @return Number of resources
-         */
+        [[nodiscard]] Result<NamedResourceStoreItem> itemAt(size_t index) const;
+        /** ID views are borrowed from the store. Returned items own their IDs. */
+        [[nodiscard]] Result<std::string_view> idAt(size_t index) const;
+        [[nodiscard]] Result<size_t> indexOf(std::string_view id) const;
         [[nodiscard]] size_t size() const noexcept;
-
-        /**
-         * @return true if there are no resources
-         */
         [[nodiscard]] bool empty() const noexcept;
 
-
-        class Iterator
+        [[nodiscard]] auto items() const &
         {
-        public:
-            using iterator_category = std::forward_iterator_tag;
-            using iterator_concept = std::forward_iterator_tag;
-            using difference_type = std::ptrdiff_t;
-            using value_type = NamedResourceStoreItem;
-            using pointer = value_type*;
-            using reference = value_type;
+            return std::views::iota(size_t{0}, size())
+                | std::views::transform([this](const size_t index) { return itemAt(index); });
+        }
 
-            Iterator() noexcept = default;
-            Iterator(const NamedResourceStore* nrsc, size_t index);
-
-            value_type operator*() const;
-
-            Iterator& operator++();
-            Iterator operator++(int);
-
-            bool operator==(const Iterator& other) const;
-            bool operator!=(const Iterator& other) const;
-
-
-        private:
-            const NamedResourceStore* store_ = nullptr;
-            size_t index_ = 0;
-
-        };
-
-        [[nodiscard]] Iterator begin() const;
-        [[nodiscard]] Iterator end() const;
-
-        static_assert(std::forward_iterator<Iterator>);
+        auto items() const && = delete;
 
     private:
         struct Impl;
         std::unique_ptr<Impl> impl_;
         explicit NamedResourceStore(std::unique_ptr<Impl> impl) noexcept;
-
     };
-
 }

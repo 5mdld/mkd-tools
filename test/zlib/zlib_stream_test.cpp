@@ -3,6 +3,7 @@
 //
 
 #include <gtest/gtest.h>
+#include <zlib.h>
 
 #include <algorithm>
 #include <filesystem>
@@ -10,7 +11,7 @@
 #include <random>
 #include <sstream>
 
-#include "../../src/resource/detail/zlib_stream.hpp"
+#include "../../src/resource/detail/zlib.hpp"
 #include "../test_listener.hpp"
 
 using namespace MKD;
@@ -28,18 +29,16 @@ TEST(ZlibStreamTest, CompressDecompressRoundTripWithText)
 
     test::verbosePrint("Original data size: {} bytes\n", originalData.size());
 
-    const detail::ZlibStream compressor;
-    auto compressResult = compressor.compress(originalData, Z_DEFAULT_COMPRESSION);
+    auto compressResult = detail::zlib::compress(originalData, Z_DEFAULT_COMPRESSION);
     ASSERT_TRUE(compressResult.has_value()) << "Compression failed: " << compressResult.error();
 
     const auto compressed = compressResult.value();
     test::verbosePrint("Compressed size: {} bytes (ratio: {:.2f}%)\n", compressed.size(),
                        100.0 * static_cast<double>(compressed.size()) / static_cast<double>(originalData.size()));
 
-    EXPECT_TRUE(detail::ZlibStream::isZlibCompressed(compressed)) << "Compressed data not detected as zlib format";
+    EXPECT_TRUE(detail::zlib::isCompressed(compressed)) << "Compressed data not detected as zlib format";
 
-    const detail::ZlibStream decompressor;
-    auto decompressResult = decompressor.decompress(compressed, originalData.size());
+    auto decompressResult = detail::zlib::decompress(compressed, originalData.size());
     ASSERT_TRUE(decompressResult.has_value()) << "Decompression failed: " << decompressResult.error();
 
     auto decompressed = decompressResult.value();
@@ -76,14 +75,13 @@ TEST(ZlibStreamTest, CompressionLevels)
 
     test::verbosePrint("Original data size: {} bytes\n", data.size());
 
-    detail::ZlibStream zlib;
     size_t bestCompression = data.size();
     size_t fastestCompression = data.size();
     size_t noCompression = data.size();
 
     // Test level 0
     {
-        auto result = zlib.compress(data, 0);
+        auto result = detail::zlib::compress(data, 0);
         ASSERT_TRUE(result.has_value());
         noCompression = result.value().size();
         test::verbosePrint("Level 0 (no compression): {} bytes\n", noCompression);
@@ -91,7 +89,7 @@ TEST(ZlibStreamTest, CompressionLevels)
 
     // Test level 1
     {
-        auto result = zlib.compress(data, 1);
+        auto result = detail::zlib::compress(data, 1);
         ASSERT_TRUE(result.has_value());
         fastestCompression = result.value().size();
         test::verbosePrint("Level 1 (fastest): {} bytes (ratio: {:.2f}%)\n", fastestCompression,
@@ -100,7 +98,7 @@ TEST(ZlibStreamTest, CompressionLevels)
 
     // Test default level
     {
-        auto result = zlib.compress(data, Z_DEFAULT_COMPRESSION);
+        auto result = detail::zlib::compress(data, Z_DEFAULT_COMPRESSION);
         ASSERT_TRUE(result.has_value());
         size_t level6 = result.value().size();
         test::verbosePrint("Default level: {} bytes (ratio: {:.2f}%)\n", level6,
@@ -109,7 +107,7 @@ TEST(ZlibStreamTest, CompressionLevels)
 
     // Test level 9
     {
-        auto result = zlib.compress(data, 9);
+        auto result = detail::zlib::compress(data, 9);
         ASSERT_TRUE(result.has_value());
         bestCompression = result.value().size();
         test::verbosePrint("Level 9 (best): {} bytes (ratio: {:.2f}%)\n", bestCompression,
@@ -120,9 +118,9 @@ TEST(ZlibStreamTest, CompressionLevels)
     EXPECT_LE(bestCompression, fastestCompression) << "Level 9 should compress at least as well as level 1";
     EXPECT_GE(noCompression, data.size()) << "Level 0 may produce slightly larger output";
 
-    auto invalidResult = zlib.compress(data, 10);
+    auto invalidResult = detail::zlib::compress(data, 10);
     EXPECT_FALSE(invalidResult.has_value()) << "Should reject invalid compression level 10";
 
-    invalidResult = zlib.compress(data, -2);
+    invalidResult = detail::zlib::compress(data, -2);
     EXPECT_FALSE(invalidResult.has_value()) << "Should reject invalid compression level -2";
 }

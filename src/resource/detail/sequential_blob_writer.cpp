@@ -5,15 +5,19 @@
 #include "MKD/resource/resource_type.hpp"
 #include "sequential_blob_writer.hpp"
 
+#include <algorithm>
 #include <format>
+#include <limits>
 
 namespace MKD::detail
 {
-    Result<SequentialBlobWriter> SequentialBlobWriter::create(const fs::path& directory,
+    Result<SequentialBlobWriter> SequentialBlobWriter::create(const std::filesystem::path& directory,
                                                               const ResourceType type,
                                                               const size_t maxFileSize)
     {
-        if (fs::is_regular_file(directory))
+        if (maxFileSize == 0 || maxFileSize > std::numeric_limits<uint32_t>::max())
+            return std::unexpected("Blob file size limit must fit a nonzero uint32");
+        if (std::filesystem::is_regular_file(directory))
             return std::unexpected(std::format("Output directory path is an existing file: {}",
                                                directory.string()));
 
@@ -28,7 +32,7 @@ namespace MKD::detail
     }
 
 
-    SequentialBlobWriter::SequentialBlobWriter(const fs::path& directory,
+    SequentialBlobWriter::SequentialBlobWriter(const std::filesystem::path& directory,
                                                ResourceType type,
                                                std::ofstream file,
                                                size_t maxFileSize,
@@ -44,13 +48,24 @@ namespace MKD::detail
 
     Result<BlobLocation> SequentialBlobWriter::write(const std::span<const uint8_t> data)
     {
-        if (data.empty())
-            return BlobLocation{.globalOffset = globalOffset_, .length = 0};
-
+        if (data.size() > std::numeric_limits<uint32_t>::max() ||
+            data.size() > std::numeric_limits<size_t>::max() - globalOffset_)
+            return std::unexpected("Blob data exceeds the supported size");
+        // Keep each payload in one file and open another only when there is data for it.
+        if (currentFileSize_ > 0 && data.size() > maxFileSize_ - std::min(currentFileSize_, maxFileSize_))
+        {
+            auto rolled = rollToNextFile();
+            if (!rolled)
+                return std::unexpected(rolled.error());
+        }
         const BlobLocation location{
             .globalOffset = globalOffset_,
             .length = data.size(),
+            .sequence = fileSequence_,
+            .fileOffset = currentFileSize_,
         };
+        if (data.empty())
+            return location;
 
         currentFile_.write(reinterpret_cast<const char*>(data.data()),
                            static_cast<std::streamsize>(data.size()));
@@ -60,10 +75,6 @@ namespace MKD::detail
 
         currentFileSize_ += data.size();
         globalOffset_ += data.size();
-
-        if (currentFileSize_ > 0 && currentFileSize_ > maxFileSize_)
-            if (const auto result = rollToNextFile(); !result)
-                return std::unexpected("Failed to roll to next blob file");
 
         return location;
     }
@@ -86,19 +97,7 @@ namespace MKD::detail
     }
 
 
-    size_t SequentialBlobWriter::fileSequence() const noexcept
-    {
-        return fileSequence_;
-    }
-
-
-    size_t SequentialBlobWriter::currentFileOffset() const noexcept
-    {
-        return currentFileSize_;
-    }
-
-
-    fs::path SequentialBlobWriter::directory() const noexcept
+    const std::filesystem::path& SequentialBlobWriter::directory() const noexcept
     {
         return directory_;
     }
@@ -107,7 +106,11 @@ namespace MKD::detail
     Result<void> SequentialBlobWriter::rollToNextFile()
     {
         currentFile_.flush();
+        if (!currentFile_)
+            return std::unexpected("Failed to flush blob file before rollover");
         currentFile_.close();
+        if (currentFile_.fail())
+            return std::unexpected("Failed to close blob file before rollover");
 
         ++fileSequence_;
         currentFileSize_ = 0;

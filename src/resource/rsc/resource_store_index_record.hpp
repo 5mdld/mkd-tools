@@ -4,7 +4,8 @@
 
 #pragma once
 
-#include "MKD/resource/common.hpp"
+#include <filesystem>
+#include <cstdint>
 
 namespace MKD
 {
@@ -37,5 +38,6 @@ namespace MKD
          */
         auto operator<=>(const ResourceStoreIndexRecord&) const noexcept = default;
     };
+
     static_assert(sizeof(ResourceStoreIndexRecord) == 8, "IdxRecord must be 8 bytes");
 }

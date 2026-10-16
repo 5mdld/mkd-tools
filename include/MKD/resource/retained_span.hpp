@@ -4,53 +4,51 @@
 
 #pragma once
 
+#include "MKD/result.hpp"
+
 #include <cstdint>
 #include <memory>
 #include <span>
-#include <utility>
+#include <string_view>
 #include <vector>
 
 namespace MKD
 {
-    /*
-     * A span of bytes that keeps its backing memory alive
-     */
+    namespace detail
+    {
+        class ResourceFiles;
+    }
+
+    /** A byte view that retains its buffer or file mapping, including across store destruction. */
     class RetainedSpan
     {
     public:
-        // non owning view
-        explicit RetainedSpan(const std::span<const uint8_t> span)
-            : span_(span)
-        {
-        }
+        RetainedSpan() = default;
+        RetainedSpan(const RetainedSpan&) = default;
+        RetainedSpan& operator=(const RetainedSpan&) = default;
+        RetainedSpan(RetainedSpan&& other) noexcept;
+        RetainedSpan& operator=(RetainedSpan&& other) noexcept;
+        explicit RetainedSpan(std::vector<uint8_t> bytes);
+        explicit RetainedSpan(std::shared_ptr<const std::vector<uint8_t>> buffer);
+        [[nodiscard]] static RetainedSpan copy(std::span<const uint8_t> bytes);
 
-        // Owning view into a shared buffer.
-        RetainedSpan(std::shared_ptr<const std::vector<uint8_t>> owner, const std::span<const uint8_t> span)
-            : owner_(std::move(owner)), span_(span)
-        {
-        }
-
-        // Owning view of a shared buffer
-        explicit RetainedSpan(std::shared_ptr<const std::vector<uint8_t>> owner)
-            : owner_(std::move(owner))
-            , span_(owner_->data(), owner_->size())
-        {
-        }
-
+        [[nodiscard]] Result<RetainedSpan> slice(size_t offset, size_t length) const;
+        /** The text view borrows these bytes and remains valid while a retaining owner is alive. */
+        [[nodiscard]] Result<std::string_view> utf8() const;
         [[nodiscard]] const uint8_t* data() const noexcept { return span_.data(); }
         [[nodiscard]] size_t size() const noexcept { return span_.size(); }
         [[nodiscard]] bool empty() const noexcept { return span_.empty(); }
-
         [[nodiscard]] std::span<const uint8_t> span() const noexcept { return span_; }
         explicit operator std::span<const uint8_t>() const noexcept { return span_; }
-
         [[nodiscard]] auto begin() const noexcept { return span_.begin(); }
         [[nodiscard]] auto end() const noexcept { return span_.end(); }
-
-        [[nodiscard]] uint8_t operator[](const size_t i) const { return span_[i]; }
+        [[nodiscard]] uint8_t operator[](const size_t index) const { return span_[index]; }
 
     private:
-        std::shared_ptr<const std::vector<uint8_t>> owner_;
+        friend class detail::ResourceFiles;
+        RetainedSpan(std::shared_ptr<const void> owner, std::span<const uint8_t> bytes);
+
+        std::shared_ptr<const void> owner_;
         std::span<const uint8_t> span_;
     };
 }

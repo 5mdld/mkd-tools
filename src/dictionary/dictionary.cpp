@@ -72,7 +72,7 @@ namespace MKD
         if (!entries_)
             return std::unexpected("Dictionary has no entry resource store");
 
-        return entries_->getByIndex(index);
+        return entries_->itemAt(index);
     }
 
 
@@ -98,7 +98,7 @@ namespace MKD
         if (!entry)
             return std::unexpected(entry.error());
 
-        return entry->asUtf8String();
+        return entry->data.utf8().transform([](std::string_view text) { return std::string(text); });
     }
 
 
@@ -108,19 +108,7 @@ namespace MKD
         if (!entry)
             return std::unexpected(entry.error());
 
-        return entry->asUtf8String();
-    }
-
-
-    ResourceStore::Iterator Dictionary::entryBegin() const
-    {
-        return entries_ ? entries_->begin() : ResourceStore::Iterator{};
-    }
-
-
-    ResourceStore::Iterator Dictionary::entryEnd() const
-    {
-        return entries_ ? entries_->end() : ResourceStore::Iterator{};
+        return entry->data.utf8().transform([](std::string_view text) { return std::string(text); });
     }
 
 
@@ -187,25 +175,25 @@ namespace MKD
     {
         switch (type)
         {
-            case ResourceType::Audio:
-            case ResourceType::AudioLegacy:
-                return audio_ ? std::visit([](const auto& r) { return r.size(); }, *audio_) : 0;
-            case ResourceType::Contents:
-                return entries_ ? entries_->size() : 0;
-            case ResourceType::AppendixEntries:
+        case ResourceType::Audio:
+        case ResourceType::AudioLegacy:
+            return audio_ ? std::visit([](const auto& r) { return r.size(); }, *audio_) : 0;
+        case ResourceType::Contents:
+            return entries_ ? entries_->size() : 0;
+        case ResourceType::AppendixEntries:
             {
                 size_t total = 0;
                 for (const auto& list : appendixEntryLists_)
                     total += list.size();
                 return total;
             }
-            case ResourceType::Graphics:
-                return graphics_ ? graphics_->size() : 0;
-            case ResourceType::Fonts:
-                return fonts_.size();
-            case ResourceType::Keystores:
-                return keystores_.size();
-            case ResourceType::Headlines:
+        case ResourceType::Graphics:
+            return graphics_ ? graphics_->size() : 0;
+        case ResourceType::Fonts:
+            return fonts_.size();
+        case ResourceType::Keystores:
+            return keystores_.size();
+        case ResourceType::Headlines:
             {
                 size_t total = 0;
                 for (const auto& store : headlines_)
@@ -257,12 +245,14 @@ namespace MKD
     {
         ExportResult combinedResult;
 
-        const auto shouldExport = [&](const ResourceType type) {
+        const auto shouldExport = [&](const ResourceType type)
+        {
             return options.resources.empty()
-                   || std::ranges::find(options.resources, type) != options.resources.end();
+                || std::ranges::find(options.resources, type) != options.resources.end();
         };
 
-        const auto notify = [&](const ExportEvent& event) {
+        const auto notify = [&](const ExportEvent& event)
+        {
             if (options.progressCallback)
                 options.progressCallback(event);
         };
@@ -277,7 +267,8 @@ namespace MKD
 
         notify(ExportBeginEvent{.totalItems = heavyTotal});
 
-        const auto runPhase = [&](const ResourceType type, auto exportFn) {
+        const auto runPhase = [&](const ResourceType type, auto exportFn)
+        {
             if (!shouldExport(type))
                 return;
 
@@ -304,12 +295,14 @@ namespace MKD
         };
 
         runPhase(ResourceType::Audio, [&] { return exportAudio(options); });
-        runPhase(ResourceType::Contents, [&] {
+        runPhase(ResourceType::Contents, [&]
+        {
             return ResourceExporter::exportAll(*entries_, options, ResourceType::Contents);
         });
         runPhase(ResourceType::AppendixEntries, [&] { return exportAppendixEntries(options); });
         runPhase(ResourceType::Fonts, [&] { return exportFonts(options); });
-        runPhase(ResourceType::Graphics, [&] {
+        runPhase(ResourceType::Graphics, [&]
+        {
             return ResourceExporter::exportAll(*graphics_, options, ResourceType::Graphics);
         });
         runPhase(ResourceType::Headlines, [&] { return exportHeadlines(options); });
@@ -321,7 +314,8 @@ namespace MKD
 
     Result<ExportResult> Dictionary::exportAudio(const ExportOptions& options) const
     {
-        return std::visit([&options](const auto& audioResource) {
+        return std::visit([&options](const auto& audioResource)
+        {
             return ResourceExporter::exportAll(audioResource, options, ResourceType::Audio);
         }, *audio_);
     }

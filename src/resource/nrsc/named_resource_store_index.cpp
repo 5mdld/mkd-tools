@@ -2,266 +2,154 @@
 // kiwakiwaaにより 2026/01/16 に作成されました。
 //
 
-#include "platform/mmap_file.hpp"
 #include "named_resource_store_index.hpp"
+#include "binary/binary_view.hpp"
+#include "resource/detail/resource_files.hpp"
 
 #include <algorithm>
-#include <cassert>
-#include <cstring>
 #include <format>
 
 namespace MKD
 {
-    namespace
+    Result<NamedResourceStoreIndex> NamedResourceStoreIndex::open(const std::filesystem::path& directory)
     {
-        template<typename T>
-        const T* ptrAt(const MappedFile& file, const size_t offset)
-        {
-            if (offset + sizeof(T) > file.size())
-                return nullptr;
-            return reinterpret_cast<const T*>(file.data().data() + offset);
-        }
+        auto path = detail::findResourceFile(directory, ".nidx");
+        if (!path)
+            return std::unexpected(path.error());
 
-        Result<MappedFile> openSingleFileWithExtension(const fs::path& directoryPath, std::string_view extension)
-        {
-            if (!fs::exists(directoryPath))
-                return std::unexpected(std::format("Directory not found: {}", directoryPath.string()));
+        if (!*path)
+            return std::unexpected(std::format("No .nidx file in '{}'", directory.string()));
 
-            if (!fs::is_directory(directoryPath))
-                return std::unexpected(std::format("Not a directory: {}", directoryPath.string()));
+        auto file = MappedFile::open(**path);
+        if (!file)
+            return std::unexpected(file.error());
 
-            std::optional<fs::path> match;
-            for (const auto& entry : fs::directory_iterator(directoryPath))
-            {
-                if (!entry.is_regular_file() || entry.path().extension() != extension)
-                    continue;
-
-                if (match)
-                    return std::unexpected(std::format(
-                        "Multiple {} files found in: {}",
-                        extension,
-                        directoryPath.string()));
-
-                match = entry.path();
-            }
-
-            if (!match)
-                return std::unexpected(std::format("No {} file found in: {}", extension, directoryPath.string()));
-
-            return MappedFile::open(*match);
-        }
+        return read(std::move(*file));
     }
 
-
-    Result<NamedResourceStoreIndex> NamedResourceStoreIndex::load(const fs::path& directoryPath)
+    Result<NamedResourceStoreIndex::Layout> NamedResourceStoreIndex::readLayout(detail::BinaryView data)
     {
-        auto file = openSingleFileWithExtension(directoryPath, ".nidx");
-        if (!file) return std::unexpected(file.error());
-
-        const auto* header = ptrAt<NamedResourceStoreIndexHeader>(*file, 0);
+        auto header = data.slice(0, 8);
         if (!header)
-            return std::unexpected("Index file too small for header");
+            return std::unexpected("Named resource index too small for header");
 
-        constexpr size_t recordsOffset = HEADER_SIZE;
-        const size_t recordsBytes = static_cast<size_t>(header->recordCount) * sizeof(NamedResourceStoreIndexRecord);
-        if (recordsOffset + recordsBytes > file->size())
-            return std::unexpected("Index records exceed file size");
+        if (*header->readLittle<uint32_t>(0) != 0)
+            return std::unexpected("Invalid named resource index header");
 
-        std::vector<NamedResourceStoreIndexRecord> records(header->recordCount);
-        std::memcpy(records.data(), file->data().data() + recordsOffset, recordsBytes);
+        const auto count = *header->readLittle<uint32_t>(4);
+        auto records = data.table(8, count, 16);
+        if (!records)
+            return std::unexpected(records.error());
 
-        const size_t stringsOffset = recordsOffset + recordsBytes;
-        std::string idStrings;
-        idStrings.resize(file->size() - stringsOffset);
-        std::memcpy(idStrings.data(), file->data().data() + stringsOffset, idStrings.size());
-
-        return NamedResourceStoreIndex(
-            std::move(records),
-            std::move(idStrings),
-            stringsOffset
-        );
+        const size_t stringsOffset = 8 + records->bytes().size();
+        return Layout{.records = *records, .strings = *data.tail(stringsOffset), .stringsOffset = stringsOffset};
     }
 
-
-    Result<NamedResourceStoreIndexRecord> NamedResourceStoreIndex::findById(std::string_view id) const
+    Result<NamedResourceStoreIndexRecord> NamedResourceStoreIndex::readRecord(detail::BinaryView data)
     {
-        const auto it = std::ranges::lower_bound(records_, id,
-                                                 [](std::string_view a, std::string_view b) {
-                                                     return a < b;
-                                                 },
-                                                 [this](const NamedResourceStoreIndexRecord& record) -> std::string_view {
-                                                     const auto result = this->getIdAt(record.idOffset());
-                                                     return result ? *result : std::string_view{};
-                                                 });
+        const auto format = *data.readLittle<uint16_t>(0);
+        if (format > 1)
+            return std::unexpected(std::format("Unsupported named resource compression format: {}", format));
 
-        if (it == records_.end())
+        return NamedResourceStoreIndexRecord{
+            .format = format,
+            .fileSequence = *data.readLittle<uint16_t>(2),
+            .idStringOffset = *data.readLittle<uint32_t>(4),
+            .fileOffset = *data.readLittle<uint32_t>(8),
+            .length = *data.readLittle<uint32_t>(12),
+        };
+    }
+
+    Result<std::string_view> NamedResourceStoreIndex::readId(const Layout& layout, const uint32_t offset)
+    {
+        if (offset < layout.stringsOffset)
+            return std::unexpected("Resource ID offset precedes the string table");
+
+        const size_t relative = offset - layout.stringsOffset;
+        const auto strings = layout.strings.bytes();
+        if (relative > strings.size())
+            return std::unexpected("Resource ID offset exceeds the string table");
+
+        if (relative > 0 && strings[relative - 1] != 0)
+            return std::unexpected("Resource ID offset is not at a string boundary");
+
+        return layout.strings.nullTerminatedString(relative);
+    }
+
+    Result<void> NamedResourceStoreIndex::validateRecords(const Layout& layout)
+    {
+        const size_t count = layout.records.bytes().size() / 16;
+        std::optional<std::string_view> previousId;
+        for (size_t i = 0; i < count; ++i)
+        {
+            auto record = readRecord(*layout.records.slice(i * 16, 16));
+            if (!record)
+                return std::unexpected(record.error());
+            auto id = readId(layout, record->idStringOffset);
+            if (!id)
+                return std::unexpected(id.error());
+            if (previousId && *previousId >= *id)
+                return std::unexpected("Named resource IDs must be unique and sorted");
+            previousId = *id;
+        }
+        return {};
+    }
+
+    NamedResourceStoreIndex::NamedResourceStoreIndex(MappedFile file, const Layout& layout)
+        : file_(std::move(file)), records_(layout.records), strings_(layout.strings),
+          stringsOffset_(layout.stringsOffset)
+    {
+    }
+
+    Result<NamedResourceStoreIndex> NamedResourceStoreIndex::read(MappedFile file)
+    {
+        auto layout = readLayout(detail::BinaryView(file.data()));
+        if (!layout)
+            return std::unexpected(layout.error());
+
+        if (auto valid = validateRecords(*layout); !valid)
+            return std::unexpected(valid.error());
+
+        return NamedResourceStoreIndex(std::move(file), *layout);
+    }
+
+    std::string_view NamedResourceStoreIndex::idFor(const NamedResourceStoreIndexRecord& record) const
+    {
+        return *strings_.nullTerminatedString(record.idStringOffset - stringsOffset_);
+    }
+
+    Result<size_t> NamedResourceStoreIndex::indexOf(std::string_view id) const
+    {
+        const auto positions = std::views::iota(size_t{0}, size());
+        const auto it = std::ranges::lower_bound(positions, id, {}, [this](const size_t i) { return *idAt(i); });
+        if (it == positions.end() || *idAt(*it) != id)
             return std::unexpected(std::format("Resource not found: {}", id));
-
-        auto foundIdResult = getIdAt(it->idOffset());
-        if (!foundIdResult)
-            return std::unexpected(foundIdResult.error());
-
-        if (*foundIdResult != id)
-            return std::unexpected(std::format("Resource not found: {}", id));
-
         return *it;
     }
 
-
-    Result<std::pair<std::string_view, NamedResourceStoreIndexRecord>> NamedResourceStoreIndex::getByIndex(
-        const size_t index) const
+    Result<NamedResourceStoreIndexRecord> NamedResourceStoreIndex::findById(std::string_view id) const
     {
-        if (index >= records_.size())
-            return std::unexpected(std::format("Index {} out of range (size: {})", index, records_.size()));
-
-        const auto& record = records_.at(index);
-        auto idResult = getIdAt(record.idOffset());
-        if (!idResult)
-            return std::unexpected(idResult.error());
-
-        return std::make_pair(*idResult, record);
+        auto index = indexOf(id);
+        if (!index)
+            return std::unexpected(index.error());
+        return readRecord(*records_.slice(*index * 16, 16));
     }
 
-
-    size_t NamedResourceStoreIndex::size() const noexcept
+    Result<std::pair<std::string_view, NamedResourceStoreIndexRecord>> NamedResourceStoreIndex::itemAt(
+        size_t index) const
     {
-        return records_.size();
+        if (index >= size())
+            return std::unexpected(std::format("Index {} out of range (size: {})", index, size()));
+
+        const auto record = *readRecord(*records_.slice(index * 16, 16));
+        return std::pair{idFor(record), record};
     }
 
-
-    bool NamedResourceStoreIndex::empty() const noexcept
+    Result<std::string_view> NamedResourceStoreIndex::idAt(size_t index) const
     {
-        return size() == 0;
-    }
-
-
-    NamedResourceStoreIndex::Iterator::Iterator(const NamedResourceStoreIndex* index, const size_t pos)
-        : index_(index), position_(pos)
-    {
-    }
-
-    NamedResourceStoreIndex::Iterator::value_type NamedResourceStoreIndex::Iterator::operator*() const
-    {
-        assert(index_ != nullptr && "Dereferencing invalid iterator");
-        assert(position_ < index_->size() && "Dereferencing end iterator");
-
-        auto result = index_->getByIndex(position_);
-        if (!result)
-        {
-            throw std::runtime_error(
-                std::format("Index iteration failed at position {}: {}",
-                            position_, result.error()));
-        }
-
-        return *result;
-    }
-
-    NamedResourceStoreIndex::Iterator::value_type NamedResourceStoreIndex::Iterator::operator[](difference_type n) const
-    {
-        return *(*this + n);
-    }
-
-
-    NamedResourceStoreIndex::Iterator& NamedResourceStoreIndex::Iterator::operator++()
-    {
-        ++position_;
-        return *this;
-    }
-
-    NamedResourceStoreIndex::Iterator NamedResourceStoreIndex::Iterator::operator++(int)
-    {
-        const auto temp = *this;
-        ++*this;
-        return temp;
-    }
-
-    NamedResourceStoreIndex::Iterator& NamedResourceStoreIndex::Iterator::operator--()
-    {
-        --position_;
-        return *this;
-    }
-
-    NamedResourceStoreIndex::Iterator NamedResourceStoreIndex::Iterator::operator--(int)
-    {
-        const auto temp = *this;
-        --*this;
-        return temp;
-    }
-
-    // Arithmetic
-    NamedResourceStoreIndex::Iterator& NamedResourceStoreIndex::Iterator::operator+=(const difference_type n)
-    {
-        position_ += n;
-        return *this;
-    }
-
-    NamedResourceStoreIndex::Iterator& NamedResourceStoreIndex::Iterator::operator-=(const difference_type n)
-    {
-        position_ -= n;
-        return *this;
-    }
-
-    NamedResourceStoreIndex::Iterator NamedResourceStoreIndex::Iterator::operator+(const difference_type n) const
-    {
-        auto temp = *this;
-        temp += n;
-        return temp;
-    }
-
-    NamedResourceStoreIndex::Iterator NamedResourceStoreIndex::Iterator::operator-(const difference_type n) const
-    {
-        auto temp = *this;
-        temp -= n;
-        return temp;
-    }
-
-    NamedResourceStoreIndex::Iterator operator+(const NamedResourceStoreIndex::Iterator::difference_type n, const NamedResourceStoreIndex::Iterator& it)
-    {
-        return it + n;
-    }
-
-    NamedResourceStoreIndex::Iterator::difference_type NamedResourceStoreIndex::Iterator::operator-(const Iterator& other) const
-    {
-        return static_cast<difference_type>(position_) - static_cast<difference_type>(other.position_);
-    }
-
-    NamedResourceStoreIndex::Iterator NamedResourceStoreIndex::begin() const
-    {
-        return Iterator{this, 0};
-    }
-
-    NamedResourceStoreIndex::Iterator NamedResourceStoreIndex::end() const
-    {
-        return Iterator{this, size()};
-    }
-
-
-    NamedResourceStoreIndex::NamedResourceStoreIndex(std::vector<NamedResourceStoreIndexRecord>&& records, std::string&& idStrings, const size_t headerSize)
-        : records_(std::move(records))
-          , idStrings_(std::move(idStrings))
-          , headerSize_(headerSize)
-    {
-    }
-
-
-    Result<std::string_view> NamedResourceStoreIndex::getIdAt(size_t offset) const
-    {
-        const size_t adjustedOffset = offset - headerSize_;
-
-        if (adjustedOffset > 0 && idStrings_.at(adjustedOffset - 1) != '\0')
-            return std::unexpected(std::format("Invalid ID offset: {} (not at string boundary)", offset));
-
-        if (adjustedOffset >= idStrings_.size())
-            return std::unexpected(std::format("ID offset {} out of range", offset));
-
-        // find the null terminator
-        const auto nullPos = idStrings_.find('\0', adjustedOffset);
-        if (nullPos == std::string::npos)
-        {
-            return std::unexpected(std::format("ID string at offset {} not null-terminated", offset));
-        }
-
-        const size_t length = nullPos - adjustedOffset;
-        return std::string_view(idStrings_.data() + adjustedOffset, length);
+        auto item = itemAt(index);
+        if (!item)
+            return std::unexpected(item.error());
+        return item->first;
     }
 }

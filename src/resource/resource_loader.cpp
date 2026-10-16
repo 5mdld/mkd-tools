@@ -179,7 +179,7 @@ namespace MKD
             ResourceType::Fonts,
             contentDir,
             [](const auto& e) { return e.is_directory(); },
-            [](const auto& e) { return Font::load(e.path()); }
+            [](const auto& e) { return Font::open(e.path()); }
         );
     }
 

@@ -4,7 +4,8 @@
 
 #pragma once
 
-#include "MKD/resource/common.hpp"
+#include <filesystem>
+#include <cstdint>
 
 #include <format>
 
@@ -19,11 +20,11 @@ namespace MKD
      */
     struct NamedResourceStoreIndexRecord
     {
-        uint16_t format;            // Compression: 0=uncompressed, 1=zlib
-        uint16_t fileSequence;      // Which numbered .nrsc file (0.nrsc, 1.nrsc, etc.)
-        uint32_t idStringOffset;    // Byte offset into the ID strings region
-        uint32_t fileOffset;        // Byte offset within the target .nrsc file
-        uint32_t length;            // size of the resource data
+        uint16_t format; // Compression: 0=uncompressed, 1=zlib
+        uint16_t fileSequence; // Which numbered .nrsc file (0.nrsc, 1.nrsc, etc.)
+        uint32_t idStringOffset; // Byte offset into the ID strings region
+        uint32_t fileOffset; // Byte offset within the target .nrsc file
+        uint32_t length; // size of the resource data
 
         [[nodiscard]] bool isCompressed() const noexcept;
         [[nodiscard]] size_t fileSeq() const noexcept;
@@ -38,7 +39,7 @@ namespace MKD
 }
 
 
-template<>
+template <>
 struct std::formatter<MKD::NamedResourceStoreIndexRecord>
 {
     static constexpr auto parse(const std::format_parse_context& ctx)
@@ -57,10 +58,10 @@ struct std::formatter<MKD::NamedResourceStoreIndexRecord>
     {
         const char compression = record.isCompressed() ? 'Z' : 'U';
         return std::format_to(ctx.out(),
-            "{}.nrsc@{} ({}) ({})",
-            record.fileSequence,
-            record.fileOffset,
-            record.formattedSize(),
-            compression == 'U' ? "Uncompressed" : "Zlib");
+                              "{}.nrsc@{} ({}) ({})",
+                              record.fileSequence,
+                              record.fileOffset,
+                              record.formattedSize(),
+                              compression == 'U' ? "Uncompressed" : "Zlib");
     }
 };

@@ -5,16 +5,16 @@
 #pragma once
 
 #include "MKD/result.hpp"
-#include "MKD/resource/common.hpp"
+#include "binary/binary_view.hpp"
+#include "MKD/platform/mmap_file.hpp"
 #include "resource_store_index_record.hpp"
 #include "resource_store_map.hpp"
-
-#include <expected>
-#include <iterator>
+#include <cstdint>
 #include <filesystem>
+#include <optional>
+#include <ranges>
+#include <span>
 #include <vector>
-
-namespace fs = std::filesystem;
 
 namespace MKD
 {
@@ -73,7 +73,7 @@ namespace MKD
      */
     struct ResourceStoreIndexHeader
     {
-        uint32_t length;    // Number of IdxRecords in the file
+        uint32_t length; // Number of IdxRecords in the file
         uint32_t padding;
     };
 
@@ -81,78 +81,39 @@ namespace MKD
     class ResourceStoreIndex
     {
     public:
-        static Result<ResourceStoreIndex> load(const fs::path& directoryPath);
+        static Result<ResourceStoreIndex> open(const std::filesystem::path& directory);
+        [[nodiscard]] Result<ResourceStoreMapRecord> findById(uint32_t id) const;
+        [[nodiscard]] Result<std::pair<uint32_t, ResourceStoreMapRecord>> itemAt(size_t index) const;
+        [[nodiscard]] Result<size_t> indexOf(uint32_t id) const;
+        [[nodiscard]] uint32_t mapVersion() const noexcept { return version_; }
+        [[nodiscard]] size_t size() const noexcept { return (indexFile_ ? index_ : locations_).bytes().size() / 8; }
+        [[nodiscard]] bool empty() const noexcept { return size() == 0; }
 
-        [[nodiscard]] Result<ResourceStoreMapRecord> findById(uint32_t itemId) const;
-
-        [[nodiscard]] Result<std::pair<uint32_t, ResourceStoreMapRecord>> getByIndex(size_t index) const;
-
-        [[nodiscard]] Result<size_t> indexOfId(uint32_t itemId) const;
-
-        [[nodiscard]] uint32_t mapVersion() const;
-
-        [[nodiscard]] size_t size() const noexcept;
-
-        [[nodiscard]] bool empty() const noexcept;
-
-        class Iterator
+        [[nodiscard]] auto items() const &
         {
-        public:
-            using iterator_category = std::random_access_iterator_tag;
-            using difference_type = std::ptrdiff_t;
-            using value_type = std::pair<uint32_t, ResourceStoreMapRecord>;
-            using pointer = const value_type*;
-            using reference = value_type; // not reference since we return by value
+            return std::views::iota(size_t{0}, size())
+                | std::views::transform([this](const size_t index) { return itemAt(index); });
+        }
 
-            Iterator() noexcept = default;
-
-            Iterator(const ResourceStoreIndex* index, size_t pos);
-
-            value_type operator*() const;
-            value_type operator[](difference_type n) const;
-
-            Iterator& operator++();
-            Iterator operator++(int);
-
-            Iterator& operator--();
-            Iterator operator--(int);
-
-            Iterator& operator+=(difference_type n);
-            Iterator& operator-=(difference_type n);
-
-            Iterator operator+(difference_type n) const;
-            Iterator operator-(difference_type n) const;
-
-            friend Iterator operator+(difference_type n, const Iterator& it);
-            difference_type operator-(const Iterator& other) const;
-
-            auto operator<=>(const Iterator& other) const = default;
-            bool operator==(const Iterator& other) const = default;
-
-        private:
-            const ResourceStoreIndex* index_ = nullptr;
-            size_t position_ = 0;
-        };
-
-        [[nodiscard]] Iterator begin() const;
-
-        [[nodiscard]] Iterator end() const;
-
-        static_assert(std::random_access_iterator<Iterator>);
+        auto items() const && = delete;
 
     private:
-        ResourceStoreIndex(uint32_t mapVersion, std::optional<std::vector<ResourceStoreIndexRecord>>&& idxRecords, std::vector<ResourceStoreMapRecord>&& mapRecords);
+        struct Map
+        {
+            uint32_t version;
+            detail::BinaryView locations;
+        };
 
-        static Result<std::pair<std::vector<ResourceStoreMapRecord>, uint32_t>> loadMapFile(const fs::path& directoryPath);
+        static Result<Map> readMap(detail::BinaryView data);
+        static Result<detail::BinaryView> readIdIndex(detail::BinaryView data);
+        static Result<std::optional<MappedFile>> openIndex(const std::filesystem::path& directory);
+        static Result<void> validateMappings(detail::BinaryView locations, detail::BinaryView index);
+        [[nodiscard]] uint32_t idAt(size_t index) const;
 
-        static Result<std::optional<std::vector<ResourceStoreIndexRecord>>> loadIdxFile(const fs::path& directoryPath);
-
-        void buildSortedOrder();
-
-        std::optional<std::vector<ResourceStoreIndexRecord>> idxRecords_;
-        std::vector<ResourceStoreMapRecord> mapRecords_;
-        uint32_t mapVersion_ = 0;
-
-        std::vector<size_t> sortedOrder_;
+        uint32_t version_ = 0;
+        std::optional<MappedFile> mapFile_;
+        std::optional<MappedFile> indexFile_;
+        detail::BinaryView locations_;
+        detail::BinaryView index_;
     };
 }

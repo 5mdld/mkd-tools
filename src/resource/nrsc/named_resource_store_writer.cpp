@@ -3,55 +3,64 @@
 //
 
 #include "named_resource_store_writer.hpp"
+#include "binary/binary_buffer.hpp"
 #include "named_resource_store_index.hpp"
-#include "resource/detail/zlib_stream.hpp"
+#include "resource/detail/zlib.hpp"
 
 #include <algorithm>
 #include <numeric>
+#include <limits>
 
 namespace MKD
 {
-    Result<NamedResourceStoreWriter> NamedResourceStoreWriter::create(const fs::path& directoryPath, const Options& options)
+    Result<NamedResourceStoreWriter> NamedResourceStoreWriter::create(const std::filesystem::path& directoryPath,
+                                                                      const Options& options)
     {
         if (options.type != ResourceType::Audio && options.type != ResourceType::Graphics)
-            return std::unexpected(std::format("Resource type '{}' is not supported by nrsc", resourceTypeName(options.type)));
+            return std::unexpected(std::format("Resource type '{}' is not supported by nrsc",
+                                               resourceTypeName(options.type)));
 
+        if (options.compressionLevel < -1 || options.compressionLevel > 9)
+            return std::unexpected("Invalid default compression level");
         auto blobWriter = detail::SequentialBlobWriter::create(
             directoryPath, options.type, options.maxFileSize);
 
         if (!blobWriter)
             return std::unexpected(blobWriter.error());
 
-        return NamedResourceStoreWriter(std::move(*blobWriter));
+        return NamedResourceStoreWriter(std::move(*blobWriter), options.compressionLevel);
     }
 
 
-    NamedResourceStoreWriter::NamedResourceStoreWriter(detail::SequentialBlobWriter&& blobWriter)
-        : blobWriter_(std::move(blobWriter))
+    NamedResourceStoreWriter::NamedResourceStoreWriter(detail::SequentialBlobWriter&& blobWriter, int compressionLevel)
+        : blobWriter_(std::move(blobWriter)), compressionLevel_(compressionLevel)
     {
     }
 
 
-    Result<void> NamedResourceStoreWriter::add(std::string_view id, std::vector<uint8_t> data, const int compressionLevel)
+    Result<void> NamedResourceStoreWriter::add(std::string_view id, std::vector<uint8_t> data,
+                                               std::optional<int> compressionLevel)
     {
+        const int level = compressionLevel.value_or(compressionLevel_);
         if (finished_)
             return std::unexpected("Cannot add entries after finalize()");
 
-        if (id.empty())
-            return std::unexpected("Entry ID must not be empty");
+        if (id.empty() || id.contains('\0'))
+            return std::unexpected("Entry ID must be nonempty and contain no null bytes");
 
-        const bool compress = compressionLevel > 0;
+        if (level < -1 || level > 9)
+            return std::unexpected("Invalid compression level");
+        const bool compress = level != 0;
         std::span<const uint8_t> dataToWrite;
         std::vector<uint8_t> compressedData;
 
         if (compress)
         {
-            const detail::ZlibStream zlib;
-            auto compressed = zlib.compress(data, compressionLevel);
+            auto compressed = detail::zlib::compress(data, level);
             if (!compressed)
                 return std::unexpected(compressed.error());
 
-            compressedData.assign(compressed->begin(), compressed->end());
+            compressedData = std::move(*compressed);
             dataToWrite = compressedData;
         }
         else
@@ -59,18 +68,18 @@ namespace MKD
             dataToWrite = data;
         }
 
-        // Capture per-file position before writing
-        const auto fileSeq = static_cast<uint16_t>(blobWriter_.fileSequence());
-        const auto fileOffset = static_cast<uint32_t>(blobWriter_.currentFileOffset());
-
-        if (auto location = blobWriter_.write(dataToWrite); !location)
+        auto location = blobWriter_.write(dataToWrite);
+        if (!location)
             return std::unexpected(location.error());
+        if (location->sequence > std::numeric_limits<uint16_t>::max() ||
+            location->fileOffset > std::numeric_limits<uint32_t>::max())
+            return std::unexpected("Named resource location exceeds format limits");
 
         entries_.push_back({
-            .id = std::move(std::string(id)),
+            .id = std::string(id),
             .format = static_cast<uint16_t>(compress ? 1u : 0u),
-            .fileSequence = fileSeq,
-            .fileOffset = fileOffset,
+            .fileSequence = static_cast<uint16_t>(location->sequence),
+            .fileOffset = static_cast<uint32_t>(location->fileOffset),
             .length = static_cast<uint32_t>(dataToWrite.size()),
         });
 
@@ -114,9 +123,21 @@ namespace MKD
         // build sorted order by ID for binary search when reading
         std::vector<size_t> sortedOrder(entries_.size());
         std::iota(sortedOrder.begin(), sortedOrder.end(), 0);
-        std::ranges::sort(sortedOrder, [&](const size_t a, const size_t b) {
+        std::ranges::sort(sortedOrder, [&](const size_t a, const size_t b)
+        {
             return entries_[a].id < entries_[b].id;
         });
+
+        for (size_t i = 1; i < sortedOrder.size(); ++i)
+            if (entries_[sortedOrder[i - 1]].id == entries_[sortedOrder[i]].id)
+                return std::unexpected("Duplicate named resource ID");
+
+        const uint64_t indexSize = 8 + uint64_t{16} * entries_.size();
+        uint64_t stringsSize = 0;
+        for (const auto& entry : entries_)
+            stringsSize += entry.id.size() + 1;
+        if (indexSize + stringsSize > std::numeric_limits<uint32_t>::max())
+            return std::unexpected("Named resource index exceeds format limits");
 
         // build records array in sorted order
         std::string idStrings;
@@ -130,7 +151,7 @@ namespace MKD
             idStrings.append(id);
             idStrings.push_back('\0');
 
-            NamedResourceStoreIndexRecord record {
+            NamedResourceStoreIndexRecord record{
                 .format = format,
                 .fileSequence = fileSequence,
                 .idStringOffset = idOffset,
@@ -154,9 +175,19 @@ namespace MKD
             .recordCount = static_cast<uint32_t>(records.size())
         };
 
-        file.write(reinterpret_cast<const char*>(&header), sizeof(header));
-        file.write(reinterpret_cast<const char*>(records.data()),
-                   static_cast<std::streamsize>(records.size() * sizeof(NamedResourceStoreIndexRecord)));
+        detail::BinaryBuffer buffer;
+        buffer.writeLittle(header.zeroField);
+        buffer.writeLittle(header.recordCount);
+        for (const auto& record : records)
+        {
+            buffer.writeLittle(record.format);
+            buffer.writeLittle(record.fileSequence);
+            buffer.writeLittle(record.idStringOffset);
+            buffer.writeLittle(record.fileOffset);
+            buffer.writeLittle(record.length);
+        }
+        file.write(reinterpret_cast<const char*>(buffer.data().data()),
+                   static_cast<std::streamsize>(buffer.position()));
         file.write(idStrings.data(), static_cast<std::streamsize>(idStrings.size()));
 
         if (!file)

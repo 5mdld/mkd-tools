@@ -27,13 +27,15 @@ namespace MKD
             size_t chunkSize = 32;
             int compressionLevel = 9;
             bool useEncryption = false;
-            std::string dictId {}; // required when using encryption
+            std::string dictId{}; // required when using encryption
         };
 
-        static Result<ResourceStoreWriter> createIndexed(const fs::path& directoryPath, const Options& options);
+        static Result<ResourceStoreWriter> createIndexed(const std::filesystem::path& directoryPath,
+                                                         const Options& options);
 
 
-        static Result<ResourceStoreWriter> createSequential(const fs::path& directoryPath, const Options& options);
+        static Result<ResourceStoreWriter> createSequential(const std::filesystem::path& directoryPath,
+                                                            const Options& options);
 
 
         /**
@@ -65,7 +67,8 @@ namespace MKD
 
         explicit ResourceStoreWriter(Mode mode, const Options& options, detail::SequentialBlobWriter&& blobWriter);
 
-        static Result<ResourceStoreWriter> createImpl(Mode mode, const fs::path& directoryPath, const Options& options);
+        static Result<ResourceStoreWriter> createImpl(Mode mode, const std::filesystem::path& directoryPath,
+                                                      const Options& options);
 
         struct PendingItem
         {
@@ -88,12 +91,6 @@ namespace MKD
          */
         SerializedChunk serializeItems(std::span<const PendingItem> items) const;
 
-        struct ChunkResult
-        {
-            std::vector<uint8_t> compressed;
-            std::vector<uint32_t> itemOffsets; // offset of each item within decompressed chunk
-        };
-
         Result<void> flushChunk();
 
         Result<void> writeIndexFiles() const;
@@ -103,8 +100,6 @@ namespace MKD
         detail::SequentialBlobWriter blobWriter_;
 
         std::vector<PendingItem> pendingItems_;
-        std::vector<ChunkResult> pendingChunks_;
-        size_t pendingBytes_ = 0;
 
         std::vector<ResourceStoreIndexRecord> idxRecords_;
         std::vector<ResourceStoreMapRecord> mapRecords_;

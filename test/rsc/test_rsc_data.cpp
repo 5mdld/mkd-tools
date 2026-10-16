@@ -39,7 +39,7 @@ protected:
 
 TEST_F(RscDataTest, LoadValidRscData)
 {
-    auto result = MKD::ResourceStoreContents::load(testDataPath_, dictId_);
+    auto result = MKD::ResourceStoreContents::open(testDataPath_, dictId_);
     ASSERT_TRUE(result.has_value()) << "Failed to load RSC data: " << result.error();
 
     MKD::test::verbosePrint("RSC Data Loaded Successfully from: {}\n", testDataPath_.string());
@@ -49,17 +49,17 @@ TEST_F(RscDataTest, LoadValidRscData)
 
 TEST_F(RscDataTest, GetRecordData)
 {
-    auto indexResult = MKD::ResourceStoreIndex::load(testDataPath_);
+    auto indexResult = MKD::ResourceStoreIndex::open(testDataPath_);
     ASSERT_TRUE(indexResult.has_value());
 
-    auto dataResult = MKD::ResourceStoreContents::load(testDataPath_, dictId_, indexResult->mapVersion());
+    auto dataResult = MKD::ResourceStoreContents::open(testDataPath_, dictId_, indexResult->mapVersion());
     ASSERT_TRUE(dataResult.has_value());
 
     auto& rscData = dataResult.value();
     const auto& index = indexResult.value();
 
     // Get first record
-    auto recordResult = index.getByIndex(0);
+    auto recordResult = index.itemAt(0);
     ASSERT_TRUE(recordResult.has_value());
 
     const auto& [itemId, mapRecord] = recordResult.value();
@@ -75,7 +75,7 @@ TEST_F(RscDataTest, GetRecordData)
         .data = data,
     };
 
-    const auto xmlResult = xmlItem.asUtf8StringView();
+    const auto xmlResult = xmlItem.data.utf8();
     ASSERT_TRUE(xmlResult.has_value()) << "Data contains invalid UTF-8 sequence: " << xmlResult.error();
 
     MKD::test::verbosePrint("Beginning of xml: {}\n", xmlResult.value().substr(0, 50));
@@ -88,18 +88,18 @@ TEST_F(RscDataTest, GetRecordData)
 
 TEST_F(RscDataTest, GetAudioData)
 {
-    auto indexResult = MKD::ResourceStoreIndex::load(testAudioDataPath_);
+    auto indexResult = MKD::ResourceStoreIndex::open(testAudioDataPath_);
     ASSERT_TRUE(indexResult.has_value());
 
     MKD::test::verbosePrint("Amount of audio records: {}\n", indexResult->size());
 
-    auto dataResult = MKD::ResourceStoreContents::load(testAudioDataPath_);
+    auto dataResult = MKD::ResourceStoreContents::open(testAudioDataPath_);
     ASSERT_TRUE(dataResult.has_value());
 
     auto& rscData = dataResult.value();
     const auto& index = indexResult.value();
 
-    auto recordResult = index.getByIndex(0);
+    auto recordResult = index.itemAt(0);
     ASSERT_TRUE(recordResult.has_value());
 
     const auto& [itemId, mapRecord] = recordResult.value();

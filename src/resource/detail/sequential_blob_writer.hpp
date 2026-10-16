@@ -11,7 +11,6 @@
 #include <fstream>
 #include <span>
 
-namespace fs = std::filesystem;
 
 namespace MKD::detail
 {
@@ -19,12 +18,14 @@ namespace MKD::detail
     {
         size_t globalOffset;
         size_t length;
+        size_t sequence;
+        size_t fileOffset;
     };
 
     class SequentialBlobWriter
     {
     public:
-        static Result<SequentialBlobWriter> create(const fs::path& directory,
+        static Result<SequentialBlobWriter> create(const std::filesystem::path& directory,
                                                    ResourceType type,
                                                    size_t maxFileSize);
 
@@ -35,14 +36,10 @@ namespace MKD::detail
 
         [[nodiscard]] size_t currentOffset() const noexcept;
 
-        [[nodiscard]] size_t fileSequence() const noexcept;
-
-        [[nodiscard]] size_t currentFileOffset() const noexcept;
-
-        [[nodiscard]] fs::path directory() const noexcept;
+        [[nodiscard]] const std::filesystem::path& directory() const noexcept;
 
     private:
-        explicit SequentialBlobWriter(const fs::path& directory,
+        explicit SequentialBlobWriter(const std::filesystem::path& directory,
                                       ResourceType type,
                                       std::ofstream file,
                                       size_t maxFileSize,
@@ -50,7 +47,7 @@ namespace MKD::detail
 
         Result<void> rollToNextFile();
 
-        fs::path directory_;
+        std::filesystem::path directory_;
         ResourceType resourceType_;
         size_t maxFileSize_;
 

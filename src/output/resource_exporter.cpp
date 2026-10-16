@@ -7,6 +7,7 @@
 #include "platform/parallel.hpp"
 
 #include <format>
+#include <fstream>
 #include <pugixml.h>
 #include <sstream>
 
@@ -28,7 +29,7 @@ namespace MKD
             return options.outputDirectory;
         }
 
-        template<typename F>
+        template <typename F>
         void forEachItem(const size_t count, F&& fn)
         {
 #if defined(__APPLE__) || defined(__linux__)
@@ -55,19 +56,24 @@ namespace MKD
         const bool shouldFormat = type == ResourceType::Contents && options.prettyPrintXml;
         ExportAccumulator acc(resourceStore.size(), type, options.progressCallback);
 
-        forEachItem(resourceStore.size(), [&](const size_t i) {
-            auto item = resourceStore.getByIndex(i);
-            if (!item)
+        forEachItem(resourceStore.size(), [&](const size_t i)
+        {
+            auto id = resourceStore.idAt(i);
+            if (!id)
             {
-                acc.recordFailure(item.error());
+                acc.recordFailure(id.error());
                 return;
             }
-
-            const auto filename = std::format("{:06}{}", item->itemId, ext);
-            const auto path = baseDir / filename;
+            const auto path = baseDir / std::format("{:06}{}", *id, ext);
             if (shouldSkipExisting(path, options.overwriteExisting))
             {
                 acc.recordSkip();
+                return;
+            }
+            auto item = resourceStore.itemAt(i);
+            if (!item)
+            {
+                acc.recordFailure(item.error());
                 return;
             }
 
@@ -96,22 +102,29 @@ namespace MKD
         const auto baseDir = buildOutputDir(options, type);
         ExportAccumulator acc(namedResourceStore.size(), type, options.progressCallback);
 
-        forEachItem(namedResourceStore.size(), [&](const size_t i) {
-            auto item = namedResourceStore.getByIndex(i);
-            if (!item)
+        forEachItem(namedResourceStore.size(), [&](const size_t i)
+        {
+            auto id = namedResourceStore.idAt(i);
+            if (!id)
             {
-                acc.recordFailure(std::format("Index {}: {}", i, item.error()));
+                acc.recordFailure(std::format("Index {}: {}", i, id.error()));
                 return;
             }
-
-            const bool isAudio = item->id.find('.') == std::string::npos;
-            const auto filename = isAudio ? std::format("{}.aac", item->id) : std::string(item->id);
-            if (const auto outputPath = baseDir / filename; shouldSkipExisting(outputPath, options.overwriteExisting))
+            const bool isAudio = id->find('.') == std::string_view::npos;
+            const auto filename = isAudio ? std::format("{}.aac", *id) : std::string(*id);
+            const auto outputPath = baseDir / filename;
+            if (shouldSkipExisting(outputPath, options.overwriteExisting))
+            {
                 acc.recordSkip();
+                return;
+            }
+            auto item = namedResourceStore.itemAt(i);
+            if (!item)
+                acc.recordFailure(std::format("Index {}: {}", i, item.error()));
             else if (auto result = writeData(item->data.span(), outputPath))
                 acc.recordExport(item->data.size());
             else
-                acc.recordFailure(std::format("{}: {}", item->id, result.error()));
+                acc.recordFailure(std::format("{}: {}", *id, result.error()));
         });
 
         return acc.finalize();
@@ -127,37 +140,37 @@ namespace MKD
         if (const auto ec = createOutputDirs(options, ResourceType::Fonts))
             return std::unexpected(std::format("Failed to create output directories: {}", ec.message()));
 
-        auto fontDataResult = font.getData();
-        if (!fontDataResult)
-            return std::unexpected(std::format("Failed to get font data: {}", fontDataResult.error()));
-
-        const auto fontData = *fontDataResult;
-        if (fontData.empty())
+        if (font.empty())
         {
             result.skipped = 1;
             return result;
         }
-
         auto extension = font.detectType();
         if (!extension)
-            return std::unexpected("Unrecognized font type");
-
-        auto baseDir = buildOutputDir(options, ResourceType::Fonts);
-        auto filename = std::format("{}.{}", font.name(), *extension);
-        if (auto outputPath = baseDir / filename; shouldSkipExisting(outputPath, options.overwriteExisting))
+            return std::unexpected(extension.error());
+        if (!*extension)
+            return std::unexpected("Unrecognised font type");
+        const auto outputPath = buildOutputDir(options, ResourceType::Fonts) /
+            std::format("{}.{}", font.name(), **extension);
+        if (shouldSkipExisting(outputPath, options.overwriteExisting))
         {
             result.skipped = 1;
+            return result;
         }
-        else if (auto writeResult = writeData(fontData, outputPath))
+        std::ofstream output(outputPath, std::ios::binary);
+        if (!output)
+            return std::unexpected(std::format("Cannot open font output: {}", outputPath.string()));
+        auto written = font.writeTo(output);
+        output.flush();
+        if (!written || !output)
         {
-            result.exported = 1;
-            result.totalBytes = fontData.size();
+            result.failed = 1;
+            result.errors.push_back(written ? "Failed to flush font output" : written.error());
         }
         else
         {
-            result.failed = 1;
-            result.errors.push_back(
-                std::format("Font export failed: {}", writeResult.error()));
+            result.exported = 1;
+            result.totalBytes = *written;
         }
 
         return result;

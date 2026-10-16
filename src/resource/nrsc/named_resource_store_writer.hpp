@@ -8,6 +8,7 @@
 #include "resource/detail/sequential_blob_writer.hpp"
 
 #include <string>
+#include <optional>
 #include <vector>
 
 namespace MKD
@@ -23,9 +24,11 @@ namespace MKD
         };
 
 
-        static Result<NamedResourceStoreWriter> create(const fs::path& directoryPath, const Options& options);
+        static Result<NamedResourceStoreWriter> create(const std::filesystem::path& directoryPath,
+                                                       const Options& options);
 
-        Result<void> add(std::string_view id, std::vector<uint8_t> data, int compressionLevel = 0);
+        Result<void> add(std::string_view id, std::vector<uint8_t> data,
+                         std::optional<int> compressionLevel = std::nullopt);
 
         Result<void> finalize();
 
@@ -34,11 +37,12 @@ namespace MKD
         [[nodiscard]] bool empty() const noexcept;
 
     private:
-        explicit NamedResourceStoreWriter(detail::SequentialBlobWriter&& blobWriter);
+        explicit NamedResourceStoreWriter(detail::SequentialBlobWriter&& blobWriter, int compressionLevel);
 
         Result<void> writeIndexFile() const;
 
         detail::SequentialBlobWriter blobWriter_;
+        int compressionLevel_;
 
         struct WrittenEntry
         {

@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <chrono>
 #include <iomanip>
+#include <stdexcept>
 
 #include "../test_listener.hpp"
 #include "MKD/dictionary/dictionary_product.hpp"
@@ -28,8 +29,12 @@ protected:
     {
         const auto dictPath = dictionariesPath_ / id;
         auto product = DictionaryProduct::openAtPath(dictPath);
+        if (!product)
+            throw std::runtime_error(product.error());
 
         auto& dicts = product->dictionaries();
+        if (dicts.empty())
+            throw std::runtime_error("Product contains no dictionaries: " + dictPath.string());
 
         return std::move(dicts.front());
     }
@@ -257,7 +262,7 @@ TEST_F(DictionarySearchTest, DictionaryEntryAccessHelpers)
     ASSERT_TRUE(firstEntry.has_value());
     EXPECT_FALSE(firstEntry->data.empty());
 
-    auto utf8View = firstEntry->asUtf8StringView();
+    auto utf8View = firstEntry->data.utf8();
     ASSERT_TRUE(utf8View.has_value());
     EXPECT_FALSE(utf8View->empty());
 

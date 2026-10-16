@@ -63,8 +63,13 @@ namespace MKD
         [[nodiscard]] Result<std::string> entryUtf8ByIndex(size_t index) const;
         [[nodiscard]] Result<std::string> entryUtf8ById(uint32_t itemId) const;
 
-        [[nodiscard]] ResourceStore::Iterator entryBegin() const;
-        [[nodiscard]] ResourceStore::Iterator entryEnd() const;
+        [[nodiscard]] auto entryItems() const &
+        {
+            return std::views::iota(size_t{0}, entries_ ? entries_->size() : size_t{0})
+                | std::views::transform([this](const size_t index) { return entryByIndex(index); });
+        }
+
+        auto entryItems() const && = delete;
         [[nodiscard]] const std::vector<AppendixEntryList>& appendixEntryLists() const noexcept;
 
         // returns nullptr if no nrsc resources available

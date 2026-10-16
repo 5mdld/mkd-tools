@@ -35,4 +35,3 @@
 #include "MKD/resource/font.hpp"
 #include "MKD/resource/stylesheet.hpp"
 #include "MKD/resource/retained_span.hpp"
-#include "MKD/resource/xml_view.hpp"

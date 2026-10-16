@@ -28,7 +28,7 @@ protected:
 
 TEST_F(RscIndexTest, LoadValidIndexFile)
 {
-    auto result = MKD::ResourceStoreIndex::load(testDataPath_);
+    auto result = MKD::ResourceStoreIndex::open(testDataPath_);
     ASSERT_TRUE(result.has_value()) << "Failed to load index: " << result.error();
     const auto& index = result.value();
     const size_t recordCount = index.size();
@@ -42,7 +42,7 @@ TEST_F(RscIndexTest, LoadValidIndexFile)
 
 TEST_F(RscIndexTest, GetRecordByIndex)
 {
-    const auto indexResult = MKD::ResourceStoreIndex::load(testDataPath_);
+    const auto indexResult = MKD::ResourceStoreIndex::open(testDataPath_);
     ASSERT_TRUE(indexResult.has_value());
 
     const auto& index = indexResult.value();
@@ -53,7 +53,7 @@ TEST_F(RscIndexTest, GetRecordByIndex)
 
     for (size_t i = 0; i < displayCount; ++i)
     {
-        auto recordResult = index.getByIndex(i);
+        auto recordResult = index.itemAt(i);
         ASSERT_TRUE(recordResult.has_value()) << "Failed to get record at index " << i;
 
         const auto& [itemId, mapRecord] = recordResult.value();
@@ -67,13 +67,13 @@ TEST_F(RscIndexTest, GetRecordByIndex)
 
 TEST_F(RscIndexTest, GetOutOfBoundsIndex)
 {
-    const auto indexResult = MKD::ResourceStoreIndex::load(testDataPath_);
+    const auto indexResult = MKD::ResourceStoreIndex::open(testDataPath_);
     ASSERT_TRUE(indexResult.has_value());
 
     const auto& index = indexResult.value();
     const size_t invalidIndex = index.size() + 100;
 
-    auto result = index.getByIndex(invalidIndex);
+    auto result = index.itemAt(invalidIndex);
 
     ASSERT_FALSE(result.has_value()) << "Should fail for out of bounds index";
 
@@ -85,13 +85,13 @@ TEST_F(RscIndexTest, GetOutOfBoundsIndex)
 
 TEST_F(RscIndexTest, FindRecordById)
 {
-    auto indexResult = MKD::ResourceStoreIndex::load(testDataPath_);
+    auto indexResult = MKD::ResourceStoreIndex::open(testDataPath_);
     ASSERT_TRUE(indexResult.has_value());
 
     const auto& index = indexResult.value();
 
     // Get the 10th record's ID to test with
-    auto recordResult = index.getByIndex(9);
+    auto recordResult = index.itemAt(9);
     ASSERT_TRUE(recordResult.has_value());
 
     const auto& [testItemId, expectedRecord] = recordResult.value();
@@ -113,18 +113,18 @@ TEST_F(RscIndexTest, FindRecordById)
 
 TEST_F(RscIndexTest, ResolveIndexByIdRoundTrip)
 {
-    const auto indexResult = MKD::ResourceStoreIndex::load(testDataPath_);
+    const auto indexResult = MKD::ResourceStoreIndex::open(testDataPath_);
     ASSERT_TRUE(indexResult.has_value());
 
     const auto& index = indexResult.value();
     ASSERT_GT(index.size(), 0u);
 
     const size_t probeIndex = std::min<size_t>(index.size() - 1, 9);
-    const auto recordResult = index.getByIndex(probeIndex);
+    const auto recordResult = index.itemAt(probeIndex);
     ASSERT_TRUE(recordResult.has_value());
 
     const auto& [itemId, _] = *recordResult;
-    const auto resolvedIndexResult = index.indexOfId(itemId);
+    const auto resolvedIndexResult = index.indexOf(itemId);
     ASSERT_TRUE(resolvedIndexResult.has_value()) << resolvedIndexResult.error();
     EXPECT_EQ(*resolvedIndexResult, probeIndex);
 }

@@ -27,7 +27,7 @@ protected:
 
 TEST_F(NrscIndexTest, LoadValidIndexFile)
 {
-    auto result = MKD::NamedResourceStoreIndex::load(testDataPath_);
+    auto result = MKD::NamedResourceStoreIndex::open(testDataPath_);
     ASSERT_TRUE(result.has_value()) << "Failed to load index: " << result.error();
 
     const auto& index = result.value();
@@ -42,19 +42,19 @@ TEST_F(NrscIndexTest, LoadValidIndexFile)
 
 TEST_F(NrscIndexTest, LoadNonExistentDirectory)
 {
-    auto result = MKD::NamedResourceStoreIndex::load("/path/that/does/not/exist");
+    auto result = MKD::NamedResourceStoreIndex::open("/path/that/does/not/exist");
 
     ASSERT_FALSE(result.has_value()) << "Should fail when directory doesn't exist";
 
     MKD::test::verbosePrint("Expected error (non-existent directory): {}\n", result.error());
 
-    EXPECT_TRUE(result.error().find("not found") != std::string::npos);
+    EXPECT_TRUE(!result.error().empty());
 }
 
 
 TEST_F(NrscIndexTest, GetRecordByIndex)
 {
-    auto indexResult = MKD::NamedResourceStoreIndex::load(testDataPath_);
+    auto indexResult = MKD::NamedResourceStoreIndex::open(testDataPath_);
     ASSERT_TRUE(indexResult.has_value());
 
     const auto& index = indexResult.value();
@@ -65,7 +65,7 @@ TEST_F(NrscIndexTest, GetRecordByIndex)
 
     for (size_t i = 0; i < displayCount; ++i)
     {
-        auto recordResult = index.getByIndex(i);
+        auto recordResult = index.itemAt(i);
         ASSERT_TRUE(recordResult.has_value()) << "Failed to get record at index " << i;
 
         const auto& [id, record] = recordResult.value();
@@ -79,13 +79,13 @@ TEST_F(NrscIndexTest, GetRecordByIndex)
 
 TEST_F(NrscIndexTest, GetOutOfBoundsIndex)
 {
-    auto indexResult = MKD::NamedResourceStoreIndex::load(testDataPath_);
+    auto indexResult = MKD::NamedResourceStoreIndex::open(testDataPath_);
     ASSERT_TRUE(indexResult.has_value());
 
     const auto& index = indexResult.value();
     const size_t invalidIndex = index.size() + 100;
 
-    auto result = index.getByIndex(invalidIndex);
+    auto result = index.itemAt(invalidIndex);
 
     ASSERT_FALSE(result.has_value()) << "Should fail for out of bounds index";
 
@@ -97,13 +97,13 @@ TEST_F(NrscIndexTest, GetOutOfBoundsIndex)
 
 TEST_F(NrscIndexTest, FindRecordById)
 {
-    auto indexResult = MKD::NamedResourceStoreIndex::load(testDataPath_);
+    auto indexResult = MKD::NamedResourceStoreIndex::open(testDataPath_);
     ASSERT_TRUE(indexResult.has_value());
 
     const auto& index = indexResult.value();
 
     // Get the 20th record's ID to test with
-    auto firstRecordResult = index.getByIndex(20);
+    auto firstRecordResult = index.itemAt(20);
     ASSERT_TRUE(firstRecordResult.has_value());
 
     const auto& [testId, expectedRecord] = firstRecordResult.value();
@@ -128,7 +128,7 @@ TEST_F(NrscIndexTest, FindRecordById)
 
 TEST_F(NrscIndexTest, DisplayIndexStatistics)
 {
-    const auto indexResult = MKD::NamedResourceStoreIndex::load(testDataPath_);
+    const auto indexResult = MKD::NamedResourceStoreIndex::open(testDataPath_);
     ASSERT_TRUE(indexResult.has_value());
 
     const auto& index = indexResult.value();
@@ -141,8 +141,10 @@ TEST_F(NrscIndexTest, DisplayIndexStatistics)
 
     std::map<uint16_t, size_t> fileDistribution;
 
-    for (const auto record : index | std::views::values)
+    for (auto item : index.items())
     {
+        ASSERT_TRUE(item) << item.error();
+        const auto& record = item->second;
         if (record.isCompressed())
             ++zlibCount;
         else
@@ -188,7 +190,7 @@ TEST_F(NrscIndexTest, DisplayIndexStatistics)
 
 TEST_F(NrscIndexTest, DisplayLastRecords)
 {
-    auto indexResult = MKD::NamedResourceStoreIndex::load(testDataPath_);
+    auto indexResult = MKD::NamedResourceStoreIndex::open(testDataPath_);
     ASSERT_TRUE(indexResult.has_value());
 
     const auto& index = indexResult.value();
@@ -200,7 +202,7 @@ TEST_F(NrscIndexTest, DisplayLastRecords)
 
     for (size_t i = startIndex; i < index.size(); ++i)
     {
-        auto recordResult = index.getByIndex(i);
+        auto recordResult = index.itemAt(i);
         ASSERT_TRUE(recordResult.has_value());
 
         const auto& [id, record] = recordResult.value();

@@ -4,20 +4,21 @@
 
 #include "resource_store_writer.hpp"
 #include "binary/binary_buffer.hpp"
-#include "resource/detail/zlib_stream.hpp"
+#include "resource/detail/zlib.hpp"
 
 #include <algorithm>
+#include <limits>
 
 namespace MKD
 {
-    Result<ResourceStoreWriter> ResourceStoreWriter::createIndexed(const fs::path& directoryPath,
+    Result<ResourceStoreWriter> ResourceStoreWriter::createIndexed(const std::filesystem::path& directoryPath,
                                                                    const Options& options)
     {
         return createImpl(Mode::Indexed, directoryPath, options);
     }
 
 
-    Result<ResourceStoreWriter> ResourceStoreWriter::createSequential(const fs::path& directoryPath,
+    Result<ResourceStoreWriter> ResourceStoreWriter::createSequential(const std::filesystem::path& directoryPath,
                                                                       const Options& options)
     {
         return createImpl(Mode::Sequential, directoryPath, options);
@@ -33,11 +34,22 @@ namespace MKD
     }
 
 
-    Result<ResourceStoreWriter> ResourceStoreWriter::createImpl(const Mode mode, const fs::path& directoryPath,
+    Result<ResourceStoreWriter> ResourceStoreWriter::createImpl(const Mode mode,
+                                                                const std::filesystem::path& directoryPath,
                                                                 const Options& options)
     {
+        if (options.chunkSize == 0 || options.compressionLevel < -1 || options.compressionLevel > 9)
+            return std::unexpected("Invalid resource writer chunk size or compression level");
+
+        if (options.useEncryption && options.dictId.empty())
+            return std::unexpected("Dictionary ID required for encrypted resources");
+
+        if (options.type != ResourceType::Contents && options.type != ResourceType::Fonts &&
+            options.type != ResourceType::AudioLegacy)
+            return std::unexpected("Resource type does not use RSC storage");
+
         auto blobWriter = detail::SequentialBlobWriter::create(
-            directoryPath, ResourceType::Contents, options.maxFileSize);
+            directoryPath, options.type, options.maxFileSize);
 
         if (!blobWriter)
             return std::unexpected(blobWriter.error());
@@ -53,6 +65,8 @@ namespace MKD
         if (mode_ != Mode::Indexed)
             return std::unexpected("add(itemId, data) is only valid for indexed writers, use addData() instead");
 
+        if (data.size() > std::numeric_limits<uint32_t>::max() - 8)
+            return std::unexpected("Resource item exceeds the format size limit");
         pendingItems_.push_back({.itemId = itemId, .data = std::move(data)});
 
         if (pendingItems_.size() >= options_.chunkSize)
@@ -69,7 +83,14 @@ namespace MKD
         if (mode_ != Mode::Sequential)
             return std::unexpected("addData() is only valid for sequential writers, use add() instead");
 
-        auto location = blobWriter_.write(data);
+        if (data.size() > std::numeric_limits<uint32_t>::max() - 4 ||
+            blobWriter_.currentOffset() > std::numeric_limits<uint32_t>::max() - 4 - data.size())
+            return std::unexpected("Resource payload exceeds the format size limit");
+
+        detail::BinaryBuffer buffer(data.size() + 4);
+        buffer.writeLittle(static_cast<uint32_t>(data.size()));
+        buffer.writeBytes(data);
+        auto location = blobWriter_.write(buffer.data());
         if (!location)
             return std::unexpected(location.error());
 
@@ -119,7 +140,6 @@ namespace MKD
     ResourceStoreWriter::SerializedChunk ResourceStoreWriter::serializeItems(std::span<const PendingItem> items) const
     {
         const bool newFormat = encryptionKey_.has_value();
-        const size_t headerSize = newFormat ? 8 : 4;
 
         // calculate total size and record item offsets
         size_t totalSize = 0;
@@ -129,14 +149,14 @@ namespace MKD
         for (const auto& [itemId, data] : items)
         {
             offsets.push_back(static_cast<uint32_t>(totalSize));
-            totalSize += headerSize + data.size();
+            totalSize += (newFormat || data.empty() ? 8 : 4) + data.size();
         }
 
         // write item headers and data
         detail::BinaryBuffer buffer(totalSize);
         for (const auto& [itemId, data] : items)
         {
-            if (newFormat)
+            if (newFormat || data.empty())
                 buffer.writePadding(sizeof(uint32_t));
 
             buffer.writeLittle(static_cast<uint32_t>(data.size()));
@@ -149,12 +169,21 @@ namespace MKD
 
     Result<void> ResourceStoreWriter::flushChunk()
     {
+        uint64_t size = 0;
+        for (const auto& item : pendingItems_)
+            size += 8 + item.data.size();
+
+        if (size > std::numeric_limits<uint32_t>::max() - 32)
+            return std::unexpected("Resource chunk exceeds the format size limit");
+
         const auto [serialized, itemOffsets] = serializeItems(pendingItems_);
 
-        const detail::ZlibStream zlib;
-        auto compressedSpan = zlib.compress(serialized, options_.compressionLevel);
+        auto compressedSpan = detail::zlib::compress(serialized, options_.compressionLevel);
         if (!compressedSpan)
             return std::unexpected(compressedSpan.error());
+
+        if (compressedSpan->size() > std::numeric_limits<uint32_t>::max() - 32)
+            return std::unexpected("Compressed chunk exceeds the format size limit");
 
         detail::BinaryBuffer buffer;
         if (encryptionKey_)
@@ -169,6 +198,10 @@ namespace MKD
             buffer.writeLittle(static_cast<uint32_t>(compressedSpan->size()));
             buffer.writeBytes(*compressedSpan);
         }
+
+        if (buffer.position() > std::numeric_limits<uint32_t>::max() ||
+            blobWriter_.currentOffset() > std::numeric_limits<uint32_t>::max() - buffer.position())
+            return std::unexpected("Resource blob offsets exceed the format size limit");
 
         auto location = blobWriter_.write(buffer.data());
         if (!location)
@@ -197,8 +230,18 @@ namespace MKD
 
     Result<void> ResourceStoreWriter::writeIndexFiles() const
     {
+        if (mapRecords_.size() > std::numeric_limits<uint32_t>::max())
+            return std::unexpected("Too many resource records");
+
+        auto sortedIdx = idxRecords_;
+        std::ranges::sort(sortedIdx, {}, &ResourceStoreIndexRecord::itemId);
+        for (size_t i = 1; i < sortedIdx.size(); ++i)
+            if (sortedIdx[i - 1].itemId == sortedIdx[i].itemId)
+                return std::unexpected("Duplicate resource item ID");
+
         const auto directory = blobWriter_.directory();
 
+        // The map preserves write order, while the ID index is sorted independently.
         // Write contents.map
         {
             const auto mapPath = directory / "contents.map";
@@ -208,12 +251,19 @@ namespace MKD
 
             ResourceStoreMapHeader header{
                 .version = encryptionKey_ ? 0x01u : 0x00u,
-                .recordCount = static_cast<uint32_t>(idxRecords_.size()),
+                .recordCount = static_cast<uint32_t>(mapRecords_.size()),
             };
 
-            file.write(reinterpret_cast<const char*>(&header), sizeof(header));
-            file.write(reinterpret_cast<const char*>(mapRecords_.data()),
-                       static_cast<std::streamsize>(mapRecords_.size() * sizeof(ResourceStoreMapRecord)));
+            detail::BinaryBuffer buffer;
+            buffer.writeLittle(header.version);
+            buffer.writeLittle(header.recordCount);
+            for (const auto& record : mapRecords_)
+            {
+                buffer.writeLittle(record.chunkGlobalOffset);
+                buffer.writeLittle(record.itemOffset);
+            }
+            file.write(reinterpret_cast<const char*>(buffer.data().data()),
+                       static_cast<std::streamsize>(buffer.position()));
 
             if (!file)
                 return std::unexpected(std::format("Failed to write: {}", mapPath.string()));
@@ -227,18 +277,21 @@ namespace MKD
             if (!file)
                 return std::unexpected(std::format("Failed to open: {}", idxPath.string()));
 
-            // Sort idx records by itemId for binary search at read time
-            auto sortedIdx = idxRecords_;
-            std::ranges::sort(sortedIdx, {}, &ResourceStoreIndexRecord::itemId);
-
             ResourceStoreIndexHeader header{
                 .length = static_cast<uint32_t>(sortedIdx.size()),
                 .padding = 0
             };
 
-            file.write(reinterpret_cast<const char*>(&header), sizeof(header));
-            file.write(reinterpret_cast<const char*>(sortedIdx.data()),
-                       static_cast<std::streamsize>(sortedIdx.size() * sizeof(ResourceStoreIndexRecord)));
+            detail::BinaryBuffer buffer;
+            buffer.writeLittle(header.length);
+            buffer.writeLittle(header.padding);
+            for (const auto& record : sortedIdx)
+            {
+                buffer.writeLittle(record.itemId);
+                buffer.writeLittle(record.mapIdx);
+            }
+            file.write(reinterpret_cast<const char*>(buffer.data().data()),
+                       static_cast<std::streamsize>(buffer.position()));
 
             if (!file)
                 return std::unexpected(std::format("Failed to write: {}", idxPath.string()));

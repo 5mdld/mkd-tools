@@ -6,7 +6,6 @@
 #include "named_resource_store_index.hpp"
 #include "named_resource_store_contents.hpp"
 
-#include <cassert>
 #include <format>
 
 namespace MKD
@@ -34,13 +33,13 @@ namespace MKD
     NamedResourceStore& NamedResourceStore::operator=(NamedResourceStore&&) noexcept = default;
 
 
-    Result<NamedResourceStore> NamedResourceStore::open(const fs::path& directoryPath)
+    Result<NamedResourceStore> NamedResourceStore::open(const std::filesystem::path& directoryPath)
     {
-        auto indexResult = NamedResourceStoreIndex::load(directoryPath);
+        auto indexResult = NamedResourceStoreIndex::open(directoryPath);
         if (!indexResult)
             return std::unexpected(std::format("Failed to load nrsc index: {}", indexResult.error()));
 
-        auto dataResult = NamedResourceStoreContents::load(directoryPath);
+        auto dataResult = NamedResourceStoreContents::open(directoryPath);
         if (!dataResult)
             return std::unexpected(std::format("Failed to load nrsc data: {}", dataResult.error()));
 
@@ -58,9 +57,9 @@ namespace MKD
     }
 
 
-    Result<NamedResourceStoreItem> NamedResourceStore::getByIndex(const size_t index) const
+    Result<NamedResourceStoreItem> NamedResourceStore::itemAt(const size_t index) const
     {
-        auto result = impl_->index.getByIndex(index);
+        auto result = impl_->index.itemAt(index);
         if (!result)
             return std::unexpected(result.error());
 
@@ -69,7 +68,7 @@ namespace MKD
         if (!dataResult)
             return std::unexpected(dataResult.error());
 
-        return NamedResourceStoreItem{id, *dataResult};
+        return NamedResourceStoreItem{std::string(id), std::move(*dataResult)};
     }
 
 
@@ -85,59 +84,13 @@ namespace MKD
     }
 
 
-    NamedResourceStore::Iterator::Iterator(const NamedResourceStore* nrsc, const size_t index)
-        : store_(nrsc), index_(index)
+    Result<std::string_view> NamedResourceStore::idAt(size_t index) const
     {
+        return impl_->index.idAt(index);
     }
 
-    NamedResourceStore::Iterator::value_type NamedResourceStore::Iterator::operator*() const
+    Result<size_t> NamedResourceStore::indexOf(std::string_view id) const
     {
-        assert(store_ != nullptr && "Dereferencing invalid iterator");
-        assert(index_ < store_->size() && "Dereferencing end iterator");
-
-        auto result = store_->getByIndex(index_);
-        if (!result)
-        {
-            throw std::runtime_error(
-                std::format("Nrsc iteration failed at position {}: {}",
-                    index_, result.error()));
-        }
-
-        return *result;
-    }
-
-    NamedResourceStore::Iterator& NamedResourceStore::Iterator::operator++()
-    {
-        ++index_;
-        return *this;
-    }
-
-    NamedResourceStore::Iterator NamedResourceStore::Iterator::operator++(int)
-    {
-        const Iterator tmp = *this;
-        ++*this;
-        return tmp;
-    }
-
-    bool NamedResourceStore::Iterator::operator==(const Iterator& other) const
-    {
-        return store_ == other.store_ && index_ == other.index_ ;
-    }
-
-    bool NamedResourceStore::Iterator::operator!=(const Iterator& other) const
-    {
-        return !(*this == other);
-    }
-
-
-    NamedResourceStore::Iterator NamedResourceStore::begin() const
-    {
-        return Iterator{this, 0};
-    }
-
-
-    NamedResourceStore::Iterator NamedResourceStore::end() const
-    {
-        return Iterator{this, size()};
+        return impl_->index.indexOf(id);
     }
 }

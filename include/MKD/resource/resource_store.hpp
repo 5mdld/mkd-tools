@@ -7,13 +7,11 @@
 #include "MKD/result.hpp"
 #include "MKD/resource/retained_span.hpp"
 
-#include <expected>
 #include <filesystem>
-#include <iterator>
+#include <memory>
+#include <ranges>
 #include <string>
 #include <string_view>
-
-namespace fs = std::filesystem;
 
 namespace MKD
 {
@@ -21,17 +19,6 @@ namespace MKD
     {
         uint32_t itemId;
         RetainedSpan data;
-
-        /**
-         * Validate that the payload is UTF-8 and return a non-owning view.
-         * The returned view remains valid while this ResourceStoreItem is alive.
-         */
-        [[nodiscard]] Result<std::string_view> asUtf8StringView() const;
-
-        /**
-         * Validate UTF-8 and return an owning std::string copy.
-         */
-        [[nodiscard]] Result<std::string> asUtf8String() const;
     };
 
     class ResourceStore
@@ -41,88 +28,27 @@ namespace MKD
         ResourceStore(ResourceStore&&) noexcept;
         ResourceStore& operator=(ResourceStore&&) noexcept;
 
-        /**
-         * Factory method to open .rsc dictionary contents from a dictionary
-         *
-         * @param directoryPath Directory path containing the .idx/.map & .rsc files
-         * @param dictId Needed if the dictionary has encryption applied. The decryption key is derived from the identifier
-         * @return
-         */
-        static Result<ResourceStore> open(const fs::path& directoryPath, std::string_view dictId = "");
-
-        /**
-         * This will basically look up the itemId first with RscIndex, if it finds a
-         * map record, it will use that to retrieve the data from the .rsc
-         * this works well for dictionary entries where you want to get the xml data for a given itemId
-         */
-        [[nodiscard]] Result<RetainedSpan> get(uint32_t itemId) const;
-
-        /**
-         * Get RscItem by index
-         * @param index index
-         * @return Rscitem or error string if failure
-         */
-        [[nodiscard]] Result<ResourceStoreItem> getByIndex(size_t index) const;
-
-        /**
-         * Get only the item ID at an index without loading/decompressing data
-         */
-        [[nodiscard]] Result<uint32_t> idAtIndex(size_t index) const;
-
-        /**
-         * Resolve an item ID to its index in this resource store.
-         */
-        [[nodiscard]] Result<size_t> indexOfId(uint32_t itemId) const;
-
-        /**
-         * Get total number of records
-         * @return Number of records
-         */
+        /** The dictionary ID is required when the map declares encryption. */
+        static Result<ResourceStore> open(const std::filesystem::path& directory, std::string_view dictId = {});
+        [[nodiscard]] Result<RetainedSpan> get(uint32_t id) const;
+        [[nodiscard]] Result<ResourceStoreItem> itemAt(size_t index) const;
+        [[nodiscard]] Result<uint32_t> idAt(size_t index) const;
+        [[nodiscard]] Result<size_t> indexOf(uint32_t id) const;
         [[nodiscard]] size_t size() const noexcept;
-
-        /**
-         * @return true if there are no records
-         */
         [[nodiscard]] bool empty() const noexcept;
 
-
-        class Iterator
+        /** Each element is a Result because reading or decompressing a payload may fail. */
+        [[nodiscard]] auto items() const &
         {
-        public:
-            using iterator_category = std::forward_iterator_tag;
-            using iterator_concept = std::forward_iterator_tag;
-            using difference_type = std::ptrdiff_t;
-            using value_type = ResourceStoreItem;
-            using pointer = value_type*;
-            using reference = value_type;
+            return std::views::iota(size_t{0}, size())
+                | std::views::transform([this](const size_t index) { return itemAt(index); });
+        }
 
-            Iterator() noexcept = default;
-            Iterator(const ResourceStore* rsc, size_t index);
-
-            value_type operator*() const;
-
-            Iterator& operator++();
-            Iterator operator++(int);
-
-            bool operator==(const Iterator& other) const;
-            bool operator!=(const Iterator& other) const;
-
-        private:
-            const ResourceStore* store_ = nullptr;
-            size_t index_ = 0;
-        };
-
-        [[nodiscard]] Iterator begin() const;
-        [[nodiscard]] Iterator end() const;
-
-        static_assert(std::forward_iterator<Iterator>);
+        auto items() const && = delete;
 
     private:
         struct Impl;
         std::unique_ptr<Impl> impl_;
-
         explicit ResourceStore(std::unique_ptr<Impl> impl) noexcept;
     };
-
-
 }
