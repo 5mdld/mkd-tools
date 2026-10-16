@@ -15,18 +15,19 @@ cmake --build build
 
 ```
 mkd-tools <command> [options]
-mkd-tools <dict_id>            # shorthand for 'export <dict_id>'
 ```
 
-**Commands:** `list`, `info <dict_id>`, `export <dict_id>`, `help`
+**Commands:** `list`, `info <product-id>`, `export <product-id>`
+
+Use `--help` for usage information, including command-specific help such as `mkd-tools export --help`. Commands must be explicit; bare IDs and the former `-l`, `--list`, `-e`, and `--export` aliases are no longer supported.
 
 On macOS, installed dictionaries are detected automatically.\
 You can also point to a dictionary directory with `-d <path>`.
 ```
-mkd-tools export <dict_id>
-mkd-tools -d /path/to/dicts export <dict_id>
-mkd-tools export <dict_id> --only entries --pretty
-mkd-tools export <dict_id> --only appendix-entries
+mkd-tools export <product-id>
+mkd-tools -d /path/to/dicts export <product-id>
+mkd-tools export <product-id> --only entries --pretty
+mkd-tools export <product-id> --only appendix-entries
 ```
 
 Use `--only` to limit export to specific resource types (`audio`, `entries`, `appendix-entries`, `graphics`, `fonts`, `keystores`, `headlines`). `--pretty` will format XML entry content.

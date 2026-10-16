@@ -7,5 +7,6 @@
 #include "case.hpp"
 #include "constants.hpp"
 #include "normalization.hpp"
+#include "properties.hpp"
 #include "search_folding.hpp"
 #include "utf8.hpp"

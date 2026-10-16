@@ -6,140 +6,108 @@
 #include "MKDCLI/format.hpp"
 #include "MKDCLI/progress.hpp"
 
-#include "MKD/dictionary/dictionary_product.hpp"
-
 #include <algorithm>
 #include <iostream>
+#include <vector>
 
 namespace MKDCLI
 {
-    int runList(MKD::DictionarySource& source, const CLIOptions& opts)
+    int runCommand(const MKD::DictionarySource& source, const ListCommand&)
     {
         auto available = source.findAllAvailable();
         if (!available)
         {
-            std::cerr << Colour::red("Error: ") << available.error() << "\n";
+            std::cerr << "Error: " << available.error() << "\n";
             return 1;
         }
 
         if (available->empty())
         {
-            std::cerr << "No dictionaries found.\n";
+            std::cout << "No dictionaries found.\n";
             return 0;
         }
 
-        std::ranges::sort(*available, [](const auto& a, const auto& b) {
+        std::ranges::sort(*available, [](const auto& a, const auto& b)
+        {
             return a.id < b.id;
         });
 
-        std::cerr << Colour::bold("Available dictionaries") << Colour::dim(" (" + std::to_string(available->size()) + " found)") << "\n\n";
+        std::cout << "Available dictionary products (" << available->size() << " found)\n\n";
 
-        std::vector<TableRow> rows;
+        std::vector<ProductRow> rows;
+        rows.reserve(available->size());
         for (const auto& [productId, path] : *available)
         {
             auto meta = MKD::DictionaryMetadata::loadFromPath(
                 path / "Contents" / (path.stem().string() + ".json")
             );
 
-            TableRow row;
-            row.cells.push_back(Colour::cyan(productId));
-
             if (!meta)
             {
-                row.cells.push_back(Colour::dim("(metadata unavailable)"));
-                row.cells.emplace_back("");
-                row.cells.emplace_back("");
-            }
-            else
-            {
-                row.cells.push_back(meta->displayName->ja.value_or("-"));
-                row.cells.push_back(Colour::dim(meta->genre->ja.value_or("")));
+                rows.push_back({
+                    .id = productId,
+                    .name = "(metadata unavailable)",
+                    .genre = {},
+                });
+                continue;
             }
 
-            rows.push_back(std::move(row));
+            rows.push_back({
+                .id = productId,
+                .name = meta->displayName ? meta->displayName->resolve() : "-",
+                .genre = meta->genre ? meta->genre->resolve() : "",
+            });
         }
 
-        printTable(rows);
-        std::cerr << "\n";
+        printProductList(std::cout, rows);
+        std::cout << "\n";
         return 0;
     }
 
 
-    int runInfo(const MKD::DictionarySource& source, const CLIOptions& opts)
+    int runCommand(const MKD::DictionaryProduct& product, const InfoCommand& command)
     {
-        auto info = source.findById(opts.dictId);
-        if (!info)
+        auto printField = [](std::string_view label, std::string_view value, size_t indent = 2)
         {
-            std::cerr << Colour::red("Error: ") << info.error() << "\n";
-            return 1;
-        }
+            std::cout << std::string(indent, ' ') << label << "  "
+                << (value.empty() ? "-" : value) << "\n";
+        };
 
-        auto product = MKD::DictionaryProduct::openAtPath(info->path);
-        if (!product)
-        {
-            std::cerr << Colour::red("Error: ") << product.error() << "\n";
-            return 1;
-        }
-
-        const auto& meta = product->metadata();
+        const auto& meta = product.metadata();
 
         // product info
-        std::cerr << Colour::bold(opts.dictId) << "\n\n";
+        std::cout << command.productId << "\n\n";
 
-        auto printField = [](std::string_view label, const std::optional<std::string>& value) {
-            std::cerr << "  " << Colour::dim(std::string(label)) << "  "
-                    << value.value_or("-") << "\n";
-        };
-
-        auto localizedOr = [](const std::optional<MKD::LocalizedString>& ls) -> std::optional<std::string> {
-            if (!ls) return std::nullopt;
-            if (ls->ja) return ls->ja;
-            if (ls->en) return ls->en;
-            return std::nullopt;
-        };
-
-        printField("Name:       ", localizedOr(meta.displayName));
-        printField("Description:", localizedOr(meta.description));
-        printField("Category:   ", meta.category);
-        printField("Version:    ", meta.version);
+        printField("Name:       ", meta.displayName.value_or(MKD::LocalizedString{}).resolve());
+        printField("Description:", meta.description.value_or(MKD::LocalizedString{}).resolve());
+        printField("Category:   ", meta.category.value_or("-"));
+        printField("Version:    ", meta.version.value_or("-"));
 
         // content info
-        const auto& dicts = product->dictionaries();
-        std::cerr << "\n  " << Colour::dim("Contents:")
-                << Colour::dim(" (" + std::to_string(dicts.size()) + ")") << "\n";
+        const auto& dicts = product.dictionaries();
+        std::cout << "\n  Contents: (" << dicts.size() << ")\n";
 
         for (const auto& dict : dicts)
         {
             const auto& content = dict.content();
 
-            std::cerr << "\n    " << Colour::bold(content.identifier) << "\n";
+            std::cout << "\n    " << content.identifier << "\n";
 
-            auto printContentField = [](std::string_view label, const std::optional<std::string>& value) {
-                std::cerr << "      " << Colour::dim(std::string(label)) << "  "
-                        << value.value_or("-") << "\n";
-            };
-
-            auto contentLocalized = [](const std::optional<MKD::LocalizedString>& ls) -> std::optional<std::string> {
-                if (!ls) return std::nullopt;
-                if (ls->ja) return ls->ja;
-                if (ls->en) return ls->en;
-                return std::nullopt;
-            };
-
-            printContentField("Title:    ", contentLocalized(content.title));
-            printContentField("Publisher:", contentLocalized(content.publisher));
-            printContentField("Edition:  ", contentLocalized(content.edition));
-            printContentField("Directory:", std::optional(content.directory));
+            printField("Title:    ", content.title.value_or(MKD::LocalizedString{}).resolve(), 6);
+            printField("Publisher:", content.publisher.value_or(MKD::LocalizedString{}).resolve(), 6);
+            printField("Edition:  ", content.edition.value_or(MKD::LocalizedString{}).resolve(), 6);
+            printField("Directory:", content.directory, 6);
 
             // Resource availability for this content
-            std::cerr << "\n      " << Colour::dim("Resources:") << "\n";
+            std::cout << "\n      Resources:\n";
 
-            auto resourceLine = [](std::string_view name, const size_t count) {
-                std::cerr << "        " << (count > 0 ? Colour::green("●") : Colour::dim("○"))
-                        << " " << name;
+            auto resourceLine = [](std::string_view name, const size_t count)
+            {
+                std::cout << "        " << (count > 0 ? "●" : "○")
+                    << " " << name;
                 if (count > 0)
-                    std::cerr << Colour::dim(" (" + std::to_string(count) + ")");
-                std::cerr << "\n";
+                    std::cout << " (" << count << ")";
+                std::cout << "\n";
             };
 
             resourceLine("Entries", dict.resourceCount(MKD::ResourceType::Contents));
@@ -151,32 +119,17 @@ namespace MKDCLI
             resourceLine("Headlines", dict.resourceCount(MKD::ResourceType::Headlines));
         }
 
-        std::cerr << "\n";
+        std::cout << "\n";
         return 0;
     }
 
 
-    int runExport(const MKD::DictionarySource& source, const CLIOptions& opts,
-                  const MKD::ExportOptions& exportOpts)
+    int runCommand(const MKD::DictionaryProduct& product, const ExportCommand& command)
     {
-        auto info = source.findById(opts.dictId);
-        if (!info)
-        {
-            std::cerr << Colour::red("Error: ") << info.error() << "\n";
-            return 1;
-        }
-
-        auto product = MKD::DictionaryProduct::openAtPath(info->path);
-        if (!product)
-        {
-            std::cerr << Colour::red("Error: ") << product.error() << "\n";
-            return 1;
-        }
-
-        const auto& dicts = product->dictionaries();
+        const auto& dicts = product.dictionaries();
         if (dicts.empty())
         {
-            std::cerr << Colour::red("Error: ") << "No content entries found in product.\n";
+            std::cerr << "Error: No content entries found in product.\n";
             return 1;
         }
 
@@ -185,16 +138,17 @@ namespace MKDCLI
 
         for (const auto& dict : dicts)
         {
-            std::cerr << Colour::bold("Exporting content: ") << dict.id() << "\n";
+            std::cerr << "Exporting content: " << dict.id() << "\n";
 
-            auto options = exportOpts;
+            auto options = command.options;
 
             // separate folders only when the product has multiple contents
             if (dicts.size() > 1)
                 options.outputDirectory /= dict.id();
 
             ExportProgress progress;
-            options.progressCallback = [&progress](const MKD::ExportEvent& event) {
+            options.progressCallback = [&progress](const MKD::ExportEvent& event)
+            {
                 progress.onEvent(event);
             };
 
@@ -208,9 +162,9 @@ namespace MKDCLI
         }
 
         if (dicts.size() > 1)
-            std::cerr << "\n" << Colour::bold("Combined results:") << "\n";
+            std::cerr << "\nCombined results:\n";
 
-        printExportSummary(totalResult);
+        printExportSummary(std::cerr, totalResult);
 
         return anyFailed ? 1 : 0;
     }

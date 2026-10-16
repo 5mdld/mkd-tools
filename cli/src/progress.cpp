@@ -2,19 +2,25 @@
 // kiwakiwaaにより 2026/02/21 に作成されました。
 //
 
-#include "MKDCLI/format.hpp"
 #include "MKDCLI/progress.hpp"
+
+#include <cstdio>
+
+#ifdef _WIN32
+#include <io.h>
+#else
+#include <unistd.h>
+#endif
 
 namespace MKDCLI
 {
     void ExportProgress::onEvent(const MKD::ExportEvent& event)
     {
-        std::visit([this](const auto& e) {
+        std::visit([this](const auto& e)
+        {
             using T = std::decay_t<decltype(e)>;
             if constexpr (std::is_same_v<T, MKD::ExportBeginEvent>)
                 onExportBegin(e);
-            else if constexpr (std::is_same_v<T, MKD::PhaseBeginEvent>)
-                onPhaseBegin(e);
             else if constexpr (std::is_same_v<T, MKD::ProgressEvent>)
                 onProgress(e);
             else if constexpr (std::is_same_v<T, MKD::PhaseEndEvent>)
@@ -24,20 +30,29 @@ namespace MKDCLI
 
     void ExportProgress::finish()
     {
+        if (!bar_)
+            return;
         bar_->set_option(indicators::option::PostfixText{"│ Complete"});
-        if (bar_ && !bar_->is_completed())
+        if (!bar_->is_completed())
             bar_->mark_as_completed();
         bar_.reset();
-        indicators::show_console_cursor(true);
     }
 
 
     void ExportProgress::onExportBegin(const MKD::ExportBeginEvent& e)
     {
+#ifdef _WIN32
+        const bool isTerminal = _isatty(_fileno(stderr));
+#else
+        const bool isTerminal = isatty(fileno(stderr));
+#endif
+        if (!isTerminal || e.totalItems == 0)
+            return;
+
         grandTotal_ = e.totalItems;
         phaseOffset_ = 0;
-        indicators::show_console_cursor(false);
         bar_ = std::make_unique<indicators::ProgressBar>(
+            indicators::option::Stream{std::cerr},
             indicators::option::BarWidth{40},
             indicators::option::Start{"⟨"},
             indicators::option::Fill{"▓"},
@@ -49,20 +64,6 @@ namespace MKDCLI
             indicators::option::ShowElapsedTime{true},
             indicators::option::PrefixText{"EXPORTING  "}
         );
-
-        if (Colour::isEnabled())
-        {
-            bar_->set_option(indicators::option::ForegroundColor{indicators::Color::red});
-            bar_->set_option(indicators::option::FontStyles{std::vector{indicators::FontStyle::bold}
-            });
-        }
-    }
-
-
-    void ExportProgress::onPhaseBegin(const MKD::PhaseBeginEvent& e)
-    {
-        if (MKD::isHeavyResource(e.type))
-            currentPhase_ = e.type;
     }
 
 
@@ -87,6 +88,6 @@ namespace MKDCLI
             phaseOffset_ += e.result.totalResources;
 
         for (const auto& err : e.result.errors)
-            std::cerr << Colour::yellow("  ⚠ warning: ") << err << "\n";
+            std::cerr << "  ⚠ warning: " << err << "\n";
     }
 }

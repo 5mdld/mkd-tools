@@ -4,57 +4,53 @@
 
 #include "MKDCLI/cli.hpp"
 #include "MKDCLI/commands.hpp"
-#include "MKDCLI/format.hpp"
+#include "MKDCLI/source.hpp"
 
+#include <exception>
 #include <iostream>
+#include <type_traits>
 
 int main(int argc, char* argv[])
 {
-    auto app = MKDCLI::CLIApp::parse(argc, argv);
-    if (!app)
+    try
     {
-        std::cerr << app.error() << "\n";
-        return 1;
-    }
+        MKDCLI::CLIApp app;
+        auto invocation = app.parse(argc, argv, std::cout, std::cerr);
+        if (!invocation)
+            return invocation.error();
 
-    const auto& opts = app->options();
-
-    if (opts.noColour)
-        MKDCLI::Colour::setEnabled(false);
-    else
-        MKDCLI::Colour::autoDetect();
-
-    if (opts.command == MKDCLI::Command::Help)
-    {
-        MKDCLI::CLIApp::printHelp(argv[0]);
-        return 0;
-    }
-    if (opts.command == MKDCLI::Command::Version)
-    {
-        MKDCLI::CLIApp::printVersion();
-        return 0;
-    }
-
-    auto source = app->createSource();
-    if (!source)
-    {
-        std::cerr << MKDCLI::Colour::red("Error: ") << source.error() << "\n";
-        return 1;
-    }
-
-    switch (opts.command)
-    {
-        case MKDCLI::Command::List:
-            return MKDCLI::runList(**source, opts);
-
-        case MKDCLI::Command::Info:
-            return MKDCLI::runInfo(**source, opts);
-
-        case MKDCLI::Command::Export:
-            return MKDCLI::runExport(**source, opts, app->buildExportOptions());
-
-        default:
-            MKDCLI::CLIApp::printHelp(argv[0]);
+        auto source = MKDCLI::createSource(invocation->global);
+        if (!source)
+        {
+            std::cerr << "Error: " << source.error() << "\n";
             return 1;
+        }
+
+        return std::visit([&](const auto& command)
+        {
+            if constexpr (std::is_same_v<std::decay_t<decltype(command)>, MKDCLI::ListCommand>)
+                return MKDCLI::runCommand(**source, command);
+            else
+            {
+                auto info = (*source)->findById(command.productId);
+                if (!info)
+                {
+                    std::cerr << "Error: " << info.error() << "\n";
+                    return 1;
+                }
+                auto product = MKD::DictionaryProduct::openAtPath(info->path);
+                if (!product)
+                {
+                    std::cerr << "Error: " << product.error() << "\n";
+                    return 1;
+                }
+                return MKDCLI::runCommand(*product, command);
+            }
+        }, invocation->command);
+    }
+    catch (const std::exception& error)
+    {
+        std::cerr << "Error: " << error.what() << "\n";
+        return 1;
     }
 }

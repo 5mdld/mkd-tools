@@ -1,4 +1,5 @@
 target_sources(mkd PRIVATE
+        properties.cpp
         normalization.cpp
         search_folding.cpp
         unicode.cpp

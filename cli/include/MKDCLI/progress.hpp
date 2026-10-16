@@ -19,13 +19,11 @@ namespace MKDCLI
 
     private:
         void onExportBegin(const MKD::ExportBeginEvent& e);
-        void onPhaseBegin(const MKD::PhaseBeginEvent& e);
         void onProgress(const MKD::ProgressEvent& e) const;
         void onPhaseEnd(const MKD::PhaseEndEvent& e);
 
         size_t grandTotal_ = 0;
-        size_t phaseOffset_ = 0; // cumulative items from completed phases
-        MKD::ResourceType currentPhase_{};
+        size_t phaseOffset_ = 0;
 
         std::unique_ptr<indicators::ProgressBar> bar_;
     };

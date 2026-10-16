@@ -4,162 +4,76 @@
 
 #include "MKDCLI/format.hpp"
 
-#include <algorithm>
-#include <iostream>
+#include "unicode/properties.hpp"
+#include "unicode/utf8.hpp"
 
-#ifdef _WIN32
-#include <io.h>
-#define isatty _isatty
-#define fileno _fileno
-#else
-#include <unistd.h>
-#endif
+#include <algorithm>
+#include <ostream>
+#include <print>
 
 namespace MKDCLI
 {
-    namespace
+    std::size_t displayWidth(std::string_view text)
     {
-        bool g_colourEnabled = false;
+        std::size_t width = 0;
+        namespace unicode = MKD::detail::unicode;
 
-        std::string wrap(std::string_view text, std::string_view code)
+        for (const auto cluster : unicode::graphemeClusters(text))
         {
-            if (!g_colourEnabled)
-                return std::string(text);
-            return std::string(code) + std::string(text) + "\033[0m";
+            std::size_t offset = 0;
+            const auto codepoint = unicode::nextCodepoint(cluster, offset);
+            const auto property = unicode::eastAsianWidth(codepoint);
+
+            const bool wide = property == unicode::EastAsianWidth::Wide
+                || property == unicode::EastAsianWidth::Fullwidth;
+            width += wide ? 2 : 1;
+        }
+        return width;
+    }
+
+    void printProductList(std::ostream& out, std::span<const ProductRow> products)
+    {
+        std::size_t idWidth = 0;
+        std::size_t nameWidth = 0;
+
+        for (const auto& product : products)
+        {
+            idWidth = std::max(idWidth, displayWidth(product.id));
+            nameWidth = std::max(nameWidth, displayWidth(product.name));
+        }
+
+        for (const auto& product : products)
+        {
+            std::println(out, "  {:<{}}  {:<{}}  {}",
+                         product.id, idWidth,
+                         product.name, nameWidth,
+                         product.genre);
         }
     }
 
-    void Colour::setEnabled(const bool enabled) noexcept
+    void printExportSummary(std::ostream& out, const MKD::ExportResult& result)
     {
-        g_colourEnabled = enabled;
-    }
-
-    bool Colour::isEnabled() noexcept
-    {
-        return g_colourEnabled;
-    }
-
-    void Colour::autoDetect() noexcept
-    {
-        g_colourEnabled = isatty(fileno(stderr)) && isatty(fileno(stdout));
-
-        // Respect NO_COLOR convention
-        if (std::getenv("NO_COLOR"))
-            g_colourEnabled = false;
-    }
-
-    std::string Colour::bold(std::string_view text)   { return wrap(text, "\033[1m"); }
-    std::string Colour::dim(std::string_view text)    { return wrap(text, "\033[2m"); }
-    std::string Colour::green(std::string_view text)  { return wrap(text, "\033[32m"); }
-    std::string Colour::yellow(std::string_view text) { return wrap(text, "\033[33m"); }
-    std::string Colour::red(std::string_view text)    { return wrap(text, "\033[31m"); }
-    std::string Colour::cyan(std::string_view text)   { return wrap(text, "\033[36m"); }
-
-
-    namespace
-    {
-        // Compute the visible width of a string
-        // TODO: this is too simnple rn
-        size_t visibleWidth(std::string_view str)
-        {
-            size_t width = 0;
-            bool inEscape = false;
-
-            for (const char i : str)
-            {
-                if (i == '\033')
-                {
-                    inEscape = true;
-                    continue;
-                }
-                if (inEscape)
-                {
-                    if (i == 'm')
-                        inEscape = false;
-                    continue;
-                }
-                ++width;
-            }
-            return width;
-        }
-    }
-
-
-    void printTable(const std::vector<TableRow>& rows, const size_t indent)
-    {
-        if (rows.empty()) return;
-
-        // Find the maximum number of columns
-        size_t numCols = 0;
-        for (const auto& [cells] : rows)
-            numCols = std::max(numCols, cells.size());
-
-        // Compute column widths
-        std::vector<size_t> colWidths(numCols, 0);
-        for (const auto& [cells] : rows)
-        {
-            for (size_t col = 0; col < cells.size(); ++col)
-                colWidths[col] = std::max(colWidths[col], visibleWidth(cells[col]));
-        }
-
-        const std::string pad(indent, ' ');
-        for (const auto& [cells] : rows)
-        {
-            std::cerr << pad;
-            for (size_t col = 0; col < cells.size(); ++col)
-            {
-                const auto& cell = cells[col];
-                std::cerr << cell;
-
-                // Pad to column width
-                if (col + 1 < cells.size())
-                {
-                    const size_t visible = visibleWidth(cell);
-                    const size_t padding = colWidths[col] > visible
-                        ? colWidths[col] - visible + 2
-                        : 2;
-                    std::cerr << std::string(padding, ' ');
-                }
-            }
-            std::cerr << "\n";
-        }
-    }
-
-
-    void printExportSummary(const MKD::ExportResult& result)
-    {
-        std::cerr << Colour::bold("Complete. ");
-        std::cerr << Colour::green(std::to_string(result.exported)) << " exported";
+        std::print(out, "Export: {} exported", result.exported);
 
         if (result.skipped > 0)
-            std::cerr << ", " << Colour::yellow(std::to_string(result.skipped)) << " skipped";
+            std::print(out, ", {} skipped", result.skipped);
 
         if (result.failed > 0)
-            std::cerr << ", " << Colour::red(std::to_string(result.failed)) << " failed";
+            std::print(out, ", {} failed", result.failed);
 
         if (result.totalBytes > 0)
         {
-            const double mb = static_cast<double>(result.totalBytes) / (1024.0 * 1024.0);
-            std::cerr << " (" << std::fixed;
-            std::cerr.precision(1);
-            std::cerr << mb << " MB)";
+            constexpr double bytesPerMiB = 1024.0 * 1024.0;
+            std::print(out, " ({:.1f} MiB)", result.totalBytes / bytesPerMiB);
         }
 
-        std::cerr << "\n";
+        std::println(out);
 
-        // Print error details
         if (!result.errors.empty())
         {
-            std::cerr << "\n" << Colour::red("Errors:") << "\n";
-            for (const auto& err : result.errors)
-                std::cerr << "  " << Colour::dim("•") << " " << err << "\n";
+            std::println(out, "\nErrors:");
+            for (const auto& error : result.errors)
+                std::println(out, "  • {}", error);
         }
-    }
-
-
-    void printSectionHeader(std::string_view title)
-    {
-        std::cerr << Colour::dim("── ") << Colour::bold(std::string(title))
-                  << Colour::dim(" ──") << "\n";
     }
 }

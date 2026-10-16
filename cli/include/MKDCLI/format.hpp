@@ -6,47 +6,23 @@
 
 #include "MKD/output/export_result.hpp"
 
+#include <cstddef>
+#include <iosfwd>
+#include <span>
 #include <string>
 #include <string_view>
-#include <vector>
 
 namespace MKDCLI
 {
-    namespace Colour
+    struct ProductRow
     {
-        void setEnabled(bool enabled) noexcept;
-        bool isEnabled() noexcept;
-
-        // Detect whether outstream is TTYs and enable colour accordingly
-        void autoDetect() noexcept;
-
-        std::string bold(std::string_view text);
-        std::string dim(std::string_view text);
-        std::string green(std::string_view text);
-        std::string yellow(std::string_view text);
-        std::string red(std::string_view text);
-        std::string cyan(std::string_view text);
-    }
-
-
-    struct TableRow
-    {
-        std::vector<std::string> cells;
+        std::string id;
+        std::string name;
+        std::string genre;
     };
 
-    /**
-     * Print rows with columns padded ot align
-     */
-    void printTable(const std::vector<TableRow>& rows, size_t indent = 2);
+    [[nodiscard]] std::size_t displayWidth(std::string_view text);
 
-
-    /**
-     * Print export results to cerr
-     */
-    void printExportSummary(const MKD::ExportResult& result);
-
-    /**
-     * Prints a section header, e.g "── Resources ──"
-     */
-    void printSectionHeader(std::string_view title);
+    void printProductList(std::ostream& out, std::span<const ProductRow> products);
+    void printExportSummary(std::ostream& out, const MKD::ExportResult& result);
 }

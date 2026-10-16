@@ -44,13 +44,13 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           mkdir output
-          .\build\cli\Release\mkd-tools.exe -d .\test\test-data -e TESTDICT -o output --keystore-mode both --overwrite --pretty
+          .\build\cli\Release\mkd-tools.exe -d .\test\test-data export TESTDICT -o output --keystore-mode both --overwrite --pretty
 
       - name: Run mkd-tools (Unix)
         if: runner.os != 'Windows'
         run: |
           mkdir output
-          ./build/cli/mkd-tools -d ./test/test-data -e TESTDICT -o output --keystore-mode both --overwrite --pretty
+          ./build/cli/mkd-tools -d ./test/test-data export TESTDICT -o output --keystore-mode both --overwrite --pretty
 
       - name: Verify exported CI fixtures
         run: python test/ci/verify_fixture_export.py output

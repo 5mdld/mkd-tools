@@ -4,91 +4,64 @@
 
 #pragma once
 
-#include "MKD/platform/dictionary_source.hpp"
-#include "MKD/resource/resource_type.hpp"
 #include "MKD/output/export_options.hpp"
+
+#include <CLI/CLI.hpp>
 
 #include <expected>
 #include <filesystem>
-#include <memory>
-#include <optional>
-#include <span>
+#include <iosfwd>
 #include <string>
-#include <string_view>
-#include <vector>
-
-namespace fs = std::filesystem;
+#include <variant>
 
 namespace MKDCLI
 {
-    std::optional<MKD::ResourceType> parseResourceType(std::string_view str) noexcept;
-
-    enum class Command
+    struct GlobalOptions
     {
-        List,
-        Info,
-        Export,
-        Help,
-        Version,
+        std::filesystem::path directory;
     };
 
-    struct CLIOptions
+    struct ListCommand
     {
-        Command command = Command::Help;
-        std::optional<fs::path> dirOverride;
-        bool noColour = false;
-        std::string dictId;
-        fs::path outputDir;
-        bool overwrite = false;
-        bool prettyPrintXml = false;
-        MKD::KeystoreExportMode keystoreMode = MKD::KeystoreExportMode::Inverse;
-        std::vector<MKD::ResourceType> onlyResources;
     };
 
+    struct InfoCommand
+    {
+        std::string productId;
+    };
+
+    struct ExportCommand
+    {
+        std::string productId;
+        MKD::ExportOptions options;
+    };
+
+    struct Invocation
+    {
+        GlobalOptions global;
+        std::variant<ListCommand, InfoCommand, ExportCommand> command;
+    };
 
     class CLIApp
     {
     public:
-        /**
-         * Parse command-line arguments.  Returns an error string on invalid input
-         */
-        static std::expected<CLIApp, std::string> parse(int argc, char* argv[]);
+        CLIApp();
 
         /**
-         * Create DictionarySource from the parsed options
-         * On macOS this handles the permission prompt for access to security scoped dictionary folder
-         * On other platforms, --dir is required
+         * Parse without opening products or requesting access. Help, version and
+         * invalid arguments return an exit status after writing to the supplied streams.
          */
-        [[nodiscard]] std::expected<std::unique_ptr<MKD::DictionarySource>, std::string> createSource() const;
-
-        /**
-         * Construct MKD::ExportOptions from the parsed CLI options
-         */
-        [[nodiscard]] MKD::ExportOptions buildExportOptions() const;
-
-
-        /**
-         * Get the parsed CLI options
-         */
-        [[nodiscard]] const CLIOptions& options() const noexcept;
-
-        /**
-         * Prints usage help, listing commands with examples
-         *
-         * @param program cli executable file name
-         */
-        static void printHelp(std::string_view program);
-
-        /**
-         * Prints the current version of the CLI
-         */
-        static void printVersion();
+        std::expected<Invocation, int> parse(int argc, char* argv[],
+                                             std::ostream& out, std::ostream& err);
 
     private:
-        // Private constructor - use parse()
-        explicit CLIApp(CLIOptions options, std::string program);
+        void addInfoCommand();
+        void addExportCommand();
+        void addResourceOptions(CLI::App& command);
 
-        CLIOptions options_;
-        std::string program_;
+        CLI::App app_{"mkd-tools"};
+        Invocation invocation_;
+        InfoCommand info_;
+        ExportCommand export_;
     };
 }
