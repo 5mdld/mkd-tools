@@ -1,3 +1,5 @@
+add_subdirectory(bindings)
+
 set(MKD_PLATFORM_MACOS_OBJCXX_SOURCES
         folder_prompt.mm
 )
