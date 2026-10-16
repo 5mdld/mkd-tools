@@ -5,7 +5,7 @@
 #pragma once
 
 #include "MKD/result.hpp"
-#include <pugixml.h>
+#include <pugixml.hpp>
 #include <filesystem>
 #include <optional>
 #include <unordered_map>

@@ -1,77 +1,44 @@
-include(FetchContent)
+set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
 
-set(CMAKE_FIND_PACKAGE_TARGETS_GLOBAL TRUE)
+foreach (dependency IN ITEMS glaze utf8proc pugixml cli11 indicators googletest zlib)
+    if (NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${dependency}/CMakeLists.txt")
+        message(FATAL_ERROR "Missing ${dependency} submodule. Run: git submodule update --init --recursive")
+    endif ()
+endforeach ()
 
-find_package(glaze CONFIG QUIET)
+add_subdirectory(glaze EXCLUDE_FROM_ALL)
 
-if (NOT TARGET glaze::glaze)
-    FetchContent_Declare(glaze
-            GIT_REPOSITORY https://github.com/stephenberry/glaze.git
-            GIT_TAG main
-            GIT_SHALLOW TRUE
-    )
-    FetchContent_MakeAvailable(glaze)
-endif ()
+set(UTF8PROC_INSTALL OFF)
+set(UTF8PROC_ENABLE_TESTING OFF)
+add_subdirectory(utf8proc EXCLUDE_FROM_ALL)
+add_library(utf8proc::utf8proc ALIAS utf8proc)
 
-if (NOT TARGET glaze::glaze AND TARGET glaze)
-    add_library(glaze::glaze ALIAS glaze)
-endif ()
+set(PUGIXML_BUILD_TESTS OFF)
+set(PUGIXML_INSTALL OFF)
+add_subdirectory(pugixml EXCLUDE_FROM_ALL)
+target_link_libraries(mkd PRIVATE pugixml::pugixml)
 
-find_package(ZLIB QUIET)
-
+find_package(ZLIB QUIET GLOBAL)
 if (NOT TARGET ZLIB::ZLIB)
-    FetchContent_Declare(zlib
-            GIT_REPOSITORY https://github.com/madler/zlib.git
-            GIT_TAG v1.3.1
-            GIT_SHALLOW TRUE
-    )
-
     set(ZLIB_BUILD_EXAMPLES OFF)
-    FetchContent_MakeAvailable(zlib)
-
-    if (TARGET zlibstatic)
-        add_library(ZLIB::ZLIB ALIAS zlibstatic)
-    elseif (TARGET zlib)
-        add_library(ZLIB::ZLIB ALIAS zlib)
-    else ()
-        message(FATAL_ERROR "No zlib target was created")
-    endif ()
+    # zlib 1.3.1 renames a source header during configuration. keep that in the build tree.
+    file(COPY zlib/ DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/zlib-source" PATTERN ".git" EXCLUDE)
+    add_subdirectory("${CMAKE_CURRENT_BINARY_DIR}/zlib-source" zlib EXCLUDE_FROM_ALL)
+    add_library(ZLIB::ZLIB ALIAS zlibstatic)
 endif ()
 
-find_package(utf8proc CONFIG QUIET)
+if (MKD_BUILD_CLI)
+    add_subdirectory(cli11 EXCLUDE_FROM_ALL)
 
-if (NOT TARGET utf8proc::utf8proc)
-    find_package(PkgConfig QUIET)
-
-    if (PkgConfig_FOUND)
-        pkg_check_modules(UTF8PROC QUIET IMPORTED_TARGET GLOBAL libutf8proc)
-    endif ()
-
-    if (TARGET PkgConfig::UTF8PROC)
-        add_library(utf8proc::utf8proc ALIAS PkgConfig::UTF8PROC)
-    endif ()
+    set(INDICATORS_BUILD_TESTS OFF)
+    set(INDICATORS_SAMPLES OFF)
+    set(INDICATORS_DEMO OFF)
+    add_subdirectory(indicators EXCLUDE_FROM_ALL)
 endif ()
 
-if (NOT TARGET utf8proc::utf8proc)
-    FetchContent_Declare(utf8proc
-            GIT_REPOSITORY https://github.com/JuliaStrings/utf8proc.git
-            GIT_TAG v2.10.0
-            GIT_SHALLOW TRUE
-    )
-
-    set(UTF8PROC_INSTALL OFF CACHE BOOL "" FORCE)
-    set(UTF8PROC_ENABLE_TESTING OFF CACHE BOOL "" FORCE)
-    FetchContent_MakeAvailable(utf8proc)
+if (BUILD_TESTING)
+    set(BUILD_GMOCK OFF)
+    set(INSTALL_GTEST OFF)
+    set(gtest_force_shared_crt ON)
+    add_subdirectory(googletest EXCLUDE_FROM_ALL)
 endif ()
-
-if (NOT TARGET utf8proc::utf8proc AND TARGET utf8proc)
-    add_library(utf8proc::utf8proc ALIAS utf8proc)
-endif ()
-
-target_sources(mkd PRIVATE
-        pugixml/pugixml.cpp
-)
-
-target_include_directories(mkd PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/pugixml"
-)

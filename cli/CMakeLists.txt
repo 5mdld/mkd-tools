@@ -1,14 +1,3 @@
-find_package(CLI11 2.7 CONFIG QUIET)
-
-if (NOT TARGET CLI11::CLI11)
-    include(FetchContent)
-    FetchContent_Declare(cli11
-            GIT_REPOSITORY https://github.com/CLIUtils/CLI11.git
-            GIT_TAG cbd58a3696887b34c70949aef21a71735a0c2ad5 # v2.7.2
-    )
-    FetchContent_MakeAvailable(cli11)
-endif ()
-
 add_library(mkd-cli-core STATIC
         src/cli.cpp
         src/source.cpp
@@ -19,11 +8,10 @@ add_library(mkd-cli-core STATIC
 
 target_include_directories(mkd-cli-core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_include_directories(mkd-cli-core PRIVATE
-        ${PROJECT_SOURCE_DIR}/third_party/indicators
         ${PROJECT_SOURCE_DIR}/src
 )
 target_link_libraries(mkd-cli-core
-        PUBLIC MKD::mkd CLI11::CLI11
+        PUBLIC MKD::mkd CLI11::CLI11 indicators::indicators
 )
 target_compile_definitions(mkd-cli-core PRIVATE MKD_CLI_VERSION="${PROJECT_VERSION}")
 

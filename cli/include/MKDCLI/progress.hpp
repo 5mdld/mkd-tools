@@ -7,7 +7,9 @@
 #include "MKD/output/export_options.hpp"
 #include "MKD/output/event.hpp"
 
-#include <indicators.h>
+#include <indicators/progress_bar.hpp>
+
+#include <memory>
 
 namespace MKDCLI
 {

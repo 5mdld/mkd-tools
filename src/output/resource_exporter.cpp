@@ -8,7 +8,7 @@
 
 #include <format>
 #include <fstream>
-#include <pugixml.h>
+#include <pugixml.hpp>
 #include <sstream>
 
 namespace MKD

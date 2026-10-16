@@ -4,7 +4,9 @@ A C++23 toolkit for reading and exporting 物書堂 dictionary resources.
 
 ### Building
 
-Requires a C++23 compiler and CMake.
+Requires a C++23 compiler and CMake 3.31 or newer.
+
+Clone with `git clone --recurse-submodules https://github.com/kiwakiwaa/mkd-tools.git`.
 
 ```
 cmake --preset release

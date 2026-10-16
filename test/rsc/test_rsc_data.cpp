@@ -12,7 +12,7 @@
 #include "../../src/resource/rsc/resource_store_contents.hpp"
 #include "../../src/resource/rsc/resource_store_index.hpp"
 
-#include <pugixml.h>
+#include <pugixml.hpp>
 
 class RscDataTest : public ::testing::Test
 {
