@@ -4,9 +4,10 @@
 
 #include "binary_buffer.hpp"
 
+#include <utility>
+
 namespace MKD::detail
 {
-
     BinaryBuffer::BinaryBuffer(const size_t reserveHint)
     {
         buffer_.reserve(reserveHint);
@@ -45,7 +46,6 @@ namespace MKD::detail
 
     std::vector<uint8_t> BinaryBuffer::take()
     {
-        return std::move(buffer_);
+        return std::exchange(buffer_, {});
     }
-
 }

@@ -3,7 +3,7 @@
 //
 
 #include "resource_store_writer.hpp"
-#include "resource/detail/binary_buffer.hpp"
+#include "binary/binary_buffer.hpp"
 #include "resource/detail/zlib_stream.hpp"
 
 #include <algorithm>
@@ -139,7 +139,7 @@ namespace MKD
             if (newFormat)
                 buffer.writePadding(sizeof(uint32_t));
 
-            buffer.writeLE(static_cast<uint32_t>(data.size()));
+            buffer.writeLittle(static_cast<uint32_t>(data.size()));
             buffer.writeBytes(data);
         }
 
@@ -160,13 +160,13 @@ namespace MKD
         if (encryptionKey_)
         {
             auto encrypted = ResourceStoreCrypto::encrypt(*compressedSpan, *encryptionKey_);
-            buffer.writeLE(uint32_t{0}); // new-format marker
-            buffer.writeLE(static_cast<uint32_t>(encrypted.size()));
+            buffer.writeLittle(uint32_t{0}); // new-format marker
+            buffer.writeLittle(static_cast<uint32_t>(encrypted.size()));
             buffer.writeBytes(encrypted);
         }
         else
         {
-            buffer.writeLE(static_cast<uint32_t>(compressedSpan->size()));
+            buffer.writeLittle(static_cast<uint32_t>(compressedSpan->size()));
             buffer.writeBytes(*compressedSpan);
         }
 

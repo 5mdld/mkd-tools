@@ -2,6 +2,7 @@
 // kiwakiwaaにより 2026/02/28 に作成されました。
 //
 
+#include "binary/binary_view.hpp"
 #include "MKD/platform/mmap_file.hpp"
 
 #include <format>
@@ -30,7 +31,7 @@ namespace
         ::LocalFree(buffer);
 
         while (!message.empty() &&
-               (message.back() == '\r' || message.back() == '\n' || message.back() == ' ' || message.back() == '.'))
+            (message.back() == '\r' || message.back() == '\n' || message.back() == ' ' || message.back() == '.'))
             message.pop_back();
 
         return message;
@@ -101,6 +102,8 @@ namespace MKD
             ::CloseHandle(file);
             return std::unexpected(message);
         }
+
+        ::CloseHandle(file);
 
         void* base = ::MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, 0);
         if (base == nullptr)
@@ -211,11 +214,8 @@ namespace MKD
 
     Result<std::span<const uint8_t>> MappedFile::slice(size_t offset, size_t length) const
     {
-        if (offset + length > size_)
-            return std::unexpected(std::format(
-                "Slice [{}, +{}) exceeds file size {}", offset, length, size_));
-
-        return data().subspan(offset, length);
+        return detail::BinaryView(data()).slice(offset, length).transform(
+            [](const detail::BinaryView& view) { return view.bytes(); });
     }
 
 

@@ -1,9 +1,10 @@
 //
 // kiwakiwaaにより 2026/03/07 に作成されました。
 //
+
 #include "keystore_writer.hpp"
 #include "keystore_compare.hpp"
-#include "resource/detail/binary_buffer.hpp"
+#include "binary/binary_buffer.hpp"
 
 #include <algorithm>
 #include <format>
@@ -97,17 +98,17 @@ namespace MKD
         // File header
         {
             detail::BinaryBuffer header(headerSize);
-            header.writeLE(version_);
-            header.writeLE(uint32_t{0}); // magic1
-            header.writeLE(static_cast<uint32_t>(wordsOffset));
-            header.writeLE(static_cast<uint32_t>(indexSectionOffset));
+            header.writeLittle(version_);
+            header.writeLittle(uint32_t{0}); // magic1
+            header.writeLittle(static_cast<uint32_t>(wordsOffset));
+            header.writeLittle(static_cast<uint32_t>(indexSectionOffset));
 
             if (isV2)
             {
-                header.writeLE(uint32_t{0}); // conversionTable not used
-                header.writeLE(uint32_t{0}); // magic5
-                header.writeLE(uint32_t{0}); // magic6
-                header.writeLE(uint32_t{0}); // magic7
+                header.writeLittle(uint32_t{0}); // conversionTable not used
+                header.writeLittle(uint32_t{0}); // magic5
+                header.writeLittle(uint32_t{0}); // magic6
+                header.writeLittle(uint32_t{0}); // magic7
             }
 
             file.write(reinterpret_cast<const char*>(header.data().data()),
@@ -118,11 +119,11 @@ namespace MKD
 
         {
             detail::BinaryBuffer indexHeader(indexHeaderSize);
-            indexHeader.writeLE(0x04);
-            indexHeader.writeLE(static_cast<uint32_t>(indexAOffset));
-            indexHeader.writeLE(static_cast<uint32_t>(indexBOffset));
-            indexHeader.writeLE(static_cast<uint32_t>(indexCOffset));
-            indexHeader.writeLE(static_cast<uint32_t>(indexDOffset));
+            indexHeader.writeLittle(uint32_t{0x04});
+            indexHeader.writeLittle(static_cast<uint32_t>(indexAOffset));
+            indexHeader.writeLittle(static_cast<uint32_t>(indexBOffset));
+            indexHeader.writeLittle(static_cast<uint32_t>(indexCOffset));
+            indexHeader.writeLittle(static_cast<uint32_t>(indexDOffset));
 
             file.write(reinterpret_cast<const char*>(indexHeader.data().data()),
                        static_cast<std::streamsize>(indexHeader.data().size()));
@@ -173,7 +174,7 @@ namespace MKD
         detail::BinaryBuffer buf;
 
         // uint16_t LE entry count
-        buf.writeLE(static_cast<uint16_t>(pages.size()));
+        buf.writeLittle(static_cast<uint16_t>(pages.size()));
 
         for (const auto& [page, item] : pages)
         {
@@ -292,7 +293,7 @@ namespace MKD
 
             // points to the encoded pages within this entry
             const auto pagesOffset = static_cast<uint32_t>(layouts[i].offset + layouts[i].prefixLen);
-            buf.writeLE(pagesOffset);
+            buf.writeLittle(pagesOffset);
 
             // separator
             buf.writeByte(0x00);
@@ -366,10 +367,10 @@ namespace MKD
     std::vector<uint8_t> KeystoreWriter::serializeIndexArray(const std::vector<uint32_t>& offsets)
     {
         detail::BinaryBuffer buf(sizeof(uint32_t) + offsets.size() * sizeof(uint32_t));
-        buf.writeLE(static_cast<uint32_t>(offsets.size()));
+        buf.writeLittle(static_cast<uint32_t>(offsets.size()));
 
         for (const auto offset : offsets)
-            buf.writeLE(offset);
+            buf.writeLittle(offset);
 
         return buf.take();
     }

@@ -1,3 +1,4 @@
+add_subdirectory(binary)
 add_subdirectory(unicode)
 add_subdirectory(dictionary)
 add_subdirectory(output)
