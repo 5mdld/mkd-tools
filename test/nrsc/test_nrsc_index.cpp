@@ -6,8 +6,7 @@
 #include <filesystem>
 
 #include "../test_listener.hpp"
-#include "../../src/platform/macos/fs.hpp"
-#include "MKD/platform/macos/macos_dictionary_source.hpp"
+#include "MKD/platform/macos/paths.hpp"
 #include "../../src/resource/nrsc/named_resource_store_index.hpp"
 
 class NrscIndexTest : public ::testing::Test
@@ -15,8 +14,9 @@ class NrscIndexTest : public ::testing::Test
 protected:
     void SetUp() override
     {
-        const auto containerPath = MKD::macOS::getContainerPathByGroupIdentifier(MKD::MONOKAKIDO_GROUP_ID);
-        const auto dictionariesPath = containerPath / MKD::DICTIONARIES_SUBPATH;
+        auto containerPath = MKD::macOS::monokakidoDataDirectory();
+        ASSERT_TRUE(containerPath) << containerPath.error();
+        const auto dictionariesPath = MKD::macOS::dictionariesDirectory(*containerPath);
 
         testDataPath_ = dictionariesPath / "KJT" / "Contents" / "KJT" / "img";
     }

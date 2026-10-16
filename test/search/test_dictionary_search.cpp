@@ -10,9 +10,8 @@
 
 #include "../test_listener.hpp"
 #include "MKD/dictionary/dictionary_product.hpp"
-#include "MKD/platform/macos/macos_dictionary_source.hpp"
+#include "MKD/platform/macos/paths.hpp"
 #include "MKD/dictionary/dictionary_search.hpp"
-#include "platform/macos/fs.hpp"
 
 using namespace MKD;
 
@@ -21,8 +20,9 @@ class DictionarySearchTest : public ::testing::Test
 protected:
     void SetUp() override
     {
-        const auto containerPath = MKD::macOS::getContainerPathByGroupIdentifier(MKD::MONOKAKIDO_GROUP_ID);
-        dictionariesPath_ = containerPath / MKD::DICTIONARIES_SUBPATH;
+        auto containerPath = MKD::macOS::monokakidoDataDirectory();
+        ASSERT_TRUE(containerPath) << containerPath.error();
+        dictionariesPath_ = MKD::macOS::dictionariesDirectory(*containerPath);
     }
 
     [[nodiscard]] Dictionary loadDictionary(const std::string& id) const

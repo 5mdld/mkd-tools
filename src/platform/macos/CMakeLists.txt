@@ -1,22 +1,9 @@
 add_subdirectory(bindings)
 
-set(MKD_PLATFORM_MACOS_OBJCXX_SOURCES
-        folder_prompt.mm
-)
-
-set(MKD_PLATFORM_MACOS_SOURCES
-        bookmark_store.cpp
-        fs.cpp
-        macos_dictionary_source.cpp
-        chacha_poly.cpp
-        paths.cpp
-        parallel.cpp
-        scoped_security_access.cpp
-)
-
 target_sources(mkd PRIVATE
-        ${MKD_PLATFORM_MACOS_SOURCES}
-        ${MKD_PLATFORM_MACOS_OBJCXX_SOURCES}
+        paths.cpp
+        chacha_poly.cpp
+        parallel.cpp
 )
 
 target_link_libraries(mkd PRIVATE
@@ -24,7 +11,4 @@ target_link_libraries(mkd PRIVATE
         "-framework Foundation"
         "-framework Security"
         "-framework CoreServices"
-        "-framework Cocoa"
 )
-
-set_source_files_properties(${MKD_PLATFORM_MACOS_OBJCXX_SOURCES} PROPERTIES COMPILE_FLAGS "-fno-objc-arc")

@@ -20,8 +20,8 @@ namespace MKD
         [[nodiscard]] Result<DictionaryInfo> findById(std::string_view dictId) const override;
 
     private:
-
-        static bool looksLikeDictionary(const fs::path& path);
+        [[nodiscard]] Result<void> validateDirectory() const;
+        static Result<bool> looksLikeDictionary(const fs::path& path);
 
         std::filesystem::path root_;
     };

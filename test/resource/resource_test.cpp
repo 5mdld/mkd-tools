@@ -753,4 +753,53 @@ namespace MKD::test
         EXPECT_FALSE(DictionaryProduct::openAtPath(product));
     }
 
+
+    TEST_F(ResourceFormatTest, DirectorySourcesReportMissingAndNonDirectoryRoots)
+    {
+        DirectoryDictionarySource missing(directory / "missing");
+        auto listed = missing.findAllAvailable();
+        ASSERT_FALSE(listed);
+        EXPECT_NE(listed.error().find("does not exist"), std::string::npos);
+        EXPECT_FALSE(missing.findById("TESTDICT"));
+
+        words("file", {0});
+        DirectoryDictionarySource file(directory / "file");
+        auto result = file.findAllAvailable();
+        ASSERT_FALSE(result);
+        EXPECT_NE(result.error().find("Not a directory"), std::string::npos);
+        EXPECT_FALSE(file.findById("TESTDICT"));
+    }
+
+    TEST_F(ResourceFormatTest, DirectorySourcesFilterInvalidProductsAndResolveIds)
+    {
+        const auto fixture = std::filesystem::path(__FILE__).parent_path().parent_path() / "test-data/TESTDICT";
+        std::filesystem::copy(fixture, directory / "TESTDICT", std::filesystem::copy_options::recursive);
+        std::filesystem::create_directories(directory / "unrelated/Contents");
+        words("plain-file", {0});
+        DirectoryDictionarySource source(directory);
+        auto dictionaries = source.findAllAvailable();
+        ASSERT_TRUE(dictionaries) << dictionaries.error();
+        ASSERT_EQ(dictionaries->size(), 1);
+        EXPECT_EQ(dictionaries->front().id, "TESTDICT");
+        auto found = source.findById("TESTDICT");
+        ASSERT_TRUE(found);
+        EXPECT_EQ(found->path, directory / "TESTDICT");
+        EXPECT_FALSE(source.findById("unrelated"));
+        EXPECT_FALSE(source.findById("missing"));
+    }
+
+    TEST_F(ResourceFormatTest, DirectorySourcesPropagateMetadataInspectionErrors)
+    {
+        std::filesystem::create_directories(directory / "broken/Contents");
+        words("broken/ContentInfo.plist", {0});
+        std::error_code error;
+        std::filesystem::create_symlink("broken.json", directory / "broken/Contents/broken.json", error);
+        if (error) GTEST_SKIP() << "Cannot create a symlink: " << error.message();
+        DirectoryDictionarySource source(directory);
+        auto listed = source.findAllAvailable();
+        ASSERT_FALSE(listed);
+        EXPECT_NE(listed.error().find("Cannot inspect"), std::string::npos);
+        EXPECT_FALSE(source.findById("broken"));
+    }
+
 }

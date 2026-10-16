@@ -6,8 +6,7 @@
 #include <filesystem>
 
 #include "../test_listener.hpp"
-#include "../../src/platform/macos/fs.hpp"
-#include "MKD/platform/macos/macos_dictionary_source.hpp"
+#include "MKD/platform/macos/paths.hpp"
 #include "../../include/MKD/resource/headline_store.hpp"
 
 using namespace MKD;
@@ -17,8 +16,9 @@ class HeadlineTest : public ::testing::Test
 protected:
     void SetUp() override
     {
-        const auto containerPath = macOS::getContainerPathByGroupIdentifier(MONOKAKIDO_GROUP_ID);
-        const auto dictionariesPath = containerPath / DICTIONARIES_SUBPATH;
+        auto containerPath = MKD::macOS::monokakidoDataDirectory();
+        ASSERT_TRUE(containerPath) << containerPath.error();
+        const auto dictionariesPath = MKD::macOS::dictionariesDirectory(*containerPath);
 
         testHeadline_ = dictionariesPath / "KankenKJ2" / "Contents" / "KankenKJ2Data" / "headline" / "headline.headlinestore";
     }

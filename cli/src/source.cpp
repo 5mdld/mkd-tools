@@ -6,10 +6,8 @@
 #include "MKD/platform/directory_dictionary_source.hpp"
 
 #ifdef __APPLE__
-#include "MKD/platform/macos/macos_dictionary_source.hpp"
+#include "MKD/platform/macos/paths.hpp"
 #endif
-
-#include <iostream>
 
 namespace MKDCLI
 {
@@ -19,15 +17,10 @@ namespace MKDCLI
             return std::make_unique<MKD::DirectoryDictionarySource>(options.directory);
 
 #ifdef __APPLE__
-        auto source = std::make_unique<MKD::MacOSDictionarySource>();
-        if (!source->checkAccess())
-        {
-            std::cerr << "Requesting access to macOS dictionaries folder...\n";
-            if (!source->requestAccess(true))
-                return std::unexpected("Permission denied. Use --dir <path> to specify a directory manually.");
-            std::cerr << "Access granted.\n";
-        }
-        return source;
+        auto directory = MKD::macOS::monokakidoDataDirectory();
+        if (!directory)
+            return std::unexpected(directory.error() + ". Use --dir <path> to specify a directory manually.");
+        return std::make_unique<MKD::DirectoryDictionarySource>(MKD::macOS::dictionariesDirectory(*directory));
 #else
         return std::unexpected("No dictionary source specified.\n"
             "Use --dir <path> to point to a dictionaries directory.");

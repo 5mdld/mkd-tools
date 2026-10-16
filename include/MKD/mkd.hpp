@@ -20,7 +20,6 @@
 #include "MKD/platform/directory_dictionary_source.hpp"
 
 #ifdef __APPLE__
-#include "MKD/platform/macos/macos_dictionary_source.hpp"
 #include "MKD/platform/macos/paths.hpp"
 #include "MKD/receipt/purchase_receipt.hpp"
 #endif
