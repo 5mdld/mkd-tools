@@ -18,7 +18,7 @@ install_manifest.txt
 compile_commands.json
 CTestTestfile.cmake
 Testing/
-build/
+build*/
 *.ninja
 .ninja_deps
 .ninja_log

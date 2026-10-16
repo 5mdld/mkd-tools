@@ -3,7 +3,7 @@ if (NOT APPLE)
 endif ()
 
 if (CMAKE_GENERATOR MATCHES "Unix Makefiles")
-    message(WARNING "Skipping AppKit receipt app: Swift is not supported by the '${CMAKE_GENERATOR}' generator. Use -G Xcode to build the app.")
+    message(WARNING "Skipping receipt app: Swift is not supported by the '${CMAKE_GENERATOR}' generator. Use Ninja or Xcode to build the app.")
     return()
 endif ()
 

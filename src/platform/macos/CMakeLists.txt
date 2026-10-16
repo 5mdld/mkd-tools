@@ -9,7 +9,7 @@ set(MKD_PLATFORM_MACOS_SOURCES
         fs.cpp
         macos_dictionary_source.cpp
         chacha_poly.cpp
-        monokakido_receipt.cpp
+        paths.cpp
         parallel.cpp
         scoped_security_access.cpp
 )

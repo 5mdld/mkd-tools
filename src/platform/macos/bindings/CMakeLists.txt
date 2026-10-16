@@ -3,9 +3,20 @@ set(SWIFT_BRIDGE_OBJ "${CMAKE_CURRENT_BINARY_DIR}/CryptoKitBridge.o")
 
 find_program(SWIFTC_EXECUTABLE swiftc REQUIRED)
 
+set(CRYPTOKIT_SWIFT_FLAGS)
+if (CMAKE_OSX_DEPLOYMENT_TARGET)
+    set(CRYPTOKIT_SWIFT_ARCH ${CMAKE_SYSTEM_PROCESSOR})
+    if (CMAKE_OSX_ARCHITECTURES)
+        list(GET CMAKE_OSX_ARCHITECTURES 0 CRYPTOKIT_SWIFT_ARCH)
+    endif ()
+    list(APPEND CRYPTOKIT_SWIFT_FLAGS
+            -target "${CRYPTOKIT_SWIFT_ARCH}-apple-macosx${CMAKE_OSX_DEPLOYMENT_TARGET}")
+endif ()
+
 add_custom_command(
         OUTPUT ${SWIFT_BRIDGE_OBJ}
         COMMAND ${SWIFTC_EXECUTABLE}
+        ${CRYPTOKIT_SWIFT_FLAGS}
         -parse-as-library
         -module-name CryptoKitBridge
         -whole-module-optimization

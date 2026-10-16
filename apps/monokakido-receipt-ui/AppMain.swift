@@ -1,13 +1,15 @@
-import AppKit
+//
+// kiwakiwaaにより 2026/10/16 に作成されました。
+//
+
+import SwiftUI
 
 @main
-final class ReceiptAppMain {
-    static func main() {
-        let app = NSApplication.shared
-        let delegate = AppDelegate()
-        app.delegate = delegate
-        app.setActivationPolicy(.regular)
-        app.activate(ignoringOtherApps: true)
-        app.run()
+struct ReceiptApp: App {
+    var body: some Scene {
+        Window("Monokakido Receipt Manager", id: "receipts") {
+            ReceiptView()
+        }
+        .defaultSize(width: 700, height: 560)
     }
 }

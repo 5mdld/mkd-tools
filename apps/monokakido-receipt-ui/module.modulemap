@@ -1,0 +1,5 @@
+module MKDReceiptCatalog {
+    requires cplusplus
+    header "ReceiptCatalog.hpp"
+    export *
+}

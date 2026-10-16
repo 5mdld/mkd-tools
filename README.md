@@ -36,10 +36,10 @@ Output goes to `./mkd-export/<product-id>` by default, configurable with `-o`.
 
 ### macOS receipt app
 
-A lightweight AppKit app is included at `apps/monokakido-receipt-ui`.  Build it with the Xcode generator:
+A lightweight SwiftUI app is included at `apps/monokakido-receipt-ui`.  Build it with the Xcode generator:
 
 ```
-cmake -S . -B build-xcode -G Xcode -DMKD_BUILD_CLI=OFF -DMKD_BUILD_RECEIPT_APP=ON
+cmake -S . -B build-xcode -G Xcode -DMKD_BUILD_CLI=OFF -DMKD_BUILD_RECEIPT_APP=ON -DCMAKE_OSX_DEPLOYMENT_TARGET=13.3
 cmake --build build-xcode --target MKDReceiptApp --config Release
 ```
 
