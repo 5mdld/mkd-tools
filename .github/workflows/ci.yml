@@ -53,7 +53,7 @@ jobs:
           ./build/cli/mkd-tools -d ./test/test-data export TESTDICT -o output --keystore-mode both --overwrite --pretty
 
       - name: Verify exported CI fixtures
-        run: python test/ci/verify_fixture_export.py output
+        run: python test/ci/verify_fixture_export.py output/Test.dict
 
       - name: List output files
         if: always()

@@ -32,7 +32,7 @@ mkd-tools export <product-id> --only appendix-entries
 
 Use `--only` to limit export to specific resource types (`audio`, `entries`, `appendix-entries`, `graphics`, `fonts`, `keystores`, `headlines`). `--pretty` will format XML entry content.
 
-Output goes to `~/Documents/mkd-export` by default, configurable with `-o`.
+Output goes to `./mkd-export/<product-id>` by default, configurable with `-o`.
 
 ### macOS receipt app
 

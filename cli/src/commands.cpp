@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <print>
 #include <vector>
 
 namespace MKDCLI
@@ -133,6 +134,9 @@ namespace MKDCLI
             return 1;
         }
 
+        const auto outputDirectory = std::filesystem::absolute(command.options.outputDirectory);
+        std::println(std::cerr, "Export destination: {}", outputDirectory.string());
+
         MKD::ExportResult totalResult;
         bool anyFailed = false;
 
@@ -142,9 +146,7 @@ namespace MKDCLI
 
             auto options = command.options;
 
-            // separate folders only when the product has multiple contents
-            if (dicts.size() > 1)
-                options.outputDirectory /= dict.id();
+            options.outputDirectory = outputDirectory / dict.id();
 
             ExportProgress progress;
             options.progressCallback = [&progress](const MKD::ExportEvent& event)

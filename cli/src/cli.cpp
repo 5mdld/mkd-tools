@@ -4,7 +4,6 @@
 
 #include "MKDCLI/cli.hpp"
 
-#include <cstdlib>
 #include <map>
 #include <ostream>
 
@@ -38,7 +37,7 @@ namespace MKDCLI
 
         auto& options = export_.options;
         command->add_option("-o,--output", options.outputDirectory,
-                            "Output directory (default: ~/Documents/mkd-export)");
+                            "Output directory (default: ./mkd-export/<product-id>)");
         command->add_flag("--overwrite", options.overwriteExisting, "Overwrite existing files");
         command->add_flag("--pretty", options.prettyPrintXml, "Pretty-print XML entry content");
 
@@ -94,10 +93,7 @@ namespace MKDCLI
         if (auto* command = std::get_if<ExportCommand>(&invocation_.command);
             command && command->options.outputDirectory.empty())
         {
-            if (const char* home = std::getenv("HOME"))
-                command->options.outputDirectory = std::filesystem::path(home) / "Documents" / "mkd-export";
-            else
-                command->options.outputDirectory = std::filesystem::current_path() / "mkd-export";
+            command->options.outputDirectory = std::filesystem::path("mkd-export") / command->productId;
         }
         return std::move(invocation_);
     }
