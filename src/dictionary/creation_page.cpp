@@ -5,27 +5,9 @@
 #include "creation_page.hpp"
 #include "io/write_validation.hpp"
 
-#include <charconv>
 
 namespace MKD::detail
 {
-    std::optional<EntryId> NativeEntryReference::parse(std::string_view text)
-    {
-        const auto dash = text.find('-');
-        if (dash == std::string_view::npos)
-            return std::nullopt;
-
-        EntryId id{};
-        auto page = std::from_chars(text.data(), text.data() + dash, id.pageId);
-        auto item = std::from_chars(text.data() + dash + 1, text.data() + text.size(), id.itemId, 16);
-
-        if (page.ec != std::errc{} || page.ptr != text.data() + dash || item.ec != std::errc{} ||
-            item.ptr != text.data() + text.size())
-            return std::nullopt;
-
-        return id;
-    }
-
     Result<PageReferences> PageReferences::read(const uint32_t page, std::string_view xhtml)
     {
         if (auto valid = WriteValidation::xmlText(xhtml); !valid)

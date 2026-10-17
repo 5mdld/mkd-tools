@@ -26,6 +26,7 @@ namespace MKD::detail::unicode
     [[nodiscard]] size_t utf16CodeUnitCount(std::string_view text);
     [[nodiscard]] std::vector<std::string_view> graphemeClusters(std::string_view text);
 
+    [[nodiscard]] std::u16string toUtf16(std::string_view text);
     [[nodiscard]] std::u32string toUtf32(std::string_view text);
     [[nodiscard]] std::string toUtf8(std::u32string_view text);
     [[nodiscard]] std::string toUtf8(std::u16string_view text);

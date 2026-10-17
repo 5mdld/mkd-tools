@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "MKD/resource/entry_id.hpp"
+#include "native_content.hpp"
 #include "MKD/result.hpp"
 #include <pugixml.hpp>
 #include <set>
@@ -14,11 +14,6 @@
 
 namespace MKD::detail
 {
-    struct NativeEntryReference
-    {
-        static std::optional<EntryId> parse(std::string_view text);
-    };
-
     struct PageReferences : pugi::xml_tree_walker
     {
         static Result<PageReferences> read(uint32_t page, std::string_view xhtml);

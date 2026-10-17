@@ -1,4 +1,6 @@
 target_sources(mkd PRIVATE
+        inline_text.cpp
+        native_content.cpp
         dictionary.cpp
         dictionary_product.cpp
         dictionary_search.cpp

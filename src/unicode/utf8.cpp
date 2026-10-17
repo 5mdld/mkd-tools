@@ -149,6 +149,25 @@ namespace MKD::detail::unicode
     }
 
 
+    std::u16string toUtf16(std::string_view text)
+    {
+        std::u16string result;
+        result.reserve(utf16CodeUnitCount(text));
+        size_t offset = 0;
+        while (offset < text.size())
+        {
+            auto cp = nextCodepoint(text, offset);
+            if (cp < kSurrogateOffset) result.push_back(static_cast<char16_t>(cp));
+            else
+            {
+                cp -= kSurrogateOffset;
+                result.push_back(static_cast<char16_t>(kHighSurrogateStart + (cp >> 10)));
+                result.push_back(static_cast<char16_t>(kLowSurrogateStart + (cp & 0x3FF)));
+            }
+        }
+        return result;
+    }
+
     size_t utf16CodeUnitCount(std::string_view text)
     {
         size_t count = 0;
