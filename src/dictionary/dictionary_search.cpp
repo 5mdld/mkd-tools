@@ -3,51 +3,20 @@
 //
 
 #include "MKD/dictionary/dictionary_search.hpp"
-
-#include "search/search_logic_factory.hpp"
-
-#include <algorithm>
-#include <atomic>
-#include <iterator>
+#include "search/search_session.hpp"
 
 namespace MKD
 {
-    void SearchResult::unionWith(const SearchResult& other)
-    {
-        std::vector<EntryId> merged;
-        merged.reserve(entries.size() + other.entries.size());
-        std::ranges::merge(entries, other.entries, std::back_inserter(merged));
-        auto [first, last] = std::ranges::unique(merged);
-        merged.erase(first, last);
-        entries = std::move(merged);
-    }
-
-
-    void SearchResult::intersectWith(const SearchResult& other)
-    {
-        std::vector<EntryId> common;
-        std::ranges::set_intersection(entries, other.entries, std::back_inserter(common));
-        entries = std::move(common);
-    }
-
-
     struct DictionarySearch::Impl
     {
-        const Dictionary& dictionary;
-        std::atomic<bool> cancelled{false};
-        std::atomic<bool> searching{false};
+        detail::search::SearchProfile profile;
 
-        explicit Impl(const Dictionary& dict) : dictionary(dict) {}
-
-        [[nodiscard]] bool isCancelled() const noexcept
+        explicit Impl(const Dictionary& dictionary) : profile(dictionary)
         {
-            return cancelled.load(std::memory_order_relaxed);
         }
     };
 
-
-    DictionarySearch::DictionarySearch(const Dictionary& dict)
-        : impl(std::make_unique<Impl>(dict))
+    DictionarySearch::DictionarySearch(const Dictionary& dictionary) : impl_(std::make_unique<Impl>(dictionary))
     {
     }
 
@@ -55,41 +24,16 @@ namespace MKD
     DictionarySearch::DictionarySearch(DictionarySearch&&) noexcept = default;
     DictionarySearch& DictionarySearch::operator=(DictionarySearch&&) noexcept = default;
 
-
-    Result<SearchResult> DictionarySearch::search(std::string_view query, const SearchOptions& options) const
+    Result<SearchResult> DictionarySearch::search(std::string_view query, const SearchOptions& options,
+                                                  std::stop_token stop) const
     {
-        impl->cancelled.store(false, std::memory_order_relaxed);
-        impl->searching.store(true, std::memory_order_relaxed);
-
-        struct SearchActivity
-        {
-            Impl& impl;
-            ~SearchActivity()
-            {
-                impl.searching.store(false, std::memory_order_relaxed);
-            }
-        } activity{*impl};
-
-        const auto logic = detail::search::makeSearchLogic(impl->dictionary, impl->cancelled);
-        return logic->search(query, options);
+        return detail::search::SearchSession(impl_->profile, query, options, stop).run();
     }
 
-
-    void DictionarySearch::cancel() const noexcept
+    std::span<const SearchScope> DictionarySearch::scopes(SearchFallback fallback) const noexcept
     {
-        if (impl->searching.load(std::memory_order_relaxed))
-            impl->cancelled.store(true, std::memory_order_relaxed);
+        return impl_->profile.scopes(fallback);
     }
 
-
-    void DictionarySearch::reset() const noexcept
-    {
-        impl->cancelled.store(false, std::memory_order_relaxed);
-    }
-
-
-    bool DictionarySearch::isCancelled() const noexcept
-    {
-        return impl->isCancelled();
-    }
+    bool DictionarySearch::supportsNativeSearch() const noexcept { return !impl_->profile.unsupportedReason(); }
 }

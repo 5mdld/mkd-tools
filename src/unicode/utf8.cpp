@@ -149,6 +149,15 @@ namespace MKD::detail::unicode
     }
 
 
+    size_t utf16CodeUnitCount(std::string_view text)
+    {
+        size_t count = 0;
+        size_t offset = 0;
+        while (offset < text.size())
+            count += nextCodepoint(text, offset) > 0xFFFF ? 2 : 1;
+        return count;
+    }
+
     size_t codepointCount(const std::string_view text)
     {
         size_t offset = 0;

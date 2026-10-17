@@ -39,11 +39,11 @@ protected:
         return std::move(dicts.front());
     }
 
-    static void printInfo(const std::vector<std::string>& keys, const std::vector<EntryId>& entryIds)
+    static void printInfo(const std::vector<SearchMatch>& keys, const std::vector<EntryId>& entryIds)
     {
         for (auto& key : keys)
         {
-            test::verbosePrint("{}, ", key);
+            test::verbosePrint("{}, ", key.key);
         }
         test::verbosePrint("\n");
         for (auto& [pageId, itemId] : entryIds)
@@ -83,7 +83,7 @@ TEST_F(DictionarySearchTest, KANKENKJ2_KanjiHeadwordSearch)
 
     ASSERT_TRUE(result.has_value());
     ASSERT_FALSE(result->empty());
-    printInfo(result->matchedKeys, result->entries);
+    printInfo(result->matches, result->entries);
 }
 
 TEST_F(DictionarySearchTest, KANKENKJ2_CompoundKanjiSearch)
@@ -98,8 +98,8 @@ TEST_F(DictionarySearchTest, KANKENKJ2_CompoundKanjiSearch)
     ASSERT_TRUE(result.has_value());
     ASSERT_FALSE(result->empty());
 
-    ASSERT_FALSE(result->matchedKeys.empty());
-    printInfo(result->matchedKeys, result->entries);
+    ASSERT_FALSE(result->matches.empty());
+    printInfo(result->matches, result->entries);
 }
 
 TEST_F(DictionarySearchTest, KANKENKJ2_PrefixSearch)
@@ -108,7 +108,7 @@ TEST_F(DictionarySearchTest, KANKENKJ2_PrefixSearch)
     const DictionarySearch search(dict);
 
     SearchOptions options;
-    options.type = SearchMode::Prefix;
+    options.match = SearchMode::Prefix;
     options.scope = SearchScope::Idiom;
 
     const auto result = measureSearchTime("KANKENKJ2 prefix", [&]() {
@@ -118,7 +118,7 @@ TEST_F(DictionarySearchTest, KANKENKJ2_PrefixSearch)
     ASSERT_TRUE(result.has_value());
     ASSERT_TRUE(result->entries.size() == 43);
     ASSERT_FALSE(result->empty());
-    printInfo(result->matchedKeys, result->entries);
+    printInfo(result->matches, result->entries);
 }
 
 TEST_F(DictionarySearchTest, OKO12_HeadwordSearch)
@@ -132,7 +132,7 @@ TEST_F(DictionarySearchTest, OKO12_HeadwordSearch)
 
     ASSERT_TRUE(result.has_value());
     ASSERT_FALSE(result->empty());
-    printInfo(result->matchedKeys, result->entries);
+    printInfo(result->matches, result->entries);
 }
 
 TEST_F(DictionarySearchTest, SHINJIGEN_GogiSearch)
@@ -141,7 +141,7 @@ TEST_F(DictionarySearchTest, SHINJIGEN_GogiSearch)
     const DictionarySearch search(dict);
 
     SearchOptions options;
-    options.type = SearchMode::Prefix;
+    options.match = SearchMode::Prefix;
     options.scope = SearchScope::Gogi;
 
     const auto result = measureSearchTime("Shinjigen Gogi search", [&]() {
@@ -152,7 +152,7 @@ TEST_F(DictionarySearchTest, SHINJIGEN_GogiSearch)
     ASSERT_TRUE(result->entries.size() == 4);
     ASSERT_FALSE(result->empty());
 
-    printInfo(result->matchedKeys, result->entries);
+    printInfo(result->matches, result->entries);
 }
 
 TEST_F(DictionarySearchTest, OKO12_JoinedQueryFallback)
@@ -165,7 +165,7 @@ TEST_F(DictionarySearchTest, OKO12_JoinedQueryFallback)
     });
 
     ASSERT_TRUE(result.has_value());
-    printInfo(result->matchedKeys, result->entries);
+    printInfo(result->matches, result->entries);
 }
 
 TEST_F(DictionarySearchTest, KOGO3_HeadwordSearch)
@@ -180,7 +180,7 @@ TEST_F(DictionarySearchTest, KOGO3_HeadwordSearch)
     ASSERT_TRUE(result.has_value());
     ASSERT_TRUE(result->entries.size() == 1);
     ASSERT_FALSE(result->empty());
-    printInfo(result->matchedKeys, result->entries);
+    printInfo(result->matches, result->entries);
 }
 
 TEST_F(DictionarySearchTest, SKOGO_ModernSearch)
@@ -197,8 +197,8 @@ TEST_F(DictionarySearchTest, SKOGO_ModernSearch)
 
     ASSERT_TRUE(result.has_value());
     ASSERT_FALSE(result->empty());
-    EXPECT_TRUE(result->flags & 0x10000);
-    printInfo(result->matchedKeys, result->entries);
+    EXPECT_EQ(result->scope, SearchScope::Modern);
+    printInfo(result->matches, result->entries);
 }
 
 TEST_F(DictionarySearchTest, SKOGO_GendaiHeadwordSort)
@@ -222,7 +222,7 @@ TEST_F(DictionarySearchTest, SKOGO_GendaiHeadwordSort)
     EXPECT_LE(result->entries.front().pageId, 25337);
     ASSERT_GE(result->entries.size(), 2);
     EXPECT_LT(result->entries[1].pageId, 19249);
-    printInfo(result->matchedKeys, result->entries);
+    printInfo(result->matches, result->entries);
 }
 
 TEST_F(DictionarySearchTest, OKG11_HeadwordSearch)
@@ -236,21 +236,18 @@ TEST_F(DictionarySearchTest, OKG11_HeadwordSearch)
 
     ASSERT_TRUE(result.has_value());
     ASSERT_FALSE(result->empty());
-    printInfo(result->matchedKeys, result->entries);
+    printInfo(result->matches, result->entries);
 }
 
-TEST_F(DictionarySearchTest, PreSearchCancelDoesNotCancelNextSearch)
+TEST_F(DictionarySearchTest, CancellationBelongsToOneQuery)
 {
     const auto dict = loadDictionary("KOGO3");
     const DictionarySearch search(dict);
 
-    search.cancel();
-
-    const auto result = measureSearchTime("pre-search cancel ignored", [&]() {
-        return search.search("日本");
-    });
-
-    ASSERT_TRUE(result.has_value());
+    std::stop_source cancellation;
+    cancellation.request_stop();
+    EXPECT_FALSE(search.search("日本", {}, cancellation.get_token()));
+    EXPECT_TRUE(search.search("日本"));
 }
 
 TEST_F(DictionarySearchTest, DictionaryEntryAccessHelpers)
