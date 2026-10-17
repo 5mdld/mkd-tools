@@ -7,6 +7,7 @@
 #include "MKD/result.hpp"
 #include "MKD/resource/entry_id.hpp"
 #include "MKD/resource/search_mode.hpp"
+#include "MKD/resource/keystore_scope.hpp"
 
 #include <memory>
 #include <optional>
@@ -42,22 +43,14 @@ namespace MKD
 
     [[nodiscard]] constexpr std::optional<SearchScope> searchScopeFromName(const std::string_view name) noexcept
     {
-        if (name == "Headword" || name == "Index" || name == "Vocabulary") return SearchScope::Headword;
-        if (name == "Idiom" || name == "Idiom/Phrasal verb" || name == "Jyukugo"
-            || name == "Kanyoku" || name == "Phrase") return SearchScope::Idiom;
-        if (name == "Example") return SearchScope::Example;
-        if (name == "English") return SearchScope::English;
-        if (name == "Gogi" || name == "Yakugo") return SearchScope::Gogi;
-        if (name == "Modern" || name == "Gendai" || name == "Metadata" || name == "MetaData")
-            return SearchScope::Modern;
-        if (name == "Kanji" || name == "Oyaji") return SearchScope::Kanji;
-        if (name == "Collocation") return SearchScope::Collocation;
-        if (name == "CJ") return SearchScope::CJ;
-        if (name == "JC") return SearchScope::JC;
-        if (name == "Full-Text") return SearchScope::Fulltext;
-        if (name == "Group") return SearchScope::Group;
-        if (name == "Compound Noun") return SearchScope::CompoundNoun;
-        if (name == "Numeral") return SearchScope::Numeral;
+        for (const auto& names : detail::keystoreScopes)
+            if (name == names.name) return static_cast<SearchScope>(names.scope);
+        if (name == "Index" || name == "Vocabulary") return SearchScope::Headword;
+        if (name == "Idiom/Phrasal verb" || name == "Jyukugo" || name == "Kanyoku" || name == "Phrase")
+            return SearchScope::Idiom;
+        if (name == "Yakugo") return SearchScope::Gogi;
+        if (name == "Gendai" || name == "Metadata" || name == "MetaData") return SearchScope::Modern;
+        if (name == "Oyaji") return SearchScope::Kanji;
         return std::nullopt;
     }
 

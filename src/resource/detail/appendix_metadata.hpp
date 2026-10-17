@@ -5,6 +5,7 @@
 #pragma once
 
 #include "MKD/result.hpp"
+#include "dictionary/native_format.hpp"
 #include <pugixml.hpp>
 #include <filesystem>
 #include <optional>
@@ -50,10 +51,10 @@ namespace MKD::detail
         {
             if (node.type() == pugi::node_element && std::string_view(node.name()) == "dict")
             {
-                const auto contents = plistStringValue(node, "contents");
+                const auto contents = plistStringValue(node, metadata::appendix::contents);
                 if (contents && contents->ends_with(".entries"))
                 {
-                    if (auto name = plistStringValue(node, "name"); name && !name->empty())
+                    if (auto name = plistStringValue(node, metadata::appendix::name); name && !name->empty())
                         titles.emplace(*contents, std::move(*name));
                 }
             }
@@ -65,7 +66,7 @@ namespace MKD::detail
     public:
         static Result<AppendixTitleMap> open(const std::filesystem::path& productRoot)
         {
-            const auto path = productRoot / "Contents" / "Appendix.plist";
+            const auto path = productRoot / native::paths::productContents / native::paths::appendixInfo;
             std::error_code ec;
             const auto status = std::filesystem::status(path, ec);
             if (ec == std::errc::no_such_file_or_directory || (!ec && !std::filesystem::exists(status)))

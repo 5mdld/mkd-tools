@@ -3,6 +3,7 @@
 //
 
 #include "MKD/resource/resource_loader.hpp"
+#include "dictionary/native_format.hpp"
 #include "resource/detail/resource_files.hpp"
 #include "resource/detail/appendix_metadata.hpp"
 
@@ -98,7 +99,7 @@ namespace MKD
         std::vector<AppendixEntryList> lists;
         for (const auto& file : *files)
         {
-            const auto relative = file.lexically_relative(paths_.productRoot() / "Contents");
+            const auto relative = file.lexically_relative(paths_.productRoot() / detail::native::paths::productContents);
             const auto title = titles->find(relative.generic_string());
             auto list = AppendixEntryList::open(file, title == titles->end() ? std::string{} : title->second);
             if (!list) return std::unexpected(std::format("Appendix '{}': {}", file.string(), list.error()));

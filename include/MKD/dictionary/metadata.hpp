@@ -5,10 +5,12 @@
 #pragma once
 
 #include "MKD/result.hpp"
+#include "MKD/dictionary/detail/metadata_keys.hpp"
 
 #include <glaze/glaze.hpp>
 
 #include <filesystem>
+#include <cstdint>
 #include <optional>
 #include <string>
 
@@ -37,11 +39,14 @@ namespace MKD
     {
         std::string identifier;
         std::string directory;
+        std::optional<uint16_t> dictionaryId;
         std::optional<std::string> version;
         std::optional<LocalizedString> title;
         std::optional<LocalizedString> publisher;
         std::optional<LocalizedString> edition;
-        std::optional<std::vector<std::string> > languages;
+        std::optional<std::vector<std::string>> languages;
+        std::optional<std::string> keyNormalization;
+        std::optional<bool> hasHeadlineKeyIdentifier;
     };
 
     struct DictionaryMetadata
@@ -57,51 +62,61 @@ namespace MKD
         std::optional<std::string> version;
         std::optional<std::string> productSearchClass;
         std::vector<DictionaryContent> contents;
+        std::vector<std::string> searchScopeNames;
+        std::vector<std::string> fonts;
+        std::optional<bool> verticalLayout;
+        std::optional<std::string> requiredDicKitVersion;
 
     private:
         static std::expected<std::string, std::error_code> readTextFile(const fs::path& path);
-
     };
 }
 
-template<>
+template <>
 struct glz::meta<MKD::LocalizedString>
 {
     using T = MKD::LocalizedString;
     static constexpr auto value = object(
-        "en", &T::en,
-        "ja", &T::ja
+        MKD::detail::metadata::language::english, &T::en,
+        MKD::detail::metadata::language::japanese, &T::ja
     );
 };
 
-template<>
+template <>
 struct glz::meta<MKD::DictionaryContent>
 {
     using T = MKD::DictionaryContent;
     static constexpr auto value = object(
-        "DSContentIdentifier", &T::identifier,
-        "DSContentDirectory", &T::directory,
-        "DSContentVersion", &T::version,
-        "DSContentTitle", &T::title,
-        "DSContentPublisher", &T::publisher,
-        "DSContentEdition", &T::edition,
-        "DSContentLanguages", &T::languages
+        MKD::detail::metadata::content::identifier, &T::identifier,
+        MKD::detail::metadata::content::directory, &T::directory,
+        MKD::detail::metadata::content::dictionaryId, &T::dictionaryId,
+        MKD::detail::metadata::content::version, &T::version,
+        MKD::detail::metadata::content::title, &T::title,
+        MKD::detail::metadata::content::publisher, &T::publisher,
+        MKD::detail::metadata::content::edition, &T::edition,
+        MKD::detail::metadata::content::languages, &T::languages,
+        MKD::detail::metadata::content::keyNormalization, &T::keyNormalization,
+        MKD::detail::metadata::content::hasHeadlineKeyIdentifier, &T::hasHeadlineKeyIdentifier
     );
 };
 
-template<>
+template <>
 struct glz::meta<MKD::DictionaryMetadata>
 {
     using T = MKD::DictionaryMetadata;
     static constexpr auto value = object(
-        "DSProductDisplayName", &T::displayName,
-        "DSProductDescription", &T::description,
-        "DSProductGenre", &T::genre,
-        "DSProductTitle", &T::productTitle,
-        "DSProductIdentifier", &T::productIdentifier,
-        "DSProductCategory", &T::category,
-        "DSProductVersion", &T::version,
-        "DSProductSearchClass", &T::productSearchClass,
-        "DSProductContents", &T::contents
+        MKD::detail::metadata::product::displayName, &T::displayName,
+        MKD::detail::metadata::product::description, &T::description,
+        MKD::detail::metadata::product::genre, &T::genre,
+        MKD::detail::metadata::product::title, &T::productTitle,
+        MKD::detail::metadata::product::identifier, &T::productIdentifier,
+        MKD::detail::metadata::product::category, &T::category,
+        MKD::detail::metadata::product::version, &T::version,
+        MKD::detail::metadata::product::searchClass, &T::productSearchClass,
+        MKD::detail::metadata::product::contents, &T::contents,
+        MKD::detail::metadata::product::searchScopeNames, &T::searchScopeNames,
+        MKD::detail::metadata::product::fonts, &T::fonts,
+        MKD::detail::metadata::product::verticalLayout, &T::verticalLayout,
+        MKD::detail::metadata::product::requiredDicKitVersion, &T::requiredDicKitVersion
     );
 };

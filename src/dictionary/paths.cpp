@@ -3,17 +3,16 @@
 //
 
 #include "MKD/dictionary/paths.hpp"
+#include "native_format.hpp"
 
 #include <array>
 #include <span>
-
-using namespace std::literals::string_view_literals;
 
 namespace MKD
 {
     Result<DictionaryPaths> DictionaryPaths::create(fs::path productRoot)
     {
-        auto contentsRoot = productRoot / "Contents";
+        auto contentsRoot = productRoot / detail::native::paths::productContents;
         if (!fs::is_directory(contentsRoot))
             return std::unexpected("Missing Contents directory: " + contentsRoot.string());
 
@@ -36,15 +35,18 @@ namespace MKD
         switch (type)
         {
         case ResourceType::Contents:
-            return existingDir(base / "contents");
+            return existingDir(base / detail::native::paths::contents);
         case ResourceType::AppendixEntries:
             return existingDir(base);
         case ResourceType::Audio:
         case ResourceType::AudioLegacy:
-            return existingDir(base / "audio");
+            return existingDir(base / detail::native::paths::audio);
         case ResourceType::Graphics:
             {
-                static constexpr std::array candidates = {"graphics"sv, "img"sv};
+                static constexpr std::array candidates{
+                    std::string_view(detail::native::paths::graphics),
+                    std::string_view(detail::native::paths::legacyGraphics)
+                };
                 for (const auto name : candidates)
                 {
                     auto path = existingDir(base / name);
@@ -54,11 +56,11 @@ namespace MKD
                 return std::optional<fs::path>{};
             }
         case ResourceType::Keystores:
-            return existingDir(base / "key");
+            return existingDir(base / detail::native::paths::keys);
         case ResourceType::Headlines:
-            return existingDir(base / "headline");
+            return existingDir(base / detail::native::paths::headlines);
         case ResourceType::Fonts:
-            return existingDir(base / "fonts");
+            return existingDir(base / detail::native::paths::fonts);
         }
         std::unreachable();
     }

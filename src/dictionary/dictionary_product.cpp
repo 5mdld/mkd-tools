@@ -3,6 +3,7 @@
 //
 
 #include "MKD/dictionary/dictionary_product.hpp"
+#include "native_format.hpp"
 #include "MKD/resource/resource_loader.hpp"
 
 #include <algorithm>
@@ -31,7 +32,7 @@ namespace MKD
         Result<ProductBase> loadProductBase(const fs::path& path)
         {
             auto metadata = DictionaryMetadata::loadFromPath(
-                path / "Contents" / (path.stem().string() + ".json")
+                path / detail::native::paths::productContents / (path.stem().string() + ".json")
             );
             if (!metadata)
                 return std::unexpected(std::format("Failed to load metadata: '{}'", metadata.error()));
@@ -54,29 +55,46 @@ namespace MKD
             DictionaryResources resources;
             const auto& directory = contentDef.directory;
             const auto& id = contentDef.identifier;
+
             auto entries = loader.loadEntries(directory, id);
-            if (!entries) return std::unexpected(entries.error());
-            resources.entries = std::move(*entries);
+            if (!entries)
+                return std::unexpected(entries.error());
+
             auto appendices = loader.loadAppendixEntryLists(directory);
-            if (!appendices) return std::unexpected(appendices.error());
-            resources.appendixEntryLists = std::move(*appendices);
+            if (!appendices)
+                return std::unexpected(appendices.error());
+
             auto audio = loader.loadAudio(directory, id);
-            if (!audio) return std::unexpected(audio.error());
-            resources.audio = std::move(*audio);
+            if (!audio)
+                return std::unexpected(audio.error());
+
             auto graphics = loader.loadGraphics(directory);
-            if (!graphics) return std::unexpected(graphics.error());
-            resources.graphics = std::move(*graphics);
+            if (!graphics)
+                return std::unexpected(graphics.error());
+
             auto fonts = loader.loadFonts(directory);
-            if (!fonts) return std::unexpected(fonts.error());
-            resources.fonts = std::move(*fonts);
+            if (!fonts)
+                return std::unexpected(fonts.error());
+
             auto keystores = loader.loadKeystores(directory);
-            if (!keystores) return std::unexpected(keystores.error());
-            resources.keystores = std::move(*keystores);
+            if (!keystores)
+                return std::unexpected(keystores.error());
+
             auto headlines = loader.loadHeadlines(directory);
-            if (!headlines) return std::unexpected(headlines.error());
-            resources.headlines = std::move(*headlines);
+            if (!headlines)
+                return std::unexpected(headlines.error());
+
             auto styles = loader.loadStylesheets(directory);
-            if (!styles) return std::unexpected(styles.error());
+            if (!styles)
+                return std::unexpected(styles.error());
+
+            resources.entries = std::move(*entries);
+            resources.appendixEntryLists = std::move(*appendices);
+            resources.audio = std::move(*audio);
+            resources.graphics = std::move(*graphics);
+            resources.fonts = std::move(*fonts);
+            resources.keystores = std::move(*keystores);
+            resources.headlines = std::move(*headlines);
             resources.stylesheet = std::move(styles->normal);
             resources.nightmodeStylesheet = std::move(styles->nightmode);
             return resources;
@@ -192,7 +210,7 @@ namespace MKD
 
     std::optional<fs::path> DictionaryProduct::iconPath() const
     {
-        const auto iconsDir = paths_.productRoot() / "Contents" / "icons";
+        const auto iconsDir = paths_.productRoot() / detail::native::paths::productContents / "icons";
         if (!fs::is_directory(iconsDir))
             return std::nullopt;
 
