@@ -32,7 +32,6 @@ namespace MKDCLI
     {
         if (!bar_)
             return;
-        bar_->set_option(indicators::option::PostfixText{"│ Complete"});
         if (!bar_->is_completed())
             bar_->mark_as_completed();
         bar_.reset();
@@ -51,6 +50,7 @@ namespace MKDCLI
 
         grandTotal_ = e.totalItems;
         phaseOffset_ = 0;
+
         bar_ = std::make_unique<indicators::ProgressBar>(
             indicators::option::Stream{std::cerr},
             indicators::option::BarWidth{40},
@@ -69,14 +69,16 @@ namespace MKDCLI
 
     void ExportProgress::onProgress(const MKD::ProgressEvent& e) const
     {
-        if (!bar_)
+        if (!bar_ || bar_->is_completed())
             return;
 
         const size_t globalCompleted = phaseOffset_ + e.completedItems;
         auto name = MKD::resourceTypeName(e.type);
 
         bar_->set_option(indicators::option::PostfixText{
-            std::format("│ {} {}/{}", name, e.completedItems, e.totalItems)
+            globalCompleted >= grandTotal_
+                ? "│ Complete"
+                : std::format("│ {} {}/{}", name, e.completedItems, e.totalItems)
         });
         bar_->set_progress(globalCompleted);
     }

@@ -6,12 +6,16 @@
 #include "MKDCLI/commands.hpp"
 #include "MKDCLI/source.hpp"
 
+#include <clocale>
 #include <exception>
 #include <iostream>
 #include <type_traits>
 
 int main(int argc, char* argv[])
 {
+    // Indicators uses C char locale for its glyphs
+    std::setlocale(LC_CTYPE, "");
+
     try
     {
         MKDCLI::CLIApp app;
