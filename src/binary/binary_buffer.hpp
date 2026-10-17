@@ -37,6 +37,7 @@ namespace MKD::detail
         [[nodiscard]] size_t position() const noexcept;
         [[nodiscard]] std::span<const uint8_t> data() const noexcept;
         [[nodiscard]] std::vector<uint8_t> take();
+        void clear() noexcept { buffer_.clear(); }
 
     private:
         template <typename T, size_t Bytes, std::endian Order>

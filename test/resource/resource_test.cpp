@@ -10,11 +10,13 @@
 #include "resource/detail/resource_files.hpp"
 #include "resource/detail/zlib.hpp"
 #include "resource/rsc/resource_store_index.hpp"
-#include "resource/rsc/resource_store_writer.hpp"
+#include "resource/rsc/resource_store_crypto.hpp"
+#include "MKD/resource/resource_store_writer.hpp"
 #include "resource/nrsc/named_resource_store_index.hpp"
-#include "resource/nrsc/named_resource_store_writer.hpp"
+#include "MKD/resource/named_resource_store_writer.hpp"
 #include "resource/keystore/entry_id_codec.hpp"
-#include "resource/keystore/keystore_writer.hpp"
+#include "MKD/resource/keystore_writer.hpp"
+#include "resource/detail/fragment_writer.hpp"
 
 #include <array>
 #include <chrono>
@@ -161,11 +163,12 @@ namespace MKD::test
     TEST_F(ResourceFormatTest, SequentialWriterMatchesTheLengthPrefixedWireFormat)
     {
         const std::array<uint8_t, 2> a{'a', 'b'};
-        auto writer = ResourceStoreWriter::createSequential(directory, {.type = ResourceType::Contents});
+        std::filesystem::remove(directory);
+        auto writer = detail::FragmentWriter::create(directory, ResourceType::Contents);
         ASSERT_TRUE(writer);
-        ASSERT_TRUE(writer->addData(a));
-        ASSERT_TRUE(writer->addData({}));
-        ASSERT_TRUE(writer->finalize());
+        ASSERT_TRUE(writer->add(a));
+        ASSERT_TRUE(writer->add({}));
+        ASSERT_TRUE(writer->finish());
         auto mapping = MappedFile::open(directory / "contents-0001.rsc");
         ASSERT_TRUE(mapping);
         const std::vector<uint8_t> expected{2, 0, 0, 0, 'a', 'b', 0, 0, 0, 0};
@@ -179,13 +182,13 @@ namespace MKD::test
 
     TEST_F(ResourceFormatTest, IndexedWriterPreservesIdsAcrossChunksAndFiles)
     {
-        auto writer = ResourceStoreWriter::createIndexed(directory,
-            {.type = ResourceType::Contents, .maxFileSize = 1, .chunkSize = 1,
-             .useEncryption = true, .dictId = "fixture"});
+        std::filesystem::remove(directory);
+        auto writer = ResourceStoreWriter::create(directory, "fixture",
+            {.fileBytes = 1, .chunkBytes = 1, .encrypt = true});
         ASSERT_TRUE(writer);
-        ASSERT_TRUE(writer->add(20, {'a'}));
-        ASSERT_TRUE(writer->add(10, {'b'}));
-        ASSERT_TRUE(writer->finalize());
+        ASSERT_TRUE(writer->add(20, std::array<uint8_t, 1>{'a'}));
+        ASSERT_TRUE(writer->add(10, std::array<uint8_t, 1>{'b'}));
+        ASSERT_TRUE(writer->finish());
         RetainedSpan payload;
         {
             auto store = ResourceStore::open(directory, "fixture");
@@ -214,11 +217,13 @@ namespace MKD::test
 
     TEST_F(ResourceFormatTest, NamedItemsRetainTheirIdsAndBothPayloadRepresentations)
     {
-        auto writer = NamedResourceStoreWriter::create(directory, {.type = ResourceType::Graphics});
+        std::filesystem::remove(directory);
+        auto writer = NamedResourceStoreWriter::create(directory);
         ASSERT_TRUE(writer);
-        ASSERT_TRUE(writer->add("plain", {'a'}));
-        ASSERT_TRUE(writer->add("compressed", std::vector<uint8_t>(1000, 'b'), 9));
-        ASSERT_TRUE(writer->finalize());
+        ASSERT_TRUE(writer->add("plain", std::array<uint8_t, 1>{'a'}));
+        ASSERT_TRUE(writer->add("compressed", std::vector<uint8_t>(1000, 'b'),
+                                NamedResourceWriteOptions{.storage = NamedResourceStorage::Zlib, .compressionLevel = 9}));
+        ASSERT_TRUE(writer->finish());
         std::vector<NamedResourceStoreItem> items;
         {
             auto store = NamedResourceStore::open(directory);
@@ -311,9 +316,10 @@ namespace MKD::test
 
     TEST_F(ResourceFormatTest, KeystoreRoundTripAndInverseLookup)
     {
-        KeystoreWriter writer;
-        ASSERT_TRUE(writer.add("key", {{0x123456, 0x789a}}));
-        ASSERT_TRUE(writer.finalize(directory / "headword.keystore"));
+        auto writer = KeystoreWriter::create(directory / "headword.keystore");
+        ASSERT_TRUE(writer);
+        ASSERT_TRUE(writer->add("key", EntryId{0x123456, 0x789a}));
+        ASSERT_TRUE(writer->finish());
         auto store = Keystore::open(directory / "headword.keystore");
         ASSERT_TRUE(store) << store.error();
         auto ids = store->entryIdsAt(KeystoreIndex::Prefix, 0);
@@ -397,10 +403,11 @@ namespace MKD::test
 
     TEST_F(ResourceFormatTest, EmptyIndexedPayloadsHaveAnUnambiguousHeader)
     {
-        auto writer = ResourceStoreWriter::createIndexed(directory, {.type = ResourceType::Contents});
+        std::filesystem::remove(directory);
+        auto writer = ResourceStoreWriter::create(directory);
         ASSERT_TRUE(writer);
         ASSERT_TRUE(writer->add(10, {}));
-        ASSERT_TRUE(writer->finalize());
+        ASSERT_TRUE(writer->finish());
         auto store = ResourceStore::open(directory);
         ASSERT_TRUE(store);
         auto item = store->get(10);
@@ -508,14 +515,14 @@ namespace MKD::test
 
     TEST_F(ResourceFormatTest, FontFragmentsReassembleAcrossBlobFiles)
     {
-        auto writer = ResourceStoreWriter::createSequential(directory,
-            {.type = ResourceType::Fonts, .maxFileSize = 1});
+        std::filesystem::remove(directory);
+        auto writer = detail::FragmentWriter::create(directory, ResourceType::Fonts, 1);
         ASSERT_TRUE(writer);
         const std::array<uint8_t, 4> signature{'O', 'T', 'T', 'O'};
         const std::array<uint8_t, 4> padding{};
-        ASSERT_TRUE(writer->addData(signature));
-        ASSERT_TRUE(writer->addData(padding));
-        ASSERT_TRUE(writer->finalize());
+        ASSERT_TRUE(writer->add(signature));
+        ASSERT_TRUE(writer->add(padding));
+        ASSERT_TRUE(writer->finish());
         auto files = detail::resourcePaths(directory, ".rsc");
         ASSERT_TRUE(files);
         EXPECT_EQ(files->size(), 2);
@@ -531,11 +538,12 @@ namespace MKD::test
 
     TEST_F(ResourceFormatTest, NamedWriterUsesItsDefaultCompressionLevel)
     {
+        std::filesystem::remove(directory);
         auto writer = NamedResourceStoreWriter::create(directory,
-            {.type = ResourceType::Graphics, .compressionLevel = 9});
+            {.resources = {.storage = NamedResourceStorage::Zlib, .compressionLevel = 9}});
         ASSERT_TRUE(writer);
         ASSERT_TRUE(writer->add("a", std::vector<uint8_t>(1000, 'x')));
-        ASSERT_TRUE(writer->finalize());
+        ASSERT_TRUE(writer->finish());
         auto index = NamedResourceStoreIndex::open(directory);
         ASSERT_TRUE(index);
         EXPECT_TRUE(index->itemAt(0)->second.isCompressed());
@@ -605,10 +613,12 @@ namespace MKD::test
 
     TEST_F(ResourceFormatTest, ExistingNrscOutputSkipsInvalidCompressedPayloadBeforeReading)
     {
-        auto writer = NamedResourceStoreWriter::create(directory, {.type = ResourceType::Graphics});
+        std::filesystem::remove(directory);
+        auto writer = NamedResourceStoreWriter::create(directory);
         ASSERT_TRUE(writer);
-        ASSERT_TRUE(writer->add("image.png", std::vector<uint8_t>(1000, 'x'), 9));
-        ASSERT_TRUE(writer->finalize());
+        ASSERT_TRUE(writer->add("image.png", std::vector<uint8_t>(1000, 'x'),
+                                NamedResourceWriteOptions{.storage = NamedResourceStorage::Zlib, .compressionLevel = 9}));
+        ASSERT_TRUE(writer->finish());
         words("00000.nrsc", {0});
         auto store = NamedResourceStore::open(directory);
         ASSERT_TRUE(store);
@@ -674,13 +684,14 @@ namespace MKD::test
 
     TEST_F(ResourceFormatTest, FontOpeningAndTypeDetectionDoNotReadTheRemainingFragments)
     {
-        auto writer = ResourceStoreWriter::createSequential(directory, {.type = ResourceType::Fonts});
+        std::filesystem::remove(directory);
+        auto writer = detail::FragmentWriter::create(directory);
         ASSERT_TRUE(writer);
         const std::array<uint8_t, 4> signature{'O', 'T', 'T', 'O'};
-        ASSERT_TRUE(writer->addData(signature));
-        ASSERT_TRUE(writer->addData(signature));
-        ASSERT_TRUE(writer->finalize());
-        words("contents.map", {0, 2, 0, 0xFFFFFFFF, 999, 0xFFFFFFFF});
+        ASSERT_TRUE(writer->add(signature));
+        ASSERT_TRUE(writer->add(signature));
+        ASSERT_TRUE(writer->finish());
+        words("font.map", {0, 2, 0, 0xFFFFFFFF, 999, 0xFFFFFFFF});
         auto font = Font::open(directory);
         ASSERT_TRUE(font) << font.error();
         auto type = font->detectType();
@@ -702,13 +713,14 @@ namespace MKD::test
 
     TEST_F(ResourceFormatTest, FontsStreamFragmentsAndReportOutputErrors)
     {
-        auto writer = ResourceStoreWriter::createSequential(directory, {.type = ResourceType::Fonts});
+        std::filesystem::remove(directory);
+        auto writer = detail::FragmentWriter::create(directory);
         ASSERT_TRUE(writer);
         const std::array<uint8_t, 2> first{'O', 'T'};
         const std::array<uint8_t, 3> second{'T', 'O', 'x'};
-        ASSERT_TRUE(writer->addData(first));
-        ASSERT_TRUE(writer->addData(second));
-        ASSERT_TRUE(writer->finalize());
+        ASSERT_TRUE(writer->add(first));
+        ASSERT_TRUE(writer->add(second));
+        ASSERT_TRUE(writer->finish());
         auto font = Font::open(directory);
         ASSERT_TRUE(font);
         auto type = font->detectType();

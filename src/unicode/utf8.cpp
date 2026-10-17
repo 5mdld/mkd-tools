@@ -12,6 +12,43 @@
 
 namespace MKD::detail::unicode
 {
+    struct Utf16Decoder
+    {
+        static std::optional<Codepoint> next(std::u16string_view text, size_t& offset) noexcept
+        {
+            if (offset >= text.size())
+                return std::nullopt;
+
+            const Codepoint unit = text[offset];
+            if (unit >= kHighSurrogateStart && unit <= kHighSurrogateEnd)
+            {
+                if (offset + 1 == text.size())
+                    return std::nullopt;
+
+                const Codepoint low = text[offset + 1];
+                if (low < kLowSurrogateStart || low > kLowSurrogateEnd)
+                    return std::nullopt;
+
+                offset += 2;
+                return kSurrogateOffset + ((unit - kHighSurrogateStart) << 10) + (low - kLowSurrogateStart);
+            }
+
+            if (unit >= kLowSurrogateStart && unit <= kLowSurrogateEnd)
+                return std::nullopt;
+
+            ++offset;
+            return unit;
+        }
+    };
+
+    std::optional<size_t> firstInvalidUtf16Offset(std::u16string_view text) noexcept
+    {
+        size_t offset = 0;
+        while (offset < text.size())
+            if (!Utf16Decoder::next(text, offset)) return offset;
+        return std::nullopt;
+    }
+
     namespace
     {
         [[nodiscard]] bool isContinuationByte(const unsigned char byte) noexcept
@@ -26,7 +63,7 @@ namespace MKD::detail::unicode
 
         [[nodiscard]] const utf8proc_uint8_t* bytes(const std::span<const uint8_t> data) noexcept
         {
-            return reinterpret_cast<const utf8proc_uint8_t*>(data.data());
+            return data.data();
         }
 
         [[nodiscard]] Codepoint decodeAt(const std::string_view text, const size_t offset, size_t& bytesRead)
@@ -46,13 +83,6 @@ namespace MKD::detail::unicode
 
             bytesRead = static_cast<size_t>(result);
             return static_cast<Codepoint>(cp);
-        }
-
-        [[nodiscard]] Codepoint combineSurrogates(const char16_t high, const char16_t low) noexcept
-        {
-            return kSurrogateOffset
-                   + ((static_cast<Codepoint>(high) - kHighSurrogateStart) << 10)
-                   + (static_cast<Codepoint>(low) - kLowSurrogateStart);
         }
     }
 
@@ -214,26 +244,14 @@ namespace MKD::detail::unicode
         std::string result;
         result.reserve(text.size() * 3);
 
-        for (size_t i = 0; i < text.size(); ++i)
+        size_t offset = 0;
+        while (offset < text.size())
         {
-            const Codepoint unit = text[i];
-            if (unit >= kHighSurrogateStart && unit <= kHighSurrogateEnd)
-            {
-                if (i + 1 >= text.size())
-                    throw std::runtime_error("Invalid UTF-16 sequence: missing low surrogate");
+            const auto cp = Utf16Decoder::next(text, offset);
+            if (!cp)
+                throw std::runtime_error(std::format("Invalid UTF-16 sequence at code-unit offset {}", offset));
 
-                const Codepoint low = text[++i];
-                if (low < kLowSurrogateStart || low > kLowSurrogateEnd)
-                    throw std::runtime_error("Invalid UTF-16 sequence: high surrogate not followed by low surrogate");
-
-                appendUtf8(result, combineSurrogates(static_cast<char16_t>(unit), static_cast<char16_t>(low)));
-                continue;
-            }
-
-            if (unit >= kLowSurrogateStart && unit <= kLowSurrogateEnd)
-                throw std::runtime_error("Invalid UTF-16 sequence: unpaired low surrogate");
-
-            appendUtf8(result, unit);
+            appendUtf8(result, *cp);
         }
 
         return result;

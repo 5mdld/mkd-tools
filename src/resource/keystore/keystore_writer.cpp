@@ -2,397 +2,291 @@
 // kiwakiwaaにより 2026/03/07 に作成されました。
 //
 
-#include "keystore_writer.hpp"
+#include "MKD/resource/keystore_writer.hpp"
+#include "entry_id_codec.hpp"
 #include "keystore_compare.hpp"
 #include "binary/binary_buffer.hpp"
+#include "io/build_directory.hpp"
+#include "io/output_file.hpp"
+#include "io/write_validation.hpp"
 
 #include <algorithm>
-#include <format>
-#include <fstream>
-#include <numeric>
-#include <limits>
+#include <map>
+#include <ranges>
+#include <utility>
 
 namespace MKD
 {
-    namespace detail
+    struct KeystoreWriter::Impl
     {
-        /**
-         * Merge entry ids into an existing key's list, deduplicating.
-         */
-        void mergePages(std::vector<EntryId>& existing, const std::span<const EntryId> incoming)
+        struct Record
         {
-            for (const auto& ref : incoming)
-            {
-                if (std::ranges::find(existing, ref) == existing.end())
-                    existing.push_back(ref);
-            }
-        }
-    }
+            std::string_view key;
+            std::vector<KeystorePosting> postings;
+            SearchKeyOptions options;
+            uint32_t offset = 0;
 
+            Result<void> encode(detail::BinaryBuffer& words);
+        };
 
-    KeystoreWriter::KeystoreWriter(const uint32_t version)
-        : version_(version)
-    {
-    }
-
-
-    Result<void> KeystoreWriter::add(std::string_view key, std::vector<EntryId> pages)
-    {
-        if (key.empty() || key.contains('\0'))
-            return std::unexpected("Search key must not be empty");
-
-        if (pages.empty())
-            return std::unexpected("Entry ids must not be empty");
-
-        if (pages.size() > 65535 || std::ranges::any_of(pages, [](const EntryId& id) { return id.pageId > 0xFFFFFF; }))
-            return std::unexpected("Entry IDs exceed the keystore encoding limits");
-
-        auto& existing = entries_[std::string(key)];
-        auto merged = existing;
-        detail::mergePages(merged, pages);
-        if (merged.size() > 65535)
-            return std::unexpected("Too many entry IDs for one keystore key");
-
-        existing = std::move(merged);
-        return {};
-    }
-
-
-    Result<void> KeystoreWriter::addPage(EntryId page, const std::span<const std::string_view> keys)
-    {
-        if (keys.empty())
-            return std::unexpected("Keys span must not be empty");
-
-        for (auto key : keys)
+        struct Layout
         {
-            if (key.empty()) continue;
-            if (auto result = add(key, {page}); !result)
-                return result;
+            uint32_t wordsOffset;
+            uint32_t indexOffset;
+            uint32_t conversionOffset;
+            uint32_t indexBytes;
+
+            static Result<Layout> create(const KeystoreWriteOptions& options, size_t wordBytes, size_t entryCount);
+        };
+
+        std::unique_ptr<detail::BuildDirectory> build;
+        KeystoreWriteOptions options;
+        std::map<std::string, Record, std::less<>> records;
+        size_t count = 0;
+
+        Impl(std::unique_ptr<detail::BuildDirectory> build, const KeystoreWriteOptions& options)
+            : build(std::move(build)), options(options)
+        {
         }
-        return {};
+
+        Result<void> encodeWords(detail::BinaryBuffer& words, std::vector<Record*>& entries);
+        Result<void> writeHeader(detail::OutputFile& file, const Layout& layout) const;
+        static Result<void> writeIndexes(detail::OutputFile& file, const Layout& layout,
+                                         std::vector<Record*>& entries, detail::BinaryBuffer& buffer);
+        Result<void> writeConversions(detail::OutputFile& file, detail::BinaryBuffer& buffer) const;
+        Result<void> write();
+    };
+
+    KeystoreWriter::KeystoreWriter(std::unique_ptr<Impl> impl) : impl_(std::move(impl))
+    {
     }
 
-    Result<void> KeystoreWriter::finalize(const std::filesystem::path& filePath) const
+    KeystoreWriter::~KeystoreWriter() = default;
+    KeystoreWriter::KeystoreWriter(KeystoreWriter&&) noexcept = default;
+    KeystoreWriter& KeystoreWriter::operator=(KeystoreWriter&&) noexcept = default;
+
+    Result<KeystoreWriter> KeystoreWriter::create(const std::filesystem::path& path,
+                                                  const KeystoreWriteOptions& options)
     {
-        if (version_ != detail::keystore::version1 && version_ != detail::keystore::version2)
+        if (options.version != KeystoreVersion::Version1 && options.version != KeystoreVersion::Version2)
             return std::unexpected("Unsupported keystore version");
 
-        auto entries = collectEntries();
-        uint64_t fileSize = 32 + 20 + 4 * (4 + uint64_t{4} * entries.size());
-        for (const auto& entry : entries)
-            fileSize += 8 + entry.key.size() + uint64_t{6} * entry.entryIds.size();
+        if (!options.conversions.empty() && options.version != KeystoreVersion::Version2)
+            return std::unexpected("Key ID conversion requires keystore version 2");
 
-        if (fileSize > std::numeric_limits<uint32_t>::max())
-            return std::unexpected("Keystore exceeds the format size limit");
+        auto build = detail::BuildDirectory::create(path);
+        if (!build)
+            return std::unexpected(build.error());
 
-        auto words = buildWordsSection(entries);
-        if (!words)
-            return std::unexpected(words.error());
+        return KeystoreWriter(std::make_unique<Impl>(std::move(*build), options));
+    }
 
-        auto idx = buildIndexArrays(entries, *words);
+    Result<void> KeystoreWriter::add(std::string_view key, const EntryId target, const SearchKeyOptions options) const
+    {
+        const KeystorePosting posting{target};
+        return add(key, std::span(&posting, 1), options);
+    }
 
-        // serialise each index array
-        auto indexA = serializeIndexArray(idx.length);
-        auto indexB = serializeIndexArray(idx.prefix);
-        auto indexC = serializeIndexArray(idx.suffix);
-        auto indexD = serializeIndexArray(idx.other);
+    Result<void> KeystoreWriter::add(std::string_view key, std::span<const KeystorePosting> targets,
+                                     const SearchKeyOptions options) const
+    {
+        if (auto state = impl_->build->check(); !state)
+            return state;
 
-        // calculate file layout offsets
-        const bool isV2 = version_ == detail::keystore::version2;
-        const size_t headerSize = isV2 ? 32 : 16;
-        const size_t wordsOffset = headerSize;
-        const size_t indexSectionOffset = wordsOffset + words->data.size();
-        constexpr size_t indexHeaderSize = 20; // IndexHeader: magic + 4 offsets
+        if (auto valid = detail::WriteValidation::text(key); !valid)
+            return impl_->build->fail(valid.error());
 
-        constexpr size_t indexAOffset = indexHeaderSize;
-        const size_t indexBOffset = indexAOffset + indexA.size();
-        const size_t indexCOffset = indexBOffset + indexB.size();
-        const size_t indexDOffset = indexCOffset + indexC.size();
+        if (targets.empty())
+            return impl_->build->fail("Search key must have at least one target");
 
-        std::ofstream file(filePath, std::ios::binary | std::ios::trunc);
-        if (!file)
-            return std::unexpected(std::format("Failed to open: {}", filePath.string()));
+        for (const auto& target : targets)
+            if (target.entryId.pageId > 0xFFFFFF)
+                return impl_->build->fail("Search target exceeds the 24-bit page ID limit");
 
-        // File header
+        auto [it, inserted] = impl_->records.try_emplace(std::string(key), Impl::Record{{}, {}, options});
+        if (inserted)
         {
-            detail::BinaryBuffer header(headerSize);
-            header.writeLittle(version_);
-            header.writeLittle(uint32_t{0}); // magic1
-            header.writeLittle(static_cast<uint32_t>(wordsOffset));
-            header.writeLittle(static_cast<uint32_t>(indexSectionOffset));
-
-            if (isV2)
-            {
-                header.writeLittle(uint32_t{0}); // conversionTable not used
-                header.writeLittle(uint32_t{0}); // magic5
-                header.writeLittle(uint32_t{0}); // magic6
-                header.writeLittle(uint32_t{0}); // magic7
-            }
-
-            file.write(reinterpret_cast<const char*>(header.data().data()),
-                       static_cast<std::streamsize>(header.data().size()));
+            it->second.key = it->first;
+            ++impl_->count;
         }
 
-        file.write(reinterpret_cast<const char*>(words->data.data()), static_cast<std::streamsize>(words->data.size()));
+        if (!inserted && it->second.options != options)
+            return impl_->build->fail("Conflicting options for the same search key");
 
-        {
-            detail::BinaryBuffer indexHeader(indexHeaderSize);
-            indexHeader.writeLittle(uint32_t{0x04});
-            indexHeader.writeLittle(static_cast<uint32_t>(indexAOffset));
-            indexHeader.writeLittle(static_cast<uint32_t>(indexBOffset));
-            indexHeader.writeLittle(static_cast<uint32_t>(indexCOffset));
-            indexHeader.writeLittle(static_cast<uint32_t>(indexDOffset));
+        it->second.postings.insert(it->second.postings.end(), targets.begin(), targets.end());
+        return {};
+    }
 
-            file.write(reinterpret_cast<const char*>(indexHeader.data().data()),
-                       static_cast<std::streamsize>(indexHeader.data().size()));
-        }
+    Result<void> KeystoreWriter::Impl::Record::encode(detail::BinaryBuffer& words)
+    {
+        std::ranges::sort(postings);
+        auto duplicates = std::ranges::unique(postings);
+        postings.erase(duplicates.begin(), duplicates.end());
+        const bool wide = postings.size() > UINT16_MAX;
+        const uint64_t maximum = words.position() + key.size() + 10 + uint64_t{9} * postings.size();
+        if (maximum > UINT32_MAX)
+            return std::unexpected("Keystore word section exceeds format limits");
 
-        file.write(reinterpret_cast<const char*>(indexA.data()), static_cast<std::streamsize>(indexA.size()));
-        file.write(reinterpret_cast<const char*>(indexB.data()), static_cast<std::streamsize>(indexB.size()));
-        file.write(reinterpret_cast<const char*>(indexC.data()), static_cast<std::streamsize>(indexC.size()));
-        file.write(reinterpret_cast<const char*>(indexD.data()), static_cast<std::streamsize>(indexD.size()));
+        offset = static_cast<uint32_t>(words.position());
+        words.writeLittle(static_cast<uint32_t>(words.position() + 6 + key.size()));
+        words.writeByte(static_cast<uint8_t>((wide ? 4 : 0) | (options.exactOnly ? 8 : 0)));
+        words.writeBytes(std::span(reinterpret_cast<const uint8_t*>(key.data()), key.size() + 1));
+        if (wide)
+            words.writeLittle(static_cast<uint32_t>(postings.size()));
+        else
+            words.writeLittle(static_cast<uint16_t>(postings.size()));
 
-        if (!file)
-            return std::unexpected(std::format("Failed to write: {}", filePath.string()));
+        for (const auto& posting : postings)
+            detail::keystore::encodeKeystoreEntry(words, posting.entryId, posting.dictionaryId, posting.type);
 
         return {};
     }
 
-
-    size_t KeystoreWriter::size() const noexcept
+    Result<KeystoreWriter::Impl::Layout> KeystoreWriter::Impl::Layout::create(
+        const KeystoreWriteOptions& options, const size_t wordBytes, const size_t entryCount)
     {
-        return entries_.size();
-    }
+        const uint64_t headerBytes = options.version == KeystoreVersion::Version2 ? 32 : 16;
+        const uint64_t indexBytes = 4 + uint64_t{4} * entryCount;
+        const uint64_t conversionBytes = options.conversions.empty() ? 0 : 4 + uint64_t{8} * options.conversions.size();
+        const uint64_t total = headerBytes + wordBytes + 20 + 3 * indexBytes + conversionBytes;
+        if (total > UINT32_MAX)
+            return std::unexpected("Keystore exceeds format limits");
 
-
-    bool KeystoreWriter::empty() const noexcept
-    {
-        return entries_.empty();
-    }
-
-
-    std::vector<KeystoreWriter::Entry> KeystoreWriter::collectEntries() const
-    {
-        std::vector<Entry> result;
-        result.reserve(entries_.size());
-
-        for (const auto& [key, pages] : entries_)
-        {
-            auto sorted = pages;
-            std::ranges::sort(sorted);
-            result.push_back({.key = key, .entryIds = std::move(sorted)});
-        }
-
-        return result;
-    }
-
-
-    std::vector<uint8_t> KeystoreWriter::encodePages(const std::vector<EntryId>& pages)
-    {
-        detail::BinaryBuffer buf;
-
-        // uint16_t LE entry count
-        buf.writeLittle(static_cast<uint16_t>(pages.size()));
-
-        for (const auto& [page, item] : pages)
-        {
-            uint8_t flags = 0;
-
-            // determine page encoding width
-            size_t pageBytes = 0;
-            if (page > 0)
-            {
-                if (page <= 0xFF)
-                {
-                    flags |= 0x01;
-                    pageBytes = 1;
-                }
-                else if (page <= 0xFFFF)
-                {
-                    flags |= 0x02;
-                    pageBytes = 2;
-                }
-                else
-                {
-                    flags |= 0x04;
-                    pageBytes = 3;
-                }
-            }
-
-            // determine item encoding width
-            size_t itemBytes = 0;
-            if (item > 0)
-            {
-                if (item <= 0xFF)
-                {
-                    flags |= 0x10;
-                    itemBytes = 1;
-                }
-                else
-                {
-                    flags |= 0x20;
-                    itemBytes = 2;
-                }
-            }
-
-            buf.writeByte(flags);
-
-            if (pageBytes == 1)
-            {
-                buf.writeByte(static_cast<uint8_t>(page));
-            }
-            else if (pageBytes == 2)
-            {
-                buf.writeBig<uint32_t, 2>(page);
-            }
-            else if (pageBytes == 3)
-            {
-                buf.writeBig<uint32_t, 3>(page);
-            }
-
-            if (itemBytes == 1)
-            {
-                buf.writeByte(static_cast<uint8_t>(item));
-            }
-            else if (itemBytes == 2)
-            {
-                buf.writeBig(item);
-            }
-
-            // skip extra and type fields
-        }
-
-        return buf.take();
-    }
-
-
-    Result<KeystoreWriter::WordsSection> KeystoreWriter::buildWordsSection(const std::vector<Entry>& entries)
-    {
-        std::vector<std::vector<uint8_t>> encodedPages;
-        encodedPages.reserve(entries.size());
-        for (const auto& [key, entryIds] : entries)
-            encodedPages.push_back(encodePages(entryIds));
-
-        // calculate offsets first
-        WordsSection result;
-        result.entryOffsets.reserve(entries.size());
-
-        size_t cursor = 0;
-        struct EntryLayout
-        {
-            size_t offset;
-            size_t prefixLen;
-            size_t pagesLen;
+        return Layout{
+            .wordsOffset = static_cast<uint32_t>(headerBytes),
+            .indexOffset = static_cast<uint32_t>(headerBytes + wordBytes),
+            .conversionOffset = static_cast<uint32_t>(conversionBytes ? total - conversionBytes : 0),
+            .indexBytes = static_cast<uint32_t>(indexBytes)
         };
-        std::vector<EntryLayout> layouts;
-        layouts.reserve(entries.size());
-
-        for (size_t i = 0; i < entries.size(); ++i)
-        {
-            const size_t entryOffset = cursor;
-            // 4 (pages_offset) + 1 (separator) + key.size() + 1 (null)
-            const size_t prefixLen = 4 + 1 + entries[i].key.size() + 1;
-            const size_t pagesLen = encodedPages[i].size();
-
-            layouts.push_back({entryOffset, prefixLen, pagesLen});
-            cursor += prefixLen + pagesLen;
-        }
-
-        result.data.reserve(cursor);
-        detail::BinaryBuffer buf(cursor);
-
-        for (size_t i = 0; i < entries.size(); ++i)
-        {
-            result.entryOffsets.push_back(static_cast<uint32_t>(layouts[i].offset));
-
-            // points to the encoded pages within this entry
-            const auto pagesOffset = static_cast<uint32_t>(layouts[i].offset + layouts[i].prefixLen);
-            buf.writeLittle(pagesOffset);
-
-            // separator
-            buf.writeByte(0x00);
-
-            // null-terminated key
-            buf.writeBytes(std::span(reinterpret_cast<const uint8_t*>(entries[i].key.data()), entries[i].key.size()));
-            buf.writeByte(0x00);
-
-            buf.writeBytes(encodedPages[i]);
-        }
-
-        result.data = buf.take();
-        return result;
     }
 
-
-    KeystoreWriter::IndexArrays KeystoreWriter::buildIndexArrays(const std::vector<Entry>& entries,
-                                                                 const WordsSection& words)
+    Result<void> KeystoreWriter::Impl::encodeWords(detail::BinaryBuffer& words, std::vector<Record*>& entries)
     {
-        const size_t n = entries.size();
-        IndexArrays result;
-
-        result.length.reserve(n);
-        result.prefix.reserve(n);
-        result.suffix.reserve(n);
-
-        std::vector<size_t> indices(n);
-        std::iota(indices.begin(), indices.end(), 0);
-
-        auto toOffsets = [&](const std::vector<size_t>& order)
+        entries.reserve(records.size());
+        for (auto& record : records | std::views::values)
         {
-            std::vector<uint32_t> offsets;
-            offsets.reserve(order.size());
-            for (const size_t i : order)
-                offsets.push_back(words.entryOffsets[i]);
-            return offsets;
-        };
-
-        // Index A sorted by codepoint count, then case-folded comparison
-        {
-            auto order = indices;
-            std::ranges::sort(order, [&](const size_t a, const size_t b)
-            {
-                return detail::keystore::compare(entries[a].key, entries[b].key, detail::keystore::CompareMode::Length)
-                    < 0;
-            });
-            result.length = toOffsets(order);
+            if (auto encoded = record.encode(words); !encoded)
+                return encoded;
+            entries.push_back(&record);
         }
 
-        // Index B prefix case-insensitive, skip spaces/hyphens
-        {
-            auto order = indices;
-            std::ranges::sort(order, [&](const size_t a, const size_t b)
-            {
-                return detail::keystore::compare(entries[a].key, entries[b].key, detail::keystore::CompareMode::Forward)
-                    < 0;
-            });
-            result.prefix = toOffsets(order);
-        }
+        if (records.empty())
+            words.writeByte(0);
 
-        // Index C suffix reversed key comparison
-        {
-            auto order = indices;
-            std::ranges::sort(order, [&](const size_t a, const size_t b)
-            {
-                return detail::keystore::compare(entries[a].key, entries[b].key,
-                                                 detail::keystore::CompareMode::Backward) < 0;
-            });
-            result.suffix = toOffsets(order);
-        }
-
-        result.other = {};
-
-        return result;
+        return {};
     }
 
-
-    std::vector<uint8_t> KeystoreWriter::serializeIndexArray(const std::vector<uint32_t>& offsets)
+    Result<void> KeystoreWriter::Impl::writeHeader(detail::OutputFile& file, const Layout& layout) const
     {
-        detail::BinaryBuffer buf(sizeof(uint32_t) + offsets.size() * sizeof(uint32_t));
-        buf.writeLittle(static_cast<uint32_t>(offsets.size()));
-
-        for (const auto offset : offsets)
-            buf.writeLittle(offset);
-
-        return buf.take();
+        detail::BinaryBuffer header;
+        header.writeLittle(std::to_underlying(options.version));
+        header.writeLittle(uint32_t{0});
+        header.writeLittle(layout.wordsOffset);
+        header.writeLittle(layout.indexOffset);
+        if (options.version == KeystoreVersion::Version2)
+        {
+            header.writeLittle(layout.conversionOffset);
+            header.writePadding(12);
+        }
+        return file.write(header.data());
     }
+
+    Result<void> KeystoreWriter::Impl::writeIndexes(detail::OutputFile& file, const Layout& layout,
+                                                    std::vector<Record*>& entries, detail::BinaryBuffer& buffer)
+    {
+        buffer.clear();
+        buffer.writeLittle(uint32_t{4});
+        for (unsigned i = 0; i < 3; ++i)
+            buffer.writeLittle(static_cast<uint32_t>(20 + uint64_t{i} * layout.indexBytes));
+
+        buffer.writeLittle(uint32_t{0});
+        if (auto written = file.write(buffer.data()); !written)
+            return written;
+
+        for (auto mode : {
+                 detail::keystore::CompareMode::Length, detail::keystore::CompareMode::Forward,
+                 detail::keystore::CompareMode::Backward
+             })
+        {
+            std::ranges::sort(entries, [mode](const Record* a, const Record* b)
+            {
+                const auto order = detail::keystore::compare(a->key, b->key, mode);
+                return order == 0 ? a->key < b->key : order < 0;
+            });
+            buffer.clear();
+            buffer.writeLittle(static_cast<uint32_t>(entries.size()));
+            for (const auto record : entries)
+                buffer.writeLittle(record->offset);
+
+            if (auto written = file.write(buffer.data()); !written)
+                return written;
+        }
+        return {};
+    }
+
+    Result<void> KeystoreWriter::Impl::writeConversions(detail::OutputFile& file, detail::BinaryBuffer& buffer) const
+    {
+        if (options.conversions.empty())
+            return {};
+
+        buffer.clear();
+        buffer.writeLittle(static_cast<uint32_t>(options.conversions.size()));
+        for (auto id : options.conversions)
+        {
+            buffer.writeLittle(id.pageId);
+            buffer.writeLittle(id.itemId);
+            buffer.writeLittle(uint16_t{0});
+        }
+        return file.write(buffer.data());
+    }
+
+    Result<void> KeystoreWriter::Impl::write()
+    {
+        detail::BinaryBuffer buffer;
+        std::vector<Record*> entries;
+        if (auto encoded = encodeWords(buffer, entries); !encoded)
+            return encoded;
+
+        auto layout = Layout::create(options, buffer.position(), entries.size());
+        if (!layout)
+            return std::unexpected(layout.error());
+
+        detail::OutputFile file(build->path() / "data", false);
+        if (!file.isOpen())
+            return std::unexpected("Cannot create keystore file");
+
+        if (auto written = writeHeader(file, *layout); !written)
+            return written;
+
+        if (auto written = file.write(buffer.data()); !written)
+            return written;
+
+        if (auto written = writeIndexes(file, *layout, entries, buffer); !written)
+            return written;
+
+        if (auto written = writeConversions(file, buffer); !written)
+            return written;
+
+        return file.finish().transform([](uint64_t)
+        {
+        });
+    }
+
+    Result<void> KeystoreWriter::finish() const
+    {
+        if (auto state = impl_->build->check(); !state)
+            return state;
+
+        if (auto written = impl_->write(); !written)
+            return impl_->build->fail(written.error());
+
+        auto published = impl_->build->publishFile("data");
+        if (published)
+            impl_->records = decltype(impl_->records){};
+
+        return published;
+    }
+
+    size_t KeystoreWriter::size() const noexcept { return impl_->count; }
+    bool KeystoreWriter::empty() const noexcept { return size() == 0; }
 }

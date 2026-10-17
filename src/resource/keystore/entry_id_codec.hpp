@@ -8,6 +8,12 @@
 #include "MKD/result.hpp"
 #include <span>
 #include <vector>
+#include <optional>
+
+namespace MKD::detail
+{
+    class BinaryBuffer;
+}
 
 namespace MKD::detail::keystore
 {
@@ -20,17 +26,17 @@ namespace MKD::detail::keystore
     //   0x01: page is 1 byte
     //   0x02: page is 2 bytes (big-endian)
     //   0x04: page is 3 bytes (big-endian)
-    //   0x08: type/filter byte present (used for search filtering, not part of the entry ID)
+    //   0x08: optional profile-specific byte present (not part of the entry ID)
     //   0x10: item is 1 byte
     //   0x20: item is 2 bytes (big-endian)
-    //   0x40: extra is 1 byte
-    //   0x80: extra is 2 bytes (big-endian)
+    //   0x40: dictionaryId is 1 byte
+    //   0x80: dictionaryId is 2 bytes (big-endian)
     struct DecodedEntry
     {
         uint32_t page;
         uint16_t item;
-        uint16_t extra; // Encoded via flags 0x40/0x80
-        uint8_t type; // Filter byte (flag 0x08)
+        uint16_t dictionaryId;
+        uint8_t type;
         bool hasType;
         size_t bytesConsumed;
     };
@@ -39,6 +45,8 @@ namespace MKD::detail::keystore
      * Decode a single variable-length entry from raw bytes.
      */
     [[nodiscard]] Result<DecodedEntry> decodeKeystoreEntry(std::span<const uint8_t> data);
+    void encodeKeystoreEntry(BinaryBuffer& buffer, EntryId id, uint16_t dictionaryId = 0,
+                             std::optional<uint8_t> type = std::nullopt);
 
     /**
      * Decode all entry ids from a counted block.

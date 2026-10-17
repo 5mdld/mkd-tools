@@ -1,6 +1,7 @@
 target_sources(mkd PRIVATE
         resource_files.cpp
-        sequential_blob_writer.cpp
+        segmented_file_writer.cpp
+        fragment_writer.cpp
         zlib.cpp
 )
 

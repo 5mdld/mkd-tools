@@ -18,6 +18,7 @@ namespace MKD::detail::unicode
 {
     [[nodiscard]] std::optional<size_t> firstInvalidUtf8Offset(std::span<const uint8_t> bytes) noexcept;
     [[nodiscard]] std::optional<size_t> firstInvalidUtf8Offset(std::string_view text) noexcept;
+    [[nodiscard]] std::optional<size_t> firstInvalidUtf16Offset(std::u16string_view text) noexcept;
 
     [[nodiscard]] Codepoint nextCodepoint(std::string_view text, size_t& offset);
     [[nodiscard]] Codepoint previousCodepoint(std::string_view text, size_t& offset);

@@ -32,3 +32,8 @@
 #include "MKD/resource/font.hpp"
 #include "MKD/resource/stylesheet.hpp"
 #include "MKD/resource/retained_span.hpp"
+#include "MKD/resource/resource_store_writer.hpp"
+#include "MKD/resource/named_resource_store_writer.hpp"
+#include "MKD/resource/keystore_writer.hpp"
+#include "MKD/resource/headline_store_writer.hpp"
+#include "MKD/resource/appendix_entry_list_writer.hpp"
