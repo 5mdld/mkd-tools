@@ -535,9 +535,7 @@ namespace MKD::test
         auto bytes = font->readAll();
         ASSERT_TRUE(bytes);
         EXPECT_EQ(bytes->size(), 8);
-        auto type = font->detectType();
-        ASSERT_TRUE(type);
-        EXPECT_EQ(*type, "otf");
+        EXPECT_EQ(font->filename(), directory.filename().string() + ".otf");
     }
 
     TEST_F(ResourceFormatTest, NamedWriterUsesItsDefaultCompressionLevel)
@@ -686,7 +684,7 @@ namespace MKD::test
         EXPECT_FALSE(expected.empty());
     }
 
-    TEST_F(ResourceFormatTest, FontOpeningAndTypeDetectionDoNotReadTheRemainingFragments)
+    TEST_F(ResourceFormatTest, FontOpeningResolvesTheFilenameWithoutReadingLaterFragments)
     {
         std::filesystem::remove(directory);
         auto writer = detail::FragmentWriter::create(directory);
@@ -698,13 +696,11 @@ namespace MKD::test
         words("font.map", {0, 2, 0, 0xFFFFFFFF, 999, 0xFFFFFFFF});
         auto font = Font::open(directory);
         ASSERT_TRUE(font) << font.error();
-        auto type = font->detectType();
-        ASSERT_TRUE(type);
-        EXPECT_EQ(*type, "otf");
+        EXPECT_EQ(font->filename(), directory.filename().string() + ".otf");
         EXPECT_FALSE(font->readAll());
         std::filesystem::create_directories(directory / "out/Fonts");
         const std::array<uint8_t, 1> marker{'x'};
-        write("out/Fonts/" + font->name() + ".otf", marker);
+        write("out/Fonts/" + font->filename(), marker);
         ExportOptions options;
         DictionaryResources resources;
         resources.fonts.push_back(std::move(*font));
@@ -727,9 +723,7 @@ namespace MKD::test
         ASSERT_TRUE(writer->finish());
         auto font = Font::open(directory);
         ASSERT_TRUE(font);
-        auto type = font->detectType();
-        ASSERT_TRUE(type);
-        EXPECT_EQ(*type, "otf");
+        EXPECT_EQ(font->filename(), directory.filename().string() + ".otf");
         std::ostringstream stream;
         auto written = font->writeTo(stream);
         ASSERT_TRUE(written);

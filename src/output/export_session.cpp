@@ -168,18 +168,7 @@ namespace MKD::detail
     {
         for (const auto& font : dictionary_.fonts())
         {
-            if (font.empty())
-            {
-                progress.recordSkip();
-                continue;
-            }
-            auto type = font.detectType();
-            if (!type || !*type)
-            {
-                progress.recordFailure(type ? "Unrecognised font type" : type.error());
-                continue;
-            }
-            const auto path = pathFor(ResourceType::Fonts, std::format("{}.{}", font.name(), **type));
+            const auto path = pathFor(ResourceType::Fonts, font.filename());
             if (!path)
             {
                 progress.recordFailure(path.error());
