@@ -5,6 +5,7 @@
 #include "MKD/resource/retained_span.hpp"
 #include "binary/binary_view.hpp"
 #include "unicode/unicode.hpp"
+#include "MKD/platform/mmap_file.hpp"
 
 #include <format>
 #include <utility>
@@ -44,6 +45,17 @@ namespace MKD
     RetainedSpan RetainedSpan::copy(std::span<const uint8_t> bytes)
     {
         return RetainedSpan(std::vector(bytes.begin(), bytes.end()));
+    }
+
+    Result<RetainedSpan> RetainedSpan::map(const std::filesystem::path& path)
+    {
+        auto mapping = MappedFile::open(path);
+        if (!mapping)
+            return std::unexpected(mapping.error());
+
+        auto owner = std::make_shared<MappedFile>(std::move(*mapping));
+        const auto bytes = owner->data();
+        return RetainedSpan(std::move(owner), bytes);
     }
 
     Result<RetainedSpan> RetainedSpan::slice(const size_t offset, const size_t length) const

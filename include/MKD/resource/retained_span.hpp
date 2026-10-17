@@ -7,6 +7,7 @@
 #include "MKD/result.hpp"
 
 #include <cstdint>
+#include <filesystem>
 #include <memory>
 #include <span>
 #include <string_view>
@@ -31,6 +32,7 @@ namespace MKD
         explicit RetainedSpan(std::vector<uint8_t> bytes);
         explicit RetainedSpan(std::shared_ptr<const std::vector<uint8_t>> buffer);
         [[nodiscard]] static RetainedSpan copy(std::span<const uint8_t> bytes);
+        [[nodiscard]] static Result<RetainedSpan> map(const std::filesystem::path& path);
 
         [[nodiscard]] Result<RetainedSpan> slice(size_t offset, size_t length) const;
         /** The text view borrows these bytes and remains valid while a retaining owner is alive. */

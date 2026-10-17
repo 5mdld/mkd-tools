@@ -11,10 +11,11 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include <variant>
 
 namespace MKD
 {
-    /** A font backed by mapped RSC fragments. Opening does not assemble the font. */
+    /** A mapped font file or RSC fragments. Opening does not assemble the font. */
     class Font
     {
     public:
@@ -38,8 +39,8 @@ namespace MKD
         [[nodiscard]] bool empty() const noexcept;
 
     private:
-        Font(std::string name, ResourceStore fragments);
+        Font(std::string name, std::variant<ResourceStore, RetainedSpan> fragments);
         std::string name_;
-        ResourceStore fragments_;
+        std::variant<ResourceStore, RetainedSpan> fragments_;
     };
 }
