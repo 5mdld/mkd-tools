@@ -45,6 +45,8 @@ namespace MKD
                                                              DictionaryWriteOptions options = {}) const;
         [[nodiscard]] Result<void> addAsset(std::string_view relativePath, std::span<const uint8_t> bytes) const;
         [[nodiscard]] Result<void> setInformation(ProductInformation information) const;
+        /** Generates the native scale variants from square PNG or JPEG bytes. Supply once per product. */
+        [[nodiscard]] Result<void> setIcon(std::span<const uint8_t> image) const;
         [[nodiscard]] Result<void> finish() const;
 
     private:

@@ -18,6 +18,7 @@ target_sources(mkd PRIVATE
         text_normalize.cpp
         product_writer.cpp
         product_information.cpp
+        product_icon.cpp
         dictionary_writer.cpp
         creation_metadata.cpp
         creation_page.cpp

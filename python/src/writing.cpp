@@ -77,6 +77,12 @@ namespace MKD::Python
                      unwrap(product.setInformation(std::move(information)));
                  }, "information"_a);
 
+        type.def("set_icon", [](const ProductWriter& product, nb::handle image)
+                 {
+                     unwrap(product.setIcon(InputBytes(image).span()));
+                 }, "image"_a,
+                 "Generate native icon variants from square PNG or JPEG bytes, up to 4096 pixels wide.");
+
         type.def("finish", [](const ProductWriter& product) { unwrap(product.finish()); },
                  "Publish the staged product at its new destination. Destruction never publishes.");
     }

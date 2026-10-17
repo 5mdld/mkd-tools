@@ -42,3 +42,8 @@ if (BUILD_TESTING)
     set(gtest_force_shared_crt ON)
     add_subdirectory(googletest EXCLUDE_FROM_ALL)
 endif ()
+
+if (NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/stb/stb_image_resize2.h")
+    message(FATAL_ERROR "Missing stb submodule. Run: git submodule update --init --recursive")
+endif ()
+target_include_directories(mkd SYSTEM PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/stb")

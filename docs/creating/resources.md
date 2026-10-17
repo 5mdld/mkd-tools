@@ -117,3 +117,22 @@ For a custom information page, set `ProductInformation.page` to the path of a
 product asset added with `addAsset` / `add_asset`. Each license also accepts a
 `page` override. Paths are relative to the product's `Contents/` directory.
 Custom pages must exist before `finish()`.
+
+## Product icon
+
+=== "C++"
+
+    ```cpp
+    auto icon = MKD::RetainedSpan::map("icon.png").value();
+    product.setIcon(icon.span()).value();
+    ```
+
+=== "Python"
+
+    ```python
+    product.set_icon(mkd.Buffer.map("icon.png"))
+    ```
+
+Supply one square PNG or JPEG, up to 4096 pixels wide. The writer generates all
+13 native filename/scale variants. Supply the icon once per product; the input
+bytes are consumed during the call.

@@ -7,6 +7,7 @@
 #include "MKD/dictionary/detail/metadata_keys.hpp"
 #include <array>
 #include <cstdint>
+#include <string_view>
 
 namespace MKD::detail::native::paths
 {
@@ -16,6 +17,7 @@ namespace MKD::detail::native::paths
     inline constexpr char appendixInfo[] = "Appendix.plist";
     inline constexpr char moreInfo[] = "More.plist";
     inline constexpr char informationPage[] = "about.html";
+    inline constexpr char icons[] = "icons";
     inline constexpr char contents[] = "contents";
     inline constexpr char keys[] = "key";
     inline constexpr char secondaryKeys[] = "key2";
@@ -72,4 +74,21 @@ namespace MKD::detail::native::information
     inline constexpr char contents[] = "contents";
     inline constexpr char copyright[] = "Copyright";
     inline constexpr char settings[] = "$settings$";
+}
+
+namespace MKD::detail::native::icons
+{
+    struct Variant
+    {
+        std::string_view suffix;
+        int pixels;
+    };
+
+    inline constexpr std::array variants{
+        Variant{"-20.png", 20}, Variant{"-20@2x.png", 40}, Variant{"-20@3x.png", 60},
+        Variant{"-29.png", 29}, Variant{"-29@2x.png", 58}, Variant{"-29@3x.png", 87},
+        Variant{"-60.png", 60}, Variant{"-60@2x.png", 120}, Variant{"-60@3x.png", 180},
+        Variant{"-76.png", 76}, Variant{"-76@2x.png", 152}, Variant{"-76@3x.png", 228},
+        Variant{"-83.5@2x.png", 167},
+    };
 }

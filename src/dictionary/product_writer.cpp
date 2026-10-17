@@ -9,6 +9,7 @@
 #include "creation_session.hpp"
 #include "io/write_validation.hpp"
 #include "product_information.hpp"
+#include "product_icon.hpp"
 
 #include <algorithm>
 #include <set>
@@ -110,6 +111,18 @@ namespace MKD
             return product.output->fail(valid.error());
 
         product.information = std::move(information);
+        return {};
+    }
+
+    Result<void> ProductWriter::setIcon(std::span<const uint8_t> image) const
+    {
+        auto& product = *impl_->product;
+        if (auto state = product.output->check(); !state)
+            return state;
+
+        if (auto written = detail::ProductIcon::write(product, image); !written)
+            return product.output->fail(written.error());
+
         return {};
     }
 
