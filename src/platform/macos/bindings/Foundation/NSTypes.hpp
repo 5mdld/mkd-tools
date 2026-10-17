@@ -31,4 +31,10 @@
 namespace NS
 {
     using UInteger = std::uintptr_t;
+
+    struct Range
+    {
+        UInteger location;
+        UInteger length;
+    };
 }

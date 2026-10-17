@@ -8,6 +8,7 @@ if (NOT APPLE)
     target_link_libraries(mkd PRIVATE Threads::Threads)
     target_sources(mkd PRIVATE
             parallel.cpp
+            search_lemma.cpp
     )
 endif ()
 

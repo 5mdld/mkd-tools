@@ -2,6 +2,7 @@ add_subdirectory(bindings)
 
 target_sources(mkd PRIVATE
         paths.cpp
+        search_lemma.cpp
         chacha_poly.cpp
         parallel.cpp
 )

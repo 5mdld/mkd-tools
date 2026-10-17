@@ -53,6 +53,7 @@ namespace NS::Private::Class
     _NS_PRIVATE_DEF_CLS(NSAutoreleasePool);
     _NS_PRIVATE_DEF_CLS(NSData);
     _NS_PRIVATE_DEF_CLS(NSFileManager);
+    _NS_PRIVATE_DEF_CLS(NSOrthography);
     _NS_PRIVATE_DEF_CLS(NSString);
 }
 
@@ -62,11 +63,16 @@ namespace NS::Private::Selector
     _NS_PRIVATE_DEF_SEL(autorelease, "autorelease");
     _NS_PRIVATE_DEF_SEL(bytes, "bytes");
     _NS_PRIVATE_DEF_SEL(containerURLForSecurityApplicationGroupIdentifier_, "containerURLForSecurityApplicationGroupIdentifier:");
+    _NS_PRIVATE_DEF_SEL(count, "count");
     _NS_PRIVATE_DEF_SEL(dataWithBytes_length_, "dataWithBytes:length:");
     _NS_PRIVATE_DEF_SEL(defaultManager, "defaultManager");
+    _NS_PRIVATE_DEF_SEL(defaultOrthographyForLanguage_, "defaultOrthographyForLanguage:");
     _NS_PRIVATE_DEF_SEL(drain, "drain");
     _NS_PRIVATE_DEF_SEL(init, "init");
+    _NS_PRIVATE_DEF_SEL(initWithBytes_length_encoding_, "initWithBytes:length:encoding:");
     _NS_PRIVATE_DEF_SEL(length, "length");
+    _NS_PRIVATE_DEF_SEL(linguisticTagsInRange_scheme_options_orthography_tokenRanges_, "linguisticTagsInRange:scheme:options:orthography:tokenRanges:");
+    _NS_PRIVATE_DEF_SEL(objectAtIndex_, "objectAtIndex:");
     _NS_PRIVATE_DEF_SEL(path, "path");
     _NS_PRIVATE_DEF_SEL(stringWithUTF8String_, "stringWithUTF8String:");
     _NS_PRIVATE_DEF_SEL(UTF8String, "UTF8String");

@@ -24,18 +24,47 @@
 
 #pragma once
 
+#include "NSArray.hpp"
+#include "NSLinguisticTagger.hpp"
 #include "NSObject.hpp"
+#include "NSOrthography.hpp"
 #include "NSTypes.hpp"
 
 namespace NS
 {
+    using StringEncoding = UInteger;
+
+    enum : StringEncoding
+    {
+        UTF8StringEncoding = 4
+    };
+
     class String : public Referencing<String>
     {
     public:
+        static String* alloc();
+
+        String* initWithBytes(const void* pBytes, UInteger length, StringEncoding encoding);
+
         static String* stringWithUTF8String(const char* pString);
 
         const char* utf8String() const;
+
+        UInteger length() const;
+
+        Array* linguisticTagsInRange(Range range, LinguisticTagScheme scheme, LinguisticTaggerOptions options,
+                                     const Orthography* pOrthography, Array** pTokenRanges) const;
     };
+}
+
+_NS_INLINE NS::String* NS::String::alloc()
+{
+    return Object::alloc<String>(_NS_PRIVATE_CLS(NSString));
+}
+
+_NS_INLINE NS::String* NS::String::initWithBytes(const void* pBytes, const UInteger length, const StringEncoding encoding)
+{
+    return Object::sendMessage<String*>(this, _NS_PRIVATE_SEL(initWithBytes_length_encoding_), pBytes, length, encoding);
 }
 
 _NS_INLINE NS::String* NS::String::stringWithUTF8String(const char* pString)
@@ -46,4 +75,15 @@ _NS_INLINE NS::String* NS::String::stringWithUTF8String(const char* pString)
 _NS_INLINE const char* NS::String::utf8String() const
 {
     return Object::sendMessage<const char*>(this, _NS_PRIVATE_SEL(UTF8String));
+}
+
+_NS_INLINE NS::UInteger NS::String::length() const
+{
+    return Object::sendMessage<UInteger>(this, _NS_PRIVATE_SEL(length));
+}
+
+_NS_INLINE NS::Array* NS::String::linguisticTagsInRange(const Range range, const LinguisticTagScheme scheme, const LinguisticTaggerOptions options,
+                                                        const Orthography* pOrthography, Array** pTokenRanges) const
+{
+    return Object::sendMessage<Array*>(this, _NS_PRIVATE_SEL(linguisticTagsInRange_scheme_options_orthography_tokenRanges_), range, scheme, options, pOrthography, pTokenRanges);
 }
