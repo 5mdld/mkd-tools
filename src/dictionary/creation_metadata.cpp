@@ -10,8 +10,16 @@
 
 namespace MKD::detail
 {
-    Result<NativeSearchScope> NativeSearchScope::forScope(SearchScope scope)
+    Result<NativeSearchScope> NativeSearchScope::forScope(SearchScope scope, const CreationProfile profile)
     {
+        if (profile == CreationProfile::Kanwa)
+        {
+            for (const auto& names : native::search::kanwaScopes)
+                if (names.scope == scope)
+                    return NativeSearchScope{names.name, names.filename};
+
+            return std::unexpected("Search scope is unavailable in the kanwa creation profile");
+        }
         for (const auto& names : keystoreScopes)
             if (names.generic && names.scope == static_cast<KeystoreScope>(scope))
                 return NativeSearchScope{names.name, names.filename};
@@ -20,7 +28,7 @@ namespace MKD::detail
     }
 
     Result<void> CreationMetadata::validateProduct(DictionaryMetadata& metadata,
-                                                   const std::filesystem::path& destination)
+                                                   const std::filesystem::path& destination, CreationProfile profile)
     {
         const auto nameBytes = destination.stem().generic_u8string();
         const std::string name(reinterpret_cast<const char*>(nameBytes.data()), nameBytes.size());
@@ -46,13 +54,19 @@ namespace MKD::detail
         if (!metadata.fonts.empty() || !metadata.searchScopeNames.empty())
             return std::unexpected("Fonts and search scopes are generated from dictionary resources");
 
-        if (metadata.productSearchClass && *metadata.productSearchClass != native::search::defaultClass.name.data())
+        if (profile != CreationProfile::General && profile != CreationProfile::Kanwa)
+            return std::unexpected("Unknown creation profile");
+
+        const auto searchClass = profile == CreationProfile::Kanwa
+                                     ? native::search::kanwaClass.name
+                                     : native::search::defaultClass.name;
+        if (metadata.productSearchClass && *metadata.productSearchClass != searchClass)
             return std::unexpected("Specialised native search classes need an authoring profile");
 
         if (metadata.productDelegateClass)
             return std::unexpected("Specialised native delegates need an authoring profile");
 
-        metadata.productSearchClass = native::search::defaultClass.name.data();
+        metadata.productSearchClass = searchClass;
         for (const auto* text : {&metadata.displayName, &metadata.description, &metadata.genre, &metadata.productTitle})
             if (*text)
                 for (const auto* language : {&(*text)->en, &(*text)->ja})

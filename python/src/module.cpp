@@ -32,6 +32,7 @@ NB_MODULE(_mkd, module)
     py::bindSearchResult(module);
     py::bindSearch(module);
     py::bindExport(module);
+    py::bindCreationMetadata(module);
     py::bindProductWriter(module);
     py::bindDictionaryWriter(module);
 }

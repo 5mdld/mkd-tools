@@ -4,6 +4,7 @@
 
 #include "MKD/dictionary/product_writer.hpp"
 #include "native_format.hpp"
+#include "native_search.hpp"
 #include "creation_metadata.hpp"
 #include "creation_session.hpp"
 #include "io/write_validation.hpp"
@@ -30,9 +31,10 @@ namespace MKD
     ProductWriter::ProductWriter(ProductWriter&&) noexcept = default;
     ProductWriter& ProductWriter::operator=(ProductWriter&&) noexcept = default;
 
-    Result<ProductWriter> ProductWriter::create(const std::filesystem::path& destination, DictionaryMetadata metadata)
+    Result<ProductWriter> ProductWriter::create(const std::filesystem::path& destination, DictionaryMetadata metadata,
+                                                CreationProfile profile)
     {
-        if (auto valid = detail::CreationMetadata::validateProduct(metadata, destination); !valid)
+        if (auto valid = detail::CreationMetadata::validateProduct(metadata, destination, profile); !valid)
             return std::unexpected(valid.error());
 
         auto output = detail::BuildDirectory::create(destination);
@@ -50,6 +52,7 @@ namespace MKD
                                                                   reinterpret_cast<const char*>(name.data()),
                                                                   name.size()));
 
+        product->profile = profile;
         return ProductWriter(std::make_unique<Impl>(std::move(product)));
     }
 
@@ -117,11 +120,15 @@ namespace MKD
                 scopes.insert(scope);
         }
 
-        for (auto scope : scopes)
+        if (product.profile == CreationProfile::Kanwa)
         {
-            auto info = detail::NativeSearchScope::forScope(scope);
-            product.metadata.searchScopeNames.emplace_back(info->name);
+            for (const auto& scope : detail::native::search::kanwaScopes)
+                if (scopes.contains(scope.scope))
+                    product.metadata.searchScopeNames.emplace_back(scope.name);
         }
+        else
+            for (auto scope : scopes)
+                product.metadata.searchScopeNames.emplace_back(detail::NativeSearchScope::forScope(scope)->name);
 
         std::ranges::sort(product.metadata.fonts);
         if (auto result = product.writeAppendices(); !result)

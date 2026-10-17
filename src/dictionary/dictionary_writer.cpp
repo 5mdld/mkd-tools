@@ -89,8 +89,12 @@ namespace MKD
             if (auto valid = detail::WriteValidation::text(key); !valid)
                 return valid;
 
+            const auto profile = build.product.lock()->profile;
+            if (profile == CreationProfile::Kanwa && scope == SearchScope::Kanji)
+                scope = SearchScope::Headword;
+
             const auto normalized = detail::unicode::normalizeDictionaryKey(key);
-            auto info = detail::NativeSearchScope::forScope(scope);
+            auto info = detail::NativeSearchScope::forScope(scope, profile);
             if (!info)
                 return std::unexpected(info.error());
 

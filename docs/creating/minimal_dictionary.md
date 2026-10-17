@@ -164,8 +164,8 @@ To encrypt article contents, pass `{.encryptContents = true}` as the second
 argument to `product.addDictionary(content, options)` in C++, or
 `encrypt_contents=True` to `product.add_dictionary(content, ...)` in Python.
 
-The writer currently creates the default native search profile and key
-normalisation. Supported creation scopes are headword, idiom, example, English,
+The default profile is general search with default key normalisation. Supported
+general creation scopes are headword, idiom, example, English,
 sense, kanji, collocation, full text, category, compound and numeral. Specialised
 modern, CJ and JC authoring profiles are not supported. Full-text keys, like other
 keys, must be supplied explicitly; article text is not indexed automatically.
@@ -178,12 +178,33 @@ Completion checks that:
 - Any explicit browsing order contains every page exactly once.
 
 XML is parsed and supported references are validated. This is not a complete
-validator for every native presentation feature. Do not set specialised search
-classes, delegates or headline-key identifiers to imitate an installed dictionary;
-they need an authoring profile beyond the current writer.
+validator for every native presentation feature. Choose a creation profile instead of supplying native search-class strings.
+Product-specific delegates and headline-key identifier authoring remain unsupported.
 
 See [Gaiji, ruby and links](inline_content.md), [Resources](resources.md) and
 [Appendices and entry order](navigation.md) for richer content.
+
+## Create a kanwa product
+
+=== "C++"
+
+    ```cpp
+    auto product = MKD::ProductWriter::create(
+        destination, metadata, MKD::CreationProfile::Kanwa).value();
+    ```
+
+=== "Python"
+
+    ```python
+    product = mkd.ProductWriter.create(
+        destination, metadata, profile=mkd.CreationProfile.KANWA,
+    )
+    ```
+
+Kanwa uses the generic native search class without a product-specific delegate.
+Its scopes are parent characters (`Headword` or `Kanji` keys), compounds
+(`Idiom`), meanings (`Sense`) and examples (`Example`). The writer generates the
+native scope names and index mappings. The general profile remains the default.
 
 ## Publish the files
 

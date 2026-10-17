@@ -8,18 +8,25 @@
 
 namespace MKD
 {
+    enum class CreationProfile
+    {
+        General,
+        Kanwa
+    };
+
     /** Builds a new native product without replacing an existing destination. */
     class ProductWriter
     {
     public:
         [[nodiscard]] static Result<ProductWriter> create(const std::filesystem::path& destination,
-                                                          DictionaryMetadata metadata);
+                                                          DictionaryMetadata metadata,
+                                                          CreationProfile profile = CreationProfile::General);
         ~ProductWriter();
         ProductWriter(ProductWriter&&) noexcept;
         ProductWriter& operator=(ProductWriter&&) noexcept;
 
         [[nodiscard]] Result<DictionaryWriter> addDictionary(DictionaryContent content,
-                                                               DictionaryWriteOptions options = {}) const;
+                                                             DictionaryWriteOptions options = {}) const;
         [[nodiscard]] Result<void> addAsset(std::string_view relativePath, std::span<const uint8_t> bytes) const;
         [[nodiscard]] Result<void> finish() const;
 

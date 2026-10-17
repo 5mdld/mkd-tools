@@ -24,16 +24,24 @@ namespace MKD::Python
         unwrap(dictionary.addAppendix(name, title, entries, {.rows = rows, .columns = columns}));
     }
 
+    void bindCreationMetadata(nb::module_& module)
+    {
+        nb::enum_<CreationProfile>(module, "CreationProfile")
+            .value("GENERAL", CreationProfile::General)
+            .value("KANWA", CreationProfile::Kanwa);
+
+    }
+
     void bindProductWriter(nb::module_& module)
     {
         auto type = nb::class_<ProductWriter>(module, "ProductWriter",
                                               "Stage a new product. Finish each dictionary, then finish the product to publish.");
         type.def_static(
-            "create", [](const std::filesystem::path& destination, DictionaryMetadata metadata)
+            "create", [](const std::filesystem::path& destination, DictionaryMetadata metadata, CreationProfile profile)
             {
-                return unwrap(ProductWriter::create(destination, std::move(metadata)));
+                return unwrap(ProductWriter::create(destination, std::move(metadata), profile));
             }, "destination"_a,
-            "metadata"_a);
+            "metadata"_a, nb::kw_only(), "profile"_a = CreationProfile::General);
 
         type.def(
             "add_dictionary", [](const ProductWriter& product, DictionaryContent content, bool encrypt)

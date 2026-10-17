@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "MKD/dictionary/dictionary_writer.hpp"
+#include "MKD/dictionary/product_writer.hpp"
 #include "MKD/resource/resource_store_writer.hpp"
 #include "MKD/resource/named_resource_store_writer.hpp"
 #include "MKD/resource/headline_store_writer.hpp"
@@ -25,6 +25,7 @@ namespace MKD::detail
         std::unique_ptr<BuildDirectory> output;
         DictionaryMetadata metadata;
         std::string name;
+        CreationProfile profile = CreationProfile::General;
         std::vector<std::shared_ptr<DictionaryBuild>> dictionaries;
         explicit ProductBuild(std::unique_ptr<BuildDirectory> output, DictionaryMetadata metadata, std::string name);
         Result<void> writeAsset(std::string_view relative, std::span<const uint8_t> bytes);

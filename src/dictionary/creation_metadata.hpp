@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "MKD/dictionary/metadata.hpp"
+#include "MKD/dictionary/product_writer.hpp"
 #include "MKD/dictionary/dictionary_search.hpp"
 #include <pugixml.hpp>
 
@@ -14,13 +14,15 @@ namespace MKD::detail
     {
         std::string_view name;
         std::string_view filename;
-        static Result<NativeSearchScope> forScope(SearchScope scope);
+        static Result<NativeSearchScope> forScope(SearchScope scope,
+                                                  CreationProfile profile = CreationProfile::General);
     };
 
     class CreationMetadata
     {
     public:
-        static Result<void> validateProduct(DictionaryMetadata& metadata, const std::filesystem::path& destination);
+        static Result<void> validateProduct(DictionaryMetadata& metadata, const std::filesystem::path& destination,
+                                            CreationProfile profile);
         static Result<void> validatePresentation(const DictionaryPresentation& presentation);
         static Result<void> validateContent(DictionaryContent& content);
         static Result<void> writeProduct(const std::filesystem::path& root, std::string_view name,

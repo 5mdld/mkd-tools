@@ -5,6 +5,7 @@
 #pragma once
 
 #include "unicode/normalization.hpp"
+#include "MKD/dictionary/dictionary_search.hpp"
 
 #include <array>
 #include <string_view>
@@ -27,13 +28,28 @@ namespace MKD::detail::native::search
     };
 
     inline constexpr ClassDefinition defaultClass{.name = "HMDicSearchLogic"};
+    inline constexpr ClassDefinition kanwaClass{.name = "KLKanwaDicSearchLogic", .family = Family::Kanwa};
     inline constexpr std::array classes{
         defaultClass,
-        ClassDefinition{.name = "KLKanwaDicSearchLogic", .family = Family::Kanwa},
+        kanwaClass,
         ClassDefinition{.name = "KLKogoDicSearchLogic", .family = Family::Kogo, .usesModernEntryRange = true},
         ClassDefinition{.name = "OZK_Search", .family = Family::Kogo, .usesModernEntryRange = true},
         ClassDefinition{.name = "SHIGOSHU_SearchLogic", .family = Family::Complex},
         ClassDefinition{.name = "KLDicComplexSearchLogic"}
+    };
+
+    struct CreationScope
+    {
+        SearchScope scope;
+        std::string_view name;
+        std::string_view filename;
+    };
+
+    inline constexpr std::array kanwaScopes{
+        CreationScope{SearchScope::Headword, "Oyaji", "headword"},
+        CreationScope{SearchScope::Idiom, "Jyukugo", "idiom"},
+        CreationScope{SearchScope::Gogi, "Gogi", "sense"},
+        CreationScope{SearchScope::Example, "Example", "example"},
     };
 
     struct DelegateDefinition
