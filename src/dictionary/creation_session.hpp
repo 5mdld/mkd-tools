@@ -9,6 +9,7 @@
 #include "MKD/resource/named_resource_store_writer.hpp"
 #include "MKD/resource/headline_store_writer.hpp"
 #include "io/build_directory.hpp"
+#include "content_references.hpp"
 #include "output/directory_output.hpp"
 
 #include <map>
@@ -45,8 +46,11 @@ namespace MKD::detail
         std::unordered_set<EntryId> anchors;
         std::unordered_set<EntryId> references;
         std::unordered_set<EntryId> primaryHeadlines;
+        std::map<EntryId, std::string> targetOrigins;
         std::set<std::string> assetReferences;
         std::set<std::string> assets;
+        std::set<std::string> gaijiReferences;
+        std::map<std::string, std::string> assetOrigins;
         std::set<std::string> graphicNames;
         std::set<std::string> audioNames;
         std::vector<uint32_t> order;
@@ -64,8 +68,14 @@ namespace MKD::detail
                         DictionaryWriteOptions options);
         Result<std::shared_ptr<ProductBuild>> owner() const;
         Result<void> fail(std::string error) const;
+        void recordReferences(const ContentReferences& references, std::string origin);
+        Result<void> scanHeadline(const HeadlineComponents& headline);
+        Result<void> scanStylesheet(std::string_view path, std::span<const uint8_t> bytes);
         Result<void> scanPage(uint32_t pageId, std::string_view xhtml);
         Result<void> validateReferences() const;
+        Result<void> validateEntryReferences() const;
+        Result<void> validateAssetReferences() const;
+        Result<void> validateOrder() const;
         Result<void> writeOrder();
         Result<void> writeAsset(std::string_view relative, std::span<const uint8_t> bytes);
         Result<void> writeMedia(std::string_view name, std::span<const uint8_t> bytes, bool isAudio);

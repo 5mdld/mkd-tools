@@ -108,6 +108,43 @@ namespace MKD::detail
         return owner ? owner->output->fail(std::move(error)) : Result<void>(std::unexpected(std::move(error)));
     }
 
+    void DictionaryBuild::recordReferences(const ContentReferences& found, std::string origin)
+    {
+        references.insert(found.targets.begin(), found.targets.end());
+        for (const auto target : found.targets)
+            targetOrigins.try_emplace(target, origin);
+
+        assetReferences.insert(found.assets.begin(), found.assets.end());
+        gaijiReferences.insert(found.gaijiNames.begin(), found.gaijiNames.end());
+        for (const auto& asset : found.assets)
+            assetOrigins.try_emplace(asset, origin);
+
+        for (const auto& name : found.gaijiNames)
+            assetOrigins.try_emplace(name, origin);
+    }
+
+    Result<void> DictionaryBuild::scanHeadline(const HeadlineComponents& headline)
+    {
+        const auto origin = "headline " + NativeEntryReference::format(headline.entryId);
+        auto found = ContentReferences::headline(headline.full());
+        if (!found)
+            return std::unexpected(origin + ": " + found.error());
+
+        recordReferences(*found, origin);
+        return {};
+    }
+
+    Result<void> DictionaryBuild::scanStylesheet(std::string_view path, std::span<const uint8_t> bytes)
+    {
+        const std::string_view css(reinterpret_cast<const char*>(bytes.data()), bytes.size());
+        auto found = CssReferences::read(path, css);
+        if (!found)
+            return std::unexpected(std::string(path) + ": " + found.error());
+
+        recordReferences({.assets = std::move(*found)}, std::string(path));
+        return {};
+    }
+
     Result<void> DictionaryBuild::scanPage(const uint32_t pageId, std::string_view xhtml)
     {
         if (auto valid = WriteValidation::entryId({pageId, 0}); !valid)
@@ -121,8 +158,8 @@ namespace MKD::detail
             return std::unexpected(scanned.error());
 
         anchors.insert(scanned->anchors.begin(), scanned->anchors.end());
-        references.insert(scanned->targets.begin(), scanned->targets.end());
-        assetReferences.insert(scanned->assets.begin(), scanned->assets.end());
+        recordReferences({.targets = std::move(scanned->targets), .assets = std::move(scanned->assets)},
+                         "page " + std::to_string(pageId));
         return {};
     }
 
@@ -137,17 +174,37 @@ namespace MKD::detail
         if (!keys.contains(SearchScope::Headword) || keys.at(SearchScope::Headword).empty())
             return std::unexpected("Dictionary has no headword search keys");
 
+        if (auto valid = validateEntryReferences(); !valid)
+            return valid;
+
+        if (auto valid = validateAssetReferences(); !valid)
+            return valid;
+
+        return validateOrder();
+    }
+
+    Result<void> DictionaryBuild::validateEntryReferences() const
+    {
         for (const auto target : references)
         {
             if (!anchors.contains(target))
-                return std::unexpected(std::format("Missing search, headline or link target {}-{:04X}", target.pageId,
-                                                   target.itemId));
+            {
+                const auto origin = targetOrigins.find(target);
+                return std::unexpected(
+                    "Missing search, headline or link target " + NativeEntryReference::format(target) +
+                    (origin == targetOrigins.end() ? "" : " referenced by " + origin->second));
+            }
         }
 
         for (const auto page : pageIds)
             if (!primaryHeadlines.contains({page, 0}))
                 return std::unexpected("Each page requires a primary headline");
 
+        return {};
+    }
+
+    Result<void> DictionaryBuild::validateAssetReferences() const
+    {
         for (const auto& path : assetReferences)
         {
             if (assets.contains(path))
@@ -156,12 +213,25 @@ namespace MKD::detail
                 continue;
             if (path.starts_with("audio/") && audioNames.contains(path.substr(6)))
                 continue;
-            return std::unexpected("Missing page asset: " + path);
+            const auto origin = assetOrigins.find(path);
+            return std::unexpected(
+                "Missing resource " + path + (origin == assetOrigins.end() ? "" : " referenced by " + origin->second));
         }
 
+        for (const auto& name : gaijiReferences)
+        {
+            const auto base = std::string(native::label::gaijiDirectory) + name;
+            if (!assets.contains(base + ".png") && !assets.contains(base + ".svg"))
+                return std::unexpected("Missing gaiji " + name + " referenced by " + assetOrigins.at(name));
+        }
         if (metadata.presentation.fullRubyStylesheet && !assets.contains(*metadata.presentation.fullRubyStylesheet))
             return std::unexpected("Missing full-ruby stylesheet: " + *metadata.presentation.fullRubyStylesheet);
 
+        return {};
+    }
+
+    Result<void> DictionaryBuild::validateOrder() const
+    {
         if (!order.empty())
         {
             std::unordered_set ordered(order.begin(), order.end());
@@ -189,9 +259,9 @@ namespace MKD::detail
         bytes.writeLittle(static_cast<uint32_t>(order.size()));
         bytes.writeLittle(maximum);
 
-        for (auto position : positions)
+        for (const auto position : positions)
             bytes.writeLittle(position);
-        for (auto page : order)
+        for (const auto page : order)
             bytes.writeLittle(page);
 
         return OutputFile::writeAll(root / native::paths::contents / native::paths::entryOrder, bytes.data());
@@ -210,6 +280,9 @@ namespace MKD::detail
             first == native::paths::audio || first == native::paths::graphics || first == native::paths::fonts || first
             == native::paths::contentInfo)
             return std::unexpected("Asset path is reserved for generated dictionary resources");
+
+        if (relative.ends_with(".css"))
+            if (auto scanned = scanStylesheet(relative, bytes); !scanned) return scanned;
 
         if (!assets.emplace(relative).second)
             return std::unexpected("Duplicate dictionary asset");

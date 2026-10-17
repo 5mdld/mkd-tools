@@ -52,6 +52,9 @@ namespace MKD
             if (auto valid = detail::WriteValidation::entryId(headline.entryId); !valid)
                 return valid;
 
+            if (auto scanned = build.scanHeadline(headline); !scanned)
+                return scanned;
+
             const auto& names = detail::native::paths::headlineFiles;
             const auto index = static_cast<size_t>(role);
             if (index >= names.size())
@@ -196,6 +199,7 @@ namespace MKD
             if (written->skipped)
                 return std::unexpected("Duplicate font filename");
 
+            build.assets.insert(std::string(detail::native::paths::fonts) + "/" + std::string(filename));
             product->metadata.fonts.emplace_back(filename);
             return {};
         });

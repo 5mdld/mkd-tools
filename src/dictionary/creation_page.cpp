@@ -4,7 +4,7 @@
 
 #include "creation_page.hpp"
 #include "io/write_validation.hpp"
-
+#include "content_references.hpp"
 
 namespace MKD::detail
 {
@@ -47,6 +47,21 @@ namespace MKD::detail
                 if (target->pageId != page_) error_ = "Entry anchor belongs to another page";
                 else anchors.insert(*target);
             }
+        }
+
+        if (const auto style = node.attribute("style"))
+        {
+            if (auto found = CssReferences::read("page.html", style.value()); !found)
+                error_ = found.error();
+
+            else assets.insert(found->begin(), found->end());
+        }
+        if (std::string_view(node.name()) == "style")
+        {
+            if (auto found = CssReferences::read("page.html", node.child_value()); !found)
+                error_ = found.error();
+            else
+                assets.insert(found->begin(), found->end());
         }
 
         if (const auto source = node.attribute("src"))
