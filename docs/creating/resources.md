@@ -88,3 +88,32 @@ body { font-family: Birds; }
 
 See [Reading dictionaries](../reading/browsing.md) to inspect media, stream fonts
 and read stylesheets after reopening the product.
+
+## Product information and licenses
+
+The product generates its information page from its title, description, version
+and content publishers. Supply copyright and license text separately:
+
+=== "C++"
+
+    ```cpp
+    product.setInformation({
+        .copyright = MKD::LocalizedString{.ja = "© 2026 鳥の辞典編集室"},
+        .licenses = {{.title = "Font license", .text = licenseText}},
+    }).value();
+    ```
+
+=== "Python"
+
+    ```python
+    product.set_information(mkd.ProductInformation(
+        copyright=mkd.LocalizedString(ja="© 2026 鳥の辞典編集室"),
+        licenses=[mkd.ProductLicense("Font license", license_text)],
+    ))
+    ```
+
+The native その他 tab includes copyright, license pages and settings.
+For a custom information page, set `ProductInformation.page` to the path of a
+product asset added with `addAsset` / `add_asset`. Each license also accepts a
+`page` override. Paths are relative to the product's `Contents/` directory.
+Custom pages must exist before `finish()`.

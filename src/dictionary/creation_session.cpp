@@ -20,7 +20,7 @@ namespace MKD::detail
     {
     }
 
-    Result<void> ProductBuild::writeAsset(std::string_view relative, std::span<const uint8_t> bytes)
+    Result<void> ProductBuild::writeAsset(std::string_view relative, std::span<const uint8_t> bytes) const
     {
         if (auto state = output->check(); !state)
             return state;
@@ -28,7 +28,8 @@ namespace MKD::detail
         if (auto valid = WriteValidation::relativePath(relative); !valid)
             return output->fail(valid.error());
 
-        if (relative == name + ".json" || relative == native::paths::appendixInfo)
+        if (relative == name + ".json" || relative == native::paths::appendixInfo || relative ==
+            native::paths::moreInfo)
             return output->fail("Asset path is reserved for generated product metadata");
 
         const auto path = WriteValidation::fromUtf8(relative);
@@ -53,7 +54,7 @@ namespace MKD::detail
         return {};
     }
 
-    Result<void> ProductBuild::writeAppendices()
+    Result<void> ProductBuild::writeAppendices() const
     {
         pugi::xml_document document;
         auto sections = CreationMetadata::plistRoot(document, "array");

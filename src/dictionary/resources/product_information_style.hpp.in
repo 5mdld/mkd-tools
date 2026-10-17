@@ -1,0 +1,13 @@
+//
+// kiwakiwaaにより 2026/10/18 に作成されました。
+//
+
+#pragma once
+
+#include <string_view>
+
+namespace MKD::detail::resources
+{
+    inline constexpr std::string_view productInformationStylesheet = R"css(
+@MKD_PRODUCT_INFORMATION_CSS@)css";
+}

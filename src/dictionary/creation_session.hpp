@@ -26,10 +26,11 @@ namespace MKD::detail
         DictionaryMetadata metadata;
         std::string name;
         CreationProfile profile = CreationProfile::General;
+        ProductInformation information;
         std::vector<std::shared_ptr<DictionaryBuild>> dictionaries;
         explicit ProductBuild(std::unique_ptr<BuildDirectory> output, DictionaryMetadata metadata, std::string name);
-        Result<void> writeAsset(std::string_view relative, std::span<const uint8_t> bytes);
-        Result<void> writeAppendices();
+        Result<void> writeAsset(std::string_view relative, std::span<const uint8_t> bytes) const;
+        Result<void> writeAppendices() const;
     };
 
     struct DictionaryBuild

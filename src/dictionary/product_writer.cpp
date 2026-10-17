@@ -8,6 +8,7 @@
 #include "creation_metadata.hpp"
 #include "creation_session.hpp"
 #include "io/write_validation.hpp"
+#include "product_information.hpp"
 
 #include <algorithm>
 #include <set>
@@ -99,6 +100,19 @@ namespace MKD
         return impl_->product->writeAsset(relative, bytes);
     }
 
+    Result<void> ProductWriter::setInformation(ProductInformation information) const
+    {
+        auto& product = *impl_->product;
+        if (auto state = product.output->check(); !state)
+            return state;
+
+        if (auto valid = detail::ProductInformationWriter::validate(information); !valid)
+            return product.output->fail(valid.error());
+
+        product.information = std::move(information);
+        return {};
+    }
+
     Result<void> ProductWriter::finish() const
     {
         auto& product = *impl_->product;
@@ -131,6 +145,9 @@ namespace MKD
                 product.metadata.searchScopeNames.emplace_back(detail::NativeSearchScope::forScope(scope)->name);
 
         std::ranges::sort(product.metadata.fonts);
+        if (auto result = detail::ProductInformationWriter::write(product); !result)
+            return product.output->fail(result.error());
+
         if (auto result = product.writeAppendices(); !result)
             return product.output->fail(result.error());
 

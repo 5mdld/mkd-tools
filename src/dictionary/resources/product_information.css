@@ -1,0 +1,75 @@
+body {
+    margin: 0;
+    background: white;
+    color: #333;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 12px;
+    line-height: 1.65;
+}
+
+main {
+    box-sizing: border-box;
+    margin: 0 auto;
+    padding: 3.5em 1.5em 3em;
+    max-width: 34em;
+}
+
+.product {
+    text-align: center;
+}
+
+h1, h2, p {
+    margin: 0;
+}
+
+h1 {
+    font-family: "Hiragino Mincho ProN", "Yu Mincho", serif;
+    font-size: 2em;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
+.description {
+    margin-top: 1.25em;
+}
+
+.content {
+    margin-top: 2em;
+}
+
+h2 {
+    font-size: 1.25em;
+    font-weight: 600;
+}
+
+.edition {
+    margin: 0.25em 0 0.75em;
+}
+
+.copyright {
+    margin-top: 2.5em;
+    white-space: pre-wrap;
+}
+
+.version {
+    margin-top: 1em;
+    font-size: 0.9em;
+    color: #666;
+}
+
+.license {
+    max-width: 52em;
+}
+
+.license h1 {
+    font-family: inherit;
+    font-size: 1.5em;
+}
+
+pre {
+    margin: 2em 0 0;
+    font-family: inherit;
+    font-size: 1em;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}

@@ -14,6 +14,8 @@ namespace MKD::detail::native::paths
     inline constexpr char productInfo[] = "ContentInfo.plist";
     inline constexpr char contentInfo[] = "DSContentInfo.plist";
     inline constexpr char appendixInfo[] = "Appendix.plist";
+    inline constexpr char moreInfo[] = "More.plist";
+    inline constexpr char informationPage[] = "about.html";
     inline constexpr char contents[] = "contents";
     inline constexpr char keys[] = "key";
     inline constexpr char secondaryKeys[] = "key2";
@@ -61,4 +63,13 @@ namespace MKD::detail::native::search
 namespace MKD::detail::native::contentTypes
 {
     inline constexpr char dictionary[] = "Dictionary";
+}
+
+namespace MKD::detail::native::information
+{
+    inline constexpr char items[] = "items";
+    inline constexpr char name[] = "name";
+    inline constexpr char contents[] = "contents";
+    inline constexpr char copyright[] = "Copyright";
+    inline constexpr char settings[] = "$settings$";
 }

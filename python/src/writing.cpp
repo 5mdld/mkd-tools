@@ -7,6 +7,7 @@
 #include "buffer.hpp"
 #include <MKD/dictionary/product_writer.hpp>
 #include <nanobind/stl/filesystem.h>
+#include <nanobind/stl/optional.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/string_view.h>
 #include <nanobind/stl/vector.h>
@@ -30,6 +31,21 @@ namespace MKD::Python
             .value("GENERAL", CreationProfile::General)
             .value("KANWA", CreationProfile::Kanwa);
 
+        auto license = nb::class_<ProductLicense>(module, "ProductLicense");
+        license.def(nb::init<std::string, std::string, std::optional<std::string>>(), "title"_a,
+                    "text"_a = "", nb::kw_only(), "page"_a = nb::none());
+        license.def_rw("title", &ProductLicense::title);
+        license.def_rw("text", &ProductLicense::text);
+        license.def_rw("page", &ProductLicense::page);
+
+        auto information = nb::class_<ProductInformation>(module, "ProductInformation");
+        information.def(nb::init<std::optional<LocalizedString>, std::vector<ProductLicense>,
+                                 std::optional<std::string>>(), nb::kw_only(),
+                        "copyright"_a = nb::none(), "licenses"_a = std::vector<ProductLicense>{},
+                        "page"_a = nb::none());
+        information.def_rw("copyright", &ProductInformation::copyright);
+        information.def_rw("licenses", &ProductInformation::licenses);
+        information.def_rw("page", &ProductInformation::page);
     }
 
     void bindProductWriter(nb::module_& module)
@@ -55,6 +71,11 @@ namespace MKD::Python
             {
                 unwrap(product.addAsset(path, InputBytes(data).span()));
             }, "path"_a, "data"_a);
+
+        type.def("set_information", [](const ProductWriter& product, ProductInformation information)
+                 {
+                     unwrap(product.setInformation(std::move(information)));
+                 }, "information"_a);
 
         type.def("finish", [](const ProductWriter& product) { unwrap(product.finish()); },
                  "Publish the staged product at its new destination. Destruction never publishes.");

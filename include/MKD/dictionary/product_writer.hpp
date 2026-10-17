@@ -14,6 +14,22 @@ namespace MKD
         Kanwa
     };
 
+    struct ProductLicense
+    {
+        std::string title;
+        std::string text;
+        /** Optional product-relative HTML/PDF page instead of generated license text. */
+        std::optional<std::string> page;
+    };
+
+    struct ProductInformation
+    {
+        std::optional<LocalizedString> copyright;
+        std::vector<ProductLicense> licenses;
+        /** Optional product-relative HTML page instead of the generated product information. */
+        std::optional<std::string> page;
+    };
+
     /** Builds a new native product without replacing an existing destination. */
     class ProductWriter
     {
@@ -28,6 +44,7 @@ namespace MKD
         [[nodiscard]] Result<DictionaryWriter> addDictionary(DictionaryContent content,
                                                              DictionaryWriteOptions options = {}) const;
         [[nodiscard]] Result<void> addAsset(std::string_view relativePath, std::span<const uint8_t> bytes) const;
+        [[nodiscard]] Result<void> setInformation(ProductInformation information) const;
         [[nodiscard]] Result<void> finish() const;
 
     private:
