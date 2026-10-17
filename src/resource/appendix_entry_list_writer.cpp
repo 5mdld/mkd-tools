@@ -19,6 +19,7 @@ namespace MKD
             EntryId id;
             std::optional<std::string> label;
             std::optional<char16_t> firstCharacter;
+            uint16_t dictionaryId;
         };
 
         std::unique_ptr<detail::BuildDirectory> build;
@@ -71,7 +72,7 @@ namespace MKD
 
         impl_->entries.push_back({
             entry.entryId, entry.label ? std::optional(std::string(*entry.label)) : std::nullopt,
-            entry.firstCharacter
+            entry.firstCharacter, entry.dictionaryId
         });
         return {};
     }
@@ -116,7 +117,7 @@ namespace MKD
         {
             output.writeLittle(entry.id.pageId);
             output.writeLittle(entry.id.itemId);
-            output.writeLittle(uint16_t{0});
+            output.writeLittle(entry.dictionaryId);
         }
 
         if (labels)

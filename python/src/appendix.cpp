@@ -22,7 +22,7 @@ namespace MKD::Python
 
             first = text.front();
         }
-        return {entryId, label ? std::optional<std::string_view>(*label) : std::nullopt, first};
+        return {entryId, label ? std::optional<std::string_view>(*label) : std::nullopt, first, dictionaryId};
     }
 
     AppendixItem AppendixItem::copy(const AppendixEntry& entry)
@@ -33,6 +33,7 @@ namespace MKD::Python
             entry.firstCharacter
                 ? std::optional(detail::unicode::toUtf8(std::u16string_view(&*entry.firstCharacter, 1)))
                 : std::nullopt,
+            entry.dictionaryId,
         };
     }
 
@@ -43,6 +44,7 @@ namespace MKD::Python
                  "label"_a = nb::none(), "first_character"_a = nb::none());
 
         type.def_ro("entry_id", &AppendixItem::entryId);
+        type.def_ro("dictionary_id", &AppendixItem::dictionaryId);
         type.def_ro("label", &AppendixItem::label);
         type.def_ro("first_character", &AppendixItem::firstCharacter);
     }

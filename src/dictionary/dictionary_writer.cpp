@@ -255,7 +255,13 @@ namespace MKD
                     if (auto valid = detail::WriteValidation::entryId(entry.entryId); !valid)
                         return valid;
 
-                if (auto result = writer->add(entry); !result)
+                auto target = entry;
+                if (!target.dictionaryId && target.entryId.pageId)
+                    target.dictionaryId = *build.metadata.dictionaryId;
+                if (target.dictionaryId && target.dictionaryId != *build.metadata.dictionaryId)
+                    return std::unexpected("Appendix target must belong to this dictionary");
+
+                if (auto result = writer->add(target); !result)
                     return result;
 
                 if (entry.entryId.pageId) build.references.insert(entry.entryId);

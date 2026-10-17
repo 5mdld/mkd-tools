@@ -16,6 +16,7 @@ namespace MKD::Python
         EntryId entryId;
         std::optional<std::string> label;
         std::optional<std::string> firstCharacter;
+        uint16_t dictionaryId = 0;
 
         [[nodiscard]] AppendixEntry asNative() const;
         [[nodiscard]] static AppendixItem copy(const AppendixEntry& entry);

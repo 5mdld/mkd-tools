@@ -113,6 +113,7 @@ namespace MKD
             },
             .label = std::nullopt,
             .firstCharacter = std::nullopt,
+            .dictionaryId = *layout.entries.readLittle<uint16_t>(index * 8 + 6),
         };
 
         if (layout.labels)

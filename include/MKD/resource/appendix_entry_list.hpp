@@ -21,6 +21,8 @@ namespace MKD
         EntryId entryId;
         std::optional<std::string_view> label;
         std::optional<char16_t> firstCharacter;
+        /** Native target dictionary. Zero selects the owner during dictionary creation. */
+        uint16_t dictionaryId = 0;
     };
 
     /** An appendix entry matrix. Entry labels are borrowed from the list. */
