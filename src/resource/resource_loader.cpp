@@ -39,6 +39,19 @@ namespace MKD
         if (!*path)
             return std::optional<NamedResourceStore>{};
 
+        auto index = detail::findResourceFile(**path, ".nidx");
+        if (!index)
+            return std::unexpected(index.error());
+
+        if (!*index)
+        {
+            auto packed = detail::findResourceFile(**path, ".nrsc");
+            if (!packed)
+                return std::unexpected(packed.error());
+            if (!*packed)
+                return std::optional<NamedResourceStore>{};
+        }
+
         auto store = NamedResourceStore::open(**path);
         if (!store)
             return std::unexpected(std::format("Graphics '{}': {}", (**path).string(), store.error()));

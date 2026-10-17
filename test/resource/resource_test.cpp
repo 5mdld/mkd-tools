@@ -380,6 +380,10 @@ namespace MKD::test
         std::filesystem::create_directories(directory / "Contents" / "DICT" / "contents");
         EXPECT_FALSE(loader.loadEntries("DICT", "id"));
         std::filesystem::create_directories(directory / "Contents" / "DICT" / "graphics");
+        auto loose = loader.loadGraphics("DICT");
+        ASSERT_TRUE(loose);
+        EXPECT_FALSE(*loose);
+        words("Contents/DICT/graphics/graphics-0001.nrsc", {0});
         EXPECT_FALSE(loader.loadGraphics("DICT"));
         std::filesystem::create_directories(directory / "Contents" / "DICT" / "audio");
         words("Contents/DICT/audio/index.nidx", {0, 100});
