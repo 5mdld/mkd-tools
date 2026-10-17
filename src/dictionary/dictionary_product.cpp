@@ -123,6 +123,11 @@ namespace MKD
                 if (!resources)
                     return std::unexpected(std::format("Content '{}': {}", contentDef.identifier, resources.error()));
 
+                std::error_code error;
+                resources->directory = std::filesystem::absolute(directory, error);
+                if (error)
+                    return std::unexpected(error.message());
+
                 dictionaries.emplace_back(std::move(content), std::move(*resources), std::move(configuration));
             }
 

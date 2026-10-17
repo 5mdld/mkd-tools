@@ -34,6 +34,7 @@ namespace MKD
         std::vector<Font> fonts;
         std::vector<Keystore> keystores;
         std::vector<HeadlineStore> headlines;
+        std::filesystem::path directory;
     };
 
 
@@ -60,6 +61,8 @@ namespace MKD
         [[nodiscard]] const std::string& id() const noexcept;
         [[nodiscard]] const DictionaryContent& content() const noexcept;
         [[nodiscard]] const DictionarySearchConfiguration& searchConfiguration() const noexcept;
+        /** Maps loose resources or reads supported packed resources on demand. */
+        [[nodiscard]] Result<RetainedSpan> resource(std::string_view relativePath) const;
 
         // returns nullptr if no content resource store is available
         [[nodiscard]] ResourceStore* entries() noexcept;
@@ -100,6 +103,7 @@ namespace MKD
         [[nodiscard]] Result<std::string> sortingHeadlineForEntryId(const EntryId& entryId) const;
 
     private:
+        std::filesystem::path directory_;
         DictionaryContent content_;
         DictionarySearchConfiguration searchConfiguration_;
         std::optional<ResourceStore> entries_;

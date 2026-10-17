@@ -6,6 +6,8 @@
 #include "native_format.hpp"
 #include "creation_session.hpp"
 #include "creation_metadata.hpp"
+#include "content_resources.hpp"
+#include "native_content.hpp"
 #include "io/write_validation.hpp"
 #include "resource/detail/font_format.hpp"
 #include "unicode/normalization.hpp"
@@ -102,6 +104,26 @@ namespace MKD
             build.references.insert(target);
             return it->second.add(normalized, target, options);
         });
+    }
+
+    Result<GaijiResource> DictionaryWriter::addGaiji(std::string_view filename, std::span<const uint8_t> bytes) const
+    {
+        const std::string path = std::string(detail::native::label::gaijiDirectory) + std::string(filename);
+        auto written = impl_->write([&](detail::DictionaryBuild& build) -> Result<void>
+        {
+            if (filename.contains('/'))
+                return std::unexpected("Gaiji filename must be a single path component");
+
+            if (auto valid = detail::ContentResources::validateGaiji(path, bytes); !valid)
+                return valid;
+
+            return build.writeAsset(path, bytes);
+        });
+
+        if (!written)
+            return std::unexpected(written.error());
+
+        return GaijiResource{path};
     }
 
     Result<void> DictionaryWriter::addGraphic(std::string_view name, std::span<const uint8_t> bytes) const

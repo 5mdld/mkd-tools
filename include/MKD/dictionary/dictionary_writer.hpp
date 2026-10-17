@@ -5,6 +5,7 @@
 #pragma once
 
 #include "MKD/dictionary/metadata.hpp"
+#include "MKD/dictionary/inline_text.hpp"
 #include "MKD/dictionary/dictionary_search.hpp"
 #include "MKD/resource/headline_store.hpp"
 #include "MKD/resource/keystore_writer.hpp"
@@ -31,6 +32,8 @@ namespace MKD
         [[nodiscard]] Result<void> addHeadline(HeadlineComponents headline, HeadlineRole role = HeadlineRole::Primary) const;
         [[nodiscard]] Result<void> addSearchKey(SearchScope scope, std::string_view key, EntryId target,
                                                 SearchKeyOptions options = {}) const;
+        /** Registers PNG or SVG bytes under gaiji/. No image decoding is performed. */
+        [[nodiscard]] Result<GaijiResource> addGaiji(std::string_view filename, std::span<const uint8_t> bytes) const;
         [[nodiscard]] Result<void> addGraphic(std::string_view name, std::span<const uint8_t> bytes) const;
         [[nodiscard]] Result<void> addAudio(std::string_view name, std::span<const uint8_t> bytes) const;
         [[nodiscard]] Result<void> addAsset(std::string_view relativePath, std::span<const uint8_t> bytes) const;

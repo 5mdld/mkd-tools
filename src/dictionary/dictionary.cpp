@@ -5,6 +5,7 @@
 
 #include "MKD/dictionary/dictionary.hpp"
 #include "unicode/unicode.hpp"
+#include "content_resources.hpp"
 
 #include <utility>
 
@@ -12,7 +13,8 @@ namespace MKD
 {
     Dictionary::Dictionary(DictionaryContent content, DictionaryResources resources,
                            DictionarySearchConfiguration searchConfiguration)
-        : content_(std::move(content)),
+        : directory_(std::move(resources.directory)),
+          content_(std::move(content)),
           searchConfiguration_(std::move(searchConfiguration)),
           entries_(std::move(resources.entries)),
           appendixEntryLists_(std::move(resources.appendixEntryLists)),
@@ -26,6 +28,11 @@ namespace MKD
     {
     }
 
+
+    Result<RetainedSpan> Dictionary::resource(std::string_view path) const
+    {
+        return detail::ContentResources::read(directory_, graphics(), audio(), path);
+    }
 
     const std::string& Dictionary::id() const noexcept
     {
