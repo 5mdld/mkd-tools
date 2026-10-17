@@ -4,13 +4,8 @@
 
 
 #include "MKD/dictionary/dictionary.hpp"
-#include "MKD/resource/resource_loader.hpp"
-#include "MKD/output/appendix_entry_exporter.hpp"
-#include "MKD/output/keystore_exporter.hpp"
-#include "MKD/output/headline_exporter.hpp"
 #include "unicode/unicode.hpp"
 
-#include <format>
 #include <utility>
 
 namespace MKD
@@ -241,133 +236,13 @@ namespace MKD
     }
 
 
-    ExportResult Dictionary::exportWithOptions(const ExportOptions& options) const
+    const std::variant<ResourceStore, NamedResourceStore>* Dictionary::audio() const noexcept
     {
-        ExportResult combinedResult;
-
-        const auto shouldExport = [&](const ResourceType type)
-        {
-            return options.resources.empty()
-                || std::ranges::find(options.resources, type) != options.resources.end();
-        };
-
-        const auto notify = [&](const ExportEvent& event)
-        {
-            if (options.progressCallback)
-                options.progressCallback(event);
-        };
-
-        // Pre-count heavy resource totals for the unified progress bar
-        size_t heavyTotal = 0;
-        for (const auto type : {ResourceType::Audio, ResourceType::Contents, ResourceType::Graphics})
-        {
-            if (shouldExport(type))
-                heavyTotal += resourceCount(type);
-        }
-
-        notify(ExportBeginEvent{.totalItems = heavyTotal});
-
-        const auto runPhase = [&](const ResourceType type, auto exportFn)
-        {
-            if (!shouldExport(type))
-                return;
-
-            const size_t totalItems = resourceCount(type);
-            if (totalItems == 0)
-                return;
-
-            notify(PhaseBeginEvent{type, totalItems});
-
-            if (auto result = exportFn())
-            {
-                notify(PhaseEndEvent{type, *result});
-                combinedResult += *result;
-            }
-            else
-            {
-                ExportResult failed;
-                failed.failed = 1;
-                failed.errors.push_back(std::format("Failed to export {}: {}",
-                                                    resourceTypeName(type), result.error()));
-                notify(PhaseEndEvent{type, failed});
-                combinedResult += failed;
-            }
-        };
-
-        runPhase(ResourceType::Audio, [&] { return exportAudio(options); });
-        runPhase(ResourceType::Contents, [&]
-        {
-            return ResourceExporter::exportAll(*entries_, options, ResourceType::Contents);
-        });
-        runPhase(ResourceType::AppendixEntries, [&] { return exportAppendixEntries(options); });
-        runPhase(ResourceType::Fonts, [&] { return exportFonts(options); });
-        runPhase(ResourceType::Graphics, [&]
-        {
-            return ResourceExporter::exportAll(*graphics_, options, ResourceType::Graphics);
-        });
-        runPhase(ResourceType::Headlines, [&] { return exportHeadlines(options); });
-        runPhase(ResourceType::Keystores, [&] { return exportKeystores(options); });
-
-        return combinedResult;
+        return audio_ ? &*audio_ : nullptr;
     }
 
-
-    Result<ExportResult> Dictionary::exportAudio(const ExportOptions& options) const
+    std::span<const HeadlineStore> Dictionary::headlines() const noexcept
     {
-        return std::visit([&options](const auto& audioResource)
-        {
-            return ResourceExporter::exportAll(audioResource, options, ResourceType::Audio);
-        }, *audio_);
-    }
-
-
-    Result<ExportResult> Dictionary::exportAppendixEntries(const ExportOptions& options) const
-    {
-        return AppendixEntryExporter::exportEntryLists(appendixEntryLists_, headlines_, options);
-    }
-
-
-    Result<ExportResult> Dictionary::exportFonts(const ExportOptions& options) const
-    {
-        ExportResult combinedResult;
-        for (auto& font : fonts_)
-        {
-            auto result = ResourceExporter::exportFont(font, options);
-            if (!result)
-                return result;
-
-            combinedResult += *result;
-        }
-        return combinedResult;
-    }
-
-
-    Result<ExportResult> Dictionary::exportKeystores(const ExportOptions& options) const
-    {
-        ExportResult combined;
-        for (const auto& keystore : keystores_)
-        {
-            auto result = KeystoreExporter::exportKeystore(keystore, options);
-            if (!result)
-                return result;
-
-            combined += *result;
-        }
-        return combined;
-    }
-
-
-    Result<ExportResult> Dictionary::exportHeadlines(const ExportOptions& options) const
-    {
-        ExportResult combined;
-        for (const auto& store : headlines_)
-        {
-            auto result = HeadlineExporter::exportHeadlines(store, options);
-            if (!result)
-                return result;
-
-            combined += *result;
-        }
-        return combined;
+        return headlines_;
     }
 }

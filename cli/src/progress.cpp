@@ -69,7 +69,7 @@ namespace MKDCLI
 
     void ExportProgress::onProgress(const MKD::ProgressEvent& e) const
     {
-        if (!bar_ || !MKD::isHeavyResource(e.type))
+        if (!bar_)
             return;
 
         const size_t globalCompleted = phaseOffset_ + e.completedItems;
@@ -84,10 +84,6 @@ namespace MKDCLI
 
     void ExportProgress::onPhaseEnd(const MKD::PhaseEndEvent& e)
     {
-        if (MKD::isHeavyResource(e.type))
-            phaseOffset_ += e.result.totalResources;
-
-        for (const auto& err : e.result.errors)
-            std::cerr << "  ⚠ warning: " << err << "\n";
+        phaseOffset_ += e.result.totalFiles;
     }
 }

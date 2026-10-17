@@ -4,16 +4,17 @@
 
 #pragma once
 
-#include <filesystem>
+#include <cstddef>
+#include <cstdint>
+#include <string>
 #include <vector>
-
-namespace fs = std::filesystem;
 
 namespace MKD
 {
+    /** Counts completed, skipped and failed output files. Bytes include only completed files. */
     struct ExportResult
     {
-        size_t totalResources = 0;
+        size_t totalFiles = 0;
         size_t exported = 0;
         size_t skipped = 0;
         size_t failed = 0;
@@ -25,7 +26,7 @@ namespace MKD
 
         ExportResult& operator+=(const ExportResult& other)
         {
-            totalResources += other.totalResources;
+            totalFiles += other.totalFiles;
             exported += other.exported;
             skipped += other.skipped;
             failed += other.failed;

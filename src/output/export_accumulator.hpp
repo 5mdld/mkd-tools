@@ -23,7 +23,7 @@ namespace MKD
 
         void recordSkip();
 
-        void recordFailure(std::string error);
+        void recordFailure(std::string error, size_t count = 1);
 
         ExportResult finalize();
 
@@ -41,6 +41,9 @@ namespace MKD
 
         std::mutex mutex_;
         std::vector<std::string> errors_;
+
+        size_t lastReported_ = 0;
+        std::atomic<size_t> completed_{0};
 
         const size_t totalItems_;
         const size_t reportInterval_;

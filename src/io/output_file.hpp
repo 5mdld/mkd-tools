@@ -1,0 +1,36 @@
+//
+// kiwakiwaaにより 2026/10/17 に作成されました。
+//
+
+#pragma once
+
+#include "MKD/result.hpp"
+
+#include <cstdint>
+#include <filesystem>
+#include <fstream>
+#include <span>
+
+namespace MKD::detail
+{
+    class OutputFile
+    {
+    public:
+        OutputFile(const std::filesystem::path& path, bool overwrite);
+        ~OutputFile();
+        OutputFile(const OutputFile&) = delete;
+        OutputFile& operator=(const OutputFile&) = delete;
+
+        [[nodiscard]] bool isOpen() const noexcept;
+        Result<void> write(std::span<const uint8_t> bytes);
+        std::ostream& stream() noexcept;
+        Result<uint64_t> finish();
+
+    private:
+        std::filesystem::path path_;
+        std::ofstream stream_;
+        bool finished_ = false;
+        bool streamed_ = false;
+        uint64_t bytes_ = 0;
+    };
+}

@@ -1,6 +1,7 @@
 add_subdirectory(binary)
 add_subdirectory(unicode)
 add_subdirectory(dictionary)
+add_subdirectory(io)
 add_subdirectory(output)
 add_subdirectory(platform)
 add_subdirectory(resource)

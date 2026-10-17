@@ -36,7 +36,7 @@ namespace MKDCLI
         command->callback([this] { invocation_.command = std::move(export_); });
 
         auto& options = export_.options;
-        command->add_option("-o,--output", options.outputDirectory,
+        command->add_option("-o,--output", export_.outputDirectory,
                             "Output directory (default: ./mkd-export/<product-id>)");
         command->add_flag("--overwrite", options.overwriteExisting, "Overwrite existing files");
         command->add_flag("--pretty", options.prettyPrintXml, "Pretty-print XML entry content");
@@ -91,9 +91,9 @@ namespace MKDCLI
         }
 
         if (auto* command = std::get_if<ExportCommand>(&invocation_.command);
-            command && command->options.outputDirectory.empty())
+            command && command->outputDirectory.empty())
         {
-            command->options.outputDirectory = std::filesystem::path("mkd-export") / command->productId;
+            command->outputDirectory = std::filesystem::path("mkd-export") / command->productId;
         }
         return std::move(invocation_);
     }

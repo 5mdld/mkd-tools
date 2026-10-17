@@ -8,10 +8,9 @@
 #include "MKD/dictionary/metadata.hpp"
 #include "MKD/dictionary/paths.hpp"
 #include "MKD/platform/dictionary_source.hpp"
-#include "MKD/output/export_options.hpp"
-#include "MKD/output/resource_exporter.hpp"
 #include "MKD/resource/named_resource_store.hpp"
 #include "MKD/resource/resource_store.hpp"
+#include "MKD/resource/resource_type.hpp"
 #include "MKD/resource/appendix_entry_list.hpp"
 #include "MKD/resource/font.hpp"
 #include "MKD/resource/keystore.hpp"
@@ -20,6 +19,7 @@
 
 #include <cstdint>
 #include <variant>
+#include <span>
 
 namespace MKD
 {
@@ -85,18 +85,13 @@ namespace MKD
 
         [[nodiscard]] size_t resourceCount(ResourceType type) const noexcept;
 
-        [[nodiscard]] ExportResult exportWithOptions(const ExportOptions& options) const;
+        [[nodiscard]] const std::variant<ResourceStore, NamedResourceStore>* audio() const noexcept;
+        [[nodiscard]] std::span<const HeadlineStore> headlines() const noexcept;
 
         [[nodiscard]] Result<std::string> headlineForEntryId(const EntryId& entryId) const;
         [[nodiscard]] Result<std::string> sortingHeadlineForEntryId(const EntryId& entryId) const;
 
     private:
-        [[nodiscard]] Result<ExportResult> exportAudio(const ExportOptions& options) const;
-        [[nodiscard]] Result<ExportResult> exportAppendixEntries(const ExportOptions& options) const;
-        [[nodiscard]] Result<ExportResult> exportFonts(const ExportOptions& options) const;
-        [[nodiscard]] Result<ExportResult> exportKeystores(const ExportOptions& options) const;
-        [[nodiscard]] Result<ExportResult> exportHeadlines(const ExportOptions& options) const;
-
         DictionaryContent content_;
         DictionarySearchConfiguration searchConfiguration_;
         std::optional<ResourceStore> entries_;

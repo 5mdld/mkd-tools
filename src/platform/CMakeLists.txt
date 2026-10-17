@@ -4,6 +4,8 @@ target_sources(mkd PRIVATE
 )
 
 if (NOT APPLE)
+    find_package(Threads REQUIRED)
+    target_link_libraries(mkd PRIVATE Threads::Threads)
     target_sources(mkd PRIVATE
             parallel.cpp
     )

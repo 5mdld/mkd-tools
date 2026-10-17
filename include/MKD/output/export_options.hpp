@@ -7,9 +7,8 @@
 #include "MKD/output/event.hpp"
 #include "MKD/resource/resource_type.hpp"
 
-#include <filesystem>
-
-namespace fs = std::filesystem;
+#include <cstddef>
+#include <vector>
 
 namespace MKD
 {
@@ -22,12 +21,12 @@ namespace MKD
 
     struct ExportOptions
     {
-        fs::path outputDirectory;
+        std::vector<ResourceType> resources;
         bool overwriteExisting = false;
         bool createSubdirectories = true;
         bool prettyPrintXml = false;
         KeystoreExportMode keystoreExportMode = KeystoreExportMode::Inverse;
-        std::vector<ResourceType> resources;
-        ExportCallback progressCallback = nullptr;
+        /** Zero selects the default worker count. One runs sequentially. */
+        size_t concurrency = 0;
     };
 }

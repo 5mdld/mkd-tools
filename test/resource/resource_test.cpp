@@ -573,12 +573,14 @@ namespace MKD::test
         auto store = HeadlineStore::open(fixture);
         ASSERT_TRUE(store) << store.error();
         ExportOptions options;
-        options.outputDirectory = directory;
         options.createSubdirectories = false;
-        auto result = HeadlineExporter::exportHeadlines(*store, options);
+        DictionaryResources resources;
+        resources.headlines.push_back(std::move(*store));
+        Dictionary dictionary({}, std::move(resources));
+        auto result = exportToDirectory(dictionary, directory, options);
         ASSERT_TRUE(result) << result.error();
-        EXPECT_EQ(result->exported, store->size());
-        EXPECT_EQ(result->totalBytes, std::filesystem::file_size(directory / (std::string(store->filename()) + ".tsv")));
+        EXPECT_EQ(result->exported, 1);
+        EXPECT_EQ(result->totalBytes, std::filesystem::file_size(directory / (std::string(dictionary.headlines().front().filename()) + ".tsv")));
     }
     TEST_F(ResourceFormatTest, ExistingRscOutputsSkipInvalidPayloadsBeforeReading)
     {
@@ -592,8 +594,10 @@ namespace MKD::test
         write("out/Contents/000010.xml", marker);
         write("out/Contents/000020.xml", marker);
         ExportOptions options;
-        options.outputDirectory = directory / "out";
-        auto result = ResourceExporter::exportAll(*store, options, ResourceType::Contents);
+        DictionaryResources resources;
+        resources.entries = std::move(*store);
+        Dictionary dictionary({}, std::move(resources));
+        auto result = exportToDirectory(dictionary, directory / "out", options);
         ASSERT_TRUE(result);
         EXPECT_EQ(result->skipped, 2);
         EXPECT_EQ(result->failed, 0);
@@ -613,8 +617,10 @@ namespace MKD::test
         const std::array<uint8_t, 1> marker{'x'};
         write("out/Graphics/image.png", marker);
         ExportOptions options;
-        options.outputDirectory = directory / "out";
-        auto result = ResourceExporter::exportAll(*store, options, ResourceType::Graphics);
+        DictionaryResources resources;
+        resources.graphics = std::move(*store);
+        Dictionary dictionary({}, std::move(resources));
+        auto result = exportToDirectory(dictionary, directory / "out", options);
         ASSERT_TRUE(result);
         EXPECT_EQ(result->skipped, 1);
         EXPECT_EQ(result->failed, 0);
@@ -685,8 +691,10 @@ namespace MKD::test
         const std::array<uint8_t, 1> marker{'x'};
         write("out/Fonts/" + font->name() + ".otf", marker);
         ExportOptions options;
-        options.outputDirectory = directory / "out";
-        auto result = ResourceExporter::exportFont(*font, options);
+        DictionaryResources resources;
+        resources.fonts.push_back(std::move(*font));
+        Dictionary dictionary({}, std::move(resources));
+        auto result = exportToDirectory(dictionary, directory / "out", options);
         ASSERT_TRUE(result);
         EXPECT_EQ(result->skipped, 1);
         EXPECT_EQ(result->failed, 0);

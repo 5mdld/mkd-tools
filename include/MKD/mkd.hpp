@@ -12,10 +12,7 @@
 #include "MKD/dictionary/metadata.hpp"
 #include "MKD/dictionary/paths.hpp"
 
-#include "MKD/output/headline_exporter.hpp"
-#include "MKD/output/appendix_entry_exporter.hpp"
-#include "MKD/output/keystore_exporter.hpp"
-#include "MKD/output/resource_exporter.hpp"
+#include "MKD/output/export.hpp"
 
 #include "MKD/platform/directory_dictionary_source.hpp"
 

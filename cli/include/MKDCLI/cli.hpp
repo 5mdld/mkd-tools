@@ -34,6 +34,7 @@ namespace MKDCLI
     {
         std::string productId;
         MKD::ExportOptions options;
+        std::filesystem::path outputDirectory;
     };
 
     struct Invocation

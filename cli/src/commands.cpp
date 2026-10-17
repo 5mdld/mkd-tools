@@ -3,6 +3,7 @@
 //
 
 #include "MKDCLI/commands.hpp"
+#include "MKD/output/export.hpp"
 #include "MKDCLI/format.hpp"
 #include "MKDCLI/progress.hpp"
 
@@ -134,7 +135,7 @@ namespace MKDCLI
             return 1;
         }
 
-        const auto outputDirectory = std::filesystem::absolute(command.options.outputDirectory);
+        const auto outputDirectory = std::filesystem::absolute(command.outputDirectory);
         std::println(std::cerr, "Export destination: {}", outputDirectory.string());
 
         MKD::ExportResult totalResult;
@@ -144,23 +145,29 @@ namespace MKDCLI
         {
             std::cerr << "Exporting content: " << dict.id() << "\n";
 
-            auto options = command.options;
-
-            options.outputDirectory = outputDirectory / dict.id();
-
             ExportProgress progress;
-            options.progressCallback = [&progress](const MKD::ExportEvent& event)
+            auto callback = [&progress](const MKD::ExportEvent& event)
             {
                 progress.onEvent(event);
             };
 
-            auto result = dict.exportWithOptions(options);
+            auto result = MKD::exportToDirectory(dict, outputDirectory / dict.id(), command.options, callback);
 
             progress.finish();
-            totalResult += result;
-
-            if (!result.isSuccess())
+            if (!result)
+            {
+                std::println(std::cerr, "Export failed for {}: {}", dict.id(), result.error());
                 anyFailed = true;
+            }
+            else
+            {
+                if (dicts.size() > 1)
+                    for (auto& error : result->errors)
+                        error = std::format("{}: {}", dict.id(), error);
+
+                totalResult += *result;
+                anyFailed |= !result->isSuccess();
+            }
         }
 
         if (dicts.size() > 1)

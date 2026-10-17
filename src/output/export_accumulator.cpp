@@ -4,6 +4,8 @@
 
 #include "export_accumulator.hpp"
 
+#include <algorithm>
+
 
 namespace MKD
 {
@@ -20,6 +22,7 @@ namespace MKD
     {
         exported_.fetch_add(1, std::memory_order_relaxed);
         totalBytes_.fetch_add(bytes, std::memory_order_relaxed);
+        completed_.fetch_add(1, std::memory_order_release);
         maybeReport();
     }
 
@@ -27,26 +30,29 @@ namespace MKD
     void ExportAccumulator::recordSkip()
     {
         skipped_.fetch_add(1, std::memory_order_relaxed);
+        completed_.fetch_add(1, std::memory_order_release);
         maybeReport();
     }
 
 
-    void ExportAccumulator::recordFailure(std::string error)
+    void ExportAccumulator::recordFailure(std::string error, const size_t count)
     {
-        failed_.fetch_add(1, std::memory_order_relaxed);
-        std::lock_guard lock(mutex_);
-        errors_.push_back(std::move(error));
+        failed_.fetch_add(count, std::memory_order_relaxed);
+        {
+            std::lock_guard lock(mutex_);
+            errors_.push_back(std::move(error));
+        }
+        completed_.fetch_add(count, std::memory_order_release);
+        maybeReport();
     }
 
 
     ExportResult ExportAccumulator::finalize()
     {
-        // Only send the final report if the last item didn't already trigger one
-        if (const size_t done = completed(); done % reportInterval_ != 0 || done == 0)
-            report();
+        report();
 
         ExportResult result;
-        result.totalResources = totalItems_;
+        result.totalFiles = totalItems_;
         result.exported = exported_.load();
         result.skipped = skipped_.load();
         result.failed = failed_.load();
@@ -58,9 +64,9 @@ namespace MKD
 
     void ExportAccumulator::maybeReport()
     {
-        if (const size_t done = completed(); done % reportInterval_ != 0)
-            return;
-        report();
+        const auto done = completed();
+        if (callback_ && (done == totalItems_ || done % reportInterval_ == 0))
+            report();
     }
 
 
@@ -70,9 +76,14 @@ namespace MKD
             return;
 
         std::lock_guard lock(mutex_);
+        const auto done = completed();
+        if (done == lastReported_ || (done != totalItems_ && done - lastReported_ < reportInterval_))
+            return;
+
+        lastReported_ = done;
         callback_(ProgressEvent{
             .type = type_,
-            .completedItems = completed(),
+            .completedItems = done,
             .totalItems = totalItems_,
             .bytesWritten = totalBytes_.load(std::memory_order_relaxed)
         });
@@ -81,8 +92,6 @@ namespace MKD
 
     size_t ExportAccumulator::completed() const
     {
-        return exported_.load(std::memory_order_relaxed)
-             + skipped_.load(std::memory_order_relaxed)
-             + failed_.load(std::memory_order_relaxed);
+        return completed_.load(std::memory_order_acquire);
     }
 }

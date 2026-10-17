@@ -8,6 +8,7 @@
 #include "entry_id_codec.hpp"
 
 #include <array>
+#include <algorithm>
 #include <format>
 #include <mutex>
 #include <unordered_map>
@@ -322,6 +323,21 @@ namespace MKD
 
     std::string_view Keystore::filename() const noexcept { return impl_->filename; }
     std::optional<KeystoreScope> Keystore::scope() const noexcept { return impl_->scope; }
+
+    Result<std::vector<EntryId>> Keystore::indexedEntryIds() const
+    {
+        std::call_once(impl_->inverseInit, [this] { impl_->inverseStatus = impl_->buildInverse(); });
+        if (!impl_->inverseStatus)
+            return std::unexpected(impl_->inverseStatus.error());
+
+        std::vector<EntryId> ids;
+        ids.reserve(impl_->inverse.size());
+        for (const auto& id : impl_->inverse | std::views::keys)
+            ids.push_back(id);
+
+        std::ranges::sort(ids);
+        return ids;
+    }
 
     Result<std::vector<std::string_view>> Keystore::keysForEntry(const EntryId& id) const
     {

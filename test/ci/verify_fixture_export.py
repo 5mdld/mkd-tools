@@ -65,7 +65,7 @@ def verify_headlines(output: Path) -> None:
 
     line_set = set(lines)
     for entry_id, _kanji, _reading, headline in BIRBS:
-        if f"{entry_id}\t{headline}\t" not in line_set:
+        if f"{entry_id}\t{headline}\t\t" not in line_set:
             raise AssertionError(f"Missing headline row for {headline}")
 
 

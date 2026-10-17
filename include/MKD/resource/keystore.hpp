@@ -88,6 +88,9 @@ namespace MKD
          */
         [[nodiscard]] Result<std::vector<std::string_view>> keysForEntry(const EntryId& id) const;
 
+        /** Sorted unique IDs from the lazily built prefix inverse index. */
+        [[nodiscard]] Result<std::vector<EntryId>> indexedEntryIds() const;
+
         /** Keys are borrowed from this store. Each range element carries its read error. */
         [[nodiscard]] auto entries(KeystoreIndex type) const &
         {

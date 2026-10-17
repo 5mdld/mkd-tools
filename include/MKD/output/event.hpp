@@ -15,7 +15,7 @@ namespace MKD
 {
     struct ExportBeginEvent
     {
-        size_t totalItems = 0; // sum of heavy-phase items only
+        size_t totalItems = 0;
     };
 
     struct PhaseBeginEvent
@@ -41,10 +41,4 @@ namespace MKD
     using ExportEvent = std::variant<ExportBeginEvent, PhaseBeginEvent, ProgressEvent, PhaseEndEvent>;
     using ExportCallback = std::function<void(const ExportEvent&)>;
 
-    constexpr bool isHeavyResource(const ResourceType type)
-    {
-        return type == ResourceType::Audio
-            || type == ResourceType::Contents
-            || type == ResourceType::Graphics;
-    }
 }

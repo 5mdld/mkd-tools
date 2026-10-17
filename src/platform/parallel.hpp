@@ -4,38 +4,59 @@
 
 #pragma once
 
-#include <concepts>
-#include <cstddef>
-#include <ranges>
+#include <algorithm>
+#include <atomic>
+#include <exception>
+#include <mutex>
+#include <thread>
 
-namespace MKD
+namespace MKD::detail
 {
-    namespace detail
-    {
-        // platform specific
-        void parallel_dispatch(size_t count, void* ctx, void (*fn)(size_t index, void* ctx));
-    }
+    void parallel_dispatch(size_t count, void* context, void (*function)(size_t, void*));
 
-    template<std::invocable<size_t> F>
-    void parallelFor(size_t count, F&& body)
+    template <typename Function>
+    void runBatches(const size_t count, const size_t concurrency, Function&& function)
     {
-        if (count == 0) return;
+        if (count == 0)
+            return;
 
-        detail::parallel_dispatch(count, &body,
-                                  [](size_t i, void* ctx) {
-                                      (*static_cast<std::decay_t<F>*>(ctx))(i);
-                                  });
-    }
-
-    // Requires random access iteration
-    template<std::ranges::random_access_range R, typename F>
-        requires std::invocable<F, std::ranges::range_reference_t<R> >
-    void parallelFor(R&& range, F&& body)
-    {
-        auto begin = std::ranges::begin(range);
-        parallel_for(
-            static_cast<size_t>(std::ranges::distance(range)),
-            [&](const size_t i) { body(begin[static_cast<std::ptrdiff_t>(i)]); }
-        );
+        const auto available = std::max(1u, std::thread::hardware_concurrency());
+        const auto workers = std::min(count, concurrency == 0 ? static_cast<size_t>(available) : concurrency);
+        if (workers == 1)
+        {
+            for (size_t i = 0; i < count; ++i)
+                function(i);
+            return;
+        }
+        std::atomic<size_t> next{0};
+        std::atomic<bool> failed{false};
+        std::exception_ptr failure;
+        std::mutex mutex;
+        auto work = [&](size_t)
+        {
+            try
+            {
+                while (!failed.load(std::memory_order_relaxed))
+                {
+                    const auto index = next.fetch_add(1, std::memory_order_relaxed);
+                    if (index >= count)
+                        break;
+                    function(index);
+                }
+            }
+            catch (...)
+            {
+                std::lock_guard lock(mutex);
+                if (!failure)
+                    failure = std::current_exception();
+                failed.store(true, std::memory_order_relaxed);
+            }
+        };
+        parallel_dispatch(workers, &work, [](size_t index, void* context)
+        {
+            (*static_cast<decltype(work)*>(context))(index);
+        });
+        if (failure)
+            std::rethrow_exception(failure);
     }
 }
