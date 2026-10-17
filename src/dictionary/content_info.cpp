@@ -64,6 +64,12 @@ namespace MKD::detail
         if (!plist)
             return std::unexpected(plist.error());
 
+        if (const auto node = plist->value(metadata::content::fullRubyStylesheet))
+        {
+            if (std::string_view(node.name()) != "string")
+                return std::unexpected("Invalid full-ruby stylesheet path");
+            content.presentation.fullRubyStylesheet = node.child_value();
+        }
         if (const auto node = plist->value(metadata::content::type))
         {
             if (std::string_view(node.name()) != "string")

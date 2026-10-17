@@ -21,6 +21,7 @@ namespace MKD::detail
     {
     public:
         static Result<void> validateProduct(DictionaryMetadata& metadata, const std::filesystem::path& destination);
+        static Result<void> validatePresentation(const DictionaryPresentation& presentation);
         static Result<void> validateContent(DictionaryContent& content);
         static Result<void> writeProduct(const std::filesystem::path& root, std::string_view name,
                                          const DictionaryMetadata& metadata);

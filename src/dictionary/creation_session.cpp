@@ -159,6 +159,9 @@ namespace MKD::detail
             return std::unexpected("Missing page asset: " + path);
         }
 
+        if (metadata.presentation.fullRubyStylesheet && !assets.contains(*metadata.presentation.fullRubyStylesheet))
+            return std::unexpected("Missing full-ruby stylesheet: " + *metadata.presentation.fullRubyStylesheet);
+
         if (!order.empty())
         {
             std::unordered_set ordered(order.begin(), order.end());

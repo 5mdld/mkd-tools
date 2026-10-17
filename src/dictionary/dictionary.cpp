@@ -29,6 +29,11 @@ namespace MKD
     }
 
 
+    const DictionaryPresentation& Dictionary::presentation() const noexcept
+    {
+        return content_.presentation;
+    }
+
     Result<RetainedSpan> Dictionary::resource(std::string_view path) const
     {
         return detail::ContentResources::read(directory_, graphics(), audio(), path);

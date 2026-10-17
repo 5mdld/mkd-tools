@@ -38,6 +38,11 @@ namespace MKD
         [[nodiscard]] bool empty() const noexcept;
     };
 
+    struct DictionaryPresentation
+    {
+        std::optional<std::string> fullRubyStylesheet;
+    };
+
     struct DictionaryContent
     {
         std::string identifier;
@@ -50,6 +55,7 @@ namespace MKD
         std::optional<std::vector<std::string>> languages;
         std::optional<std::string> keyNormalization;
         std::optional<bool> hasHeadlineKeyIdentifier;
+        DictionaryPresentation presentation;
     };
 
     struct DictionaryMetadata
@@ -112,7 +118,16 @@ struct glz::meta<MKD::DictionaryContent>
                 content.dictionaryId = number;
         }
     };
+    static constexpr auto readFullRubyStylesheet = [](T& content, const std::optional<std::string>& path)
+    {
+        content.presentation.fullRubyStylesheet = path;
+    };
+    static constexpr auto writeFullRubyStylesheet = [](const T& content) -> const std::optional<std::string>&
+    {
+        return content.presentation.fullRubyStylesheet;
+    };
     static constexpr auto value = object(
+        MKD::detail::metadata::content::fullRubyStylesheet, glz::custom<readFullRubyStylesheet, writeFullRubyStylesheet>,
         MKD::detail::metadata::content::identifier, &T::identifier,
         MKD::detail::metadata::content::directory, &T::directory,
         MKD::detail::metadata::content::dictionaryId, glz::custom<readDictionaryId, &T::dictionaryId>,

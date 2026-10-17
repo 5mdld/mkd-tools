@@ -126,6 +126,18 @@ namespace MKD
         return GaijiResource{path};
     }
 
+    Result<void> DictionaryWriter::setPresentation(DictionaryPresentation presentation) const
+    {
+        return impl_->write([&](detail::DictionaryBuild& build) -> Result<void>
+        {
+            if (auto valid = detail::CreationMetadata::validatePresentation(presentation); !valid)
+                return valid;
+
+            build.metadata.presentation = std::move(presentation);
+            return {};
+        });
+    }
+
     Result<void> DictionaryWriter::addGraphic(std::string_view name, std::span<const uint8_t> bytes) const
     {
         return impl_->write([&](detail::DictionaryBuild& build)

@@ -34,6 +34,8 @@ namespace MKD
                                                 SearchKeyOptions options = {}) const;
         /** Registers PNG or SVG bytes under gaiji/. No image decoding is performed. */
         [[nodiscard]] Result<GaijiResource> addGaiji(std::string_view filename, std::span<const uint8_t> bytes) const;
+        /** Referenced stylesheets may be added later, before finish(). */
+        [[nodiscard]] Result<void> setPresentation(DictionaryPresentation presentation) const;
         [[nodiscard]] Result<void> addGraphic(std::string_view name, std::span<const uint8_t> bytes) const;
         [[nodiscard]] Result<void> addAudio(std::string_view name, std::span<const uint8_t> bytes) const;
         [[nodiscard]] Result<void> addAsset(std::string_view relativePath, std::span<const uint8_t> bytes) const;

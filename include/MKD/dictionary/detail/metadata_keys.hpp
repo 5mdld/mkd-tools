@@ -28,6 +28,7 @@ namespace MKD::detail::metadata::content
     inline constexpr char languages[] = "DSContentLanguages";
     inline constexpr char keyNormalization[] = "DSContentKeyNormalization";
     inline constexpr char hasHeadlineKeyIdentifier[] = "DSContentHasHeadlineKeyIdentifier";
+    inline constexpr char fullRubyStylesheet[] = "DSContentFullRubyCSS";
     inline constexpr char headwordCount[] = "DSContentHeadwordCount";
     inline constexpr char audioCount[] = "DSContentAudioCount";
 }

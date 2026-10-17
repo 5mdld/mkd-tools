@@ -61,6 +61,7 @@ namespace MKD
         [[nodiscard]] const std::string& id() const noexcept;
         [[nodiscard]] const DictionaryContent& content() const noexcept;
         [[nodiscard]] const DictionarySearchConfiguration& searchConfiguration() const noexcept;
+        [[nodiscard]] const DictionaryPresentation& presentation() const noexcept;
         /** Maps loose resources or reads supported packed resources on demand. */
         [[nodiscard]] Result<RetainedSpan> resource(std::string_view relativePath) const;
 

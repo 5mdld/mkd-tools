@@ -57,12 +57,29 @@ namespace MKD::detail
             if (*text)
                 for (const auto* language : {&(*text)->en, &(*text)->ja})
                     if (*language)
-                        if (auto valid = WriteValidation::xmlText(**language, true); !valid) return valid;
+                        if (auto valid = WriteValidation::xmlText(**language, true); !valid)
+                            return valid;
 
         for (const auto* text : {&metadata.category, &metadata.version, &metadata.requiredDicKitVersion})
             if (*text)
-                if (auto valid = WriteValidation::xmlText(**text); !valid) return valid;
+                if (auto valid = WriteValidation::xmlText(**text); !valid)
+                    return valid;
 
+        return {};
+    }
+
+    Result<void> CreationMetadata::validatePresentation(const DictionaryPresentation& presentation)
+    {
+        if (presentation.fullRubyStylesheet)
+        {
+            const auto& path = *presentation.fullRubyStylesheet;
+            if (auto valid = WriteValidation::relativePath(path); !valid)
+                return valid;
+            if (auto valid = WriteValidation::xmlText(path); !valid)
+                return valid;
+            if (!path.ends_with(".css") || path.find_first_of("?#") != std::string::npos)
+                return std::unexpected("Full-ruby stylesheet must be a relative CSS path");
+        }
         return {};
     }
 
@@ -93,16 +110,21 @@ namespace MKD::detail
             if (*text)
                 for (const auto* language : {&(*text)->en, &(*text)->ja})
                     if (*language)
-                        if (auto valid = WriteValidation::xmlText(**language, true); !valid) return valid;
+                        if (auto valid = WriteValidation::xmlText(**language, true); !valid)
+                            return valid;
 
         if (content.version)
-            if (auto valid = WriteValidation::xmlText(*content.version); !valid) return valid;
+            if (auto valid = WriteValidation::xmlText(*content.version); !valid)
+                return valid;
 
         if (content.keyNormalization && *content.keyNormalization != native::search::defaultNormalization.name.data())
             return std::unexpected("Creation currently supports the default native key normalisation");
 
         if (content.hasHeadlineKeyIdentifier.value_or(false))
             return std::unexpected("Headline key identifiers require a dedicated authoring profile");
+
+        if (auto valid = validatePresentation(content.presentation); !valid)
+            return valid;
 
         content.keyNormalization = native::search::defaultNormalization.name.data();
         content.hasHeadlineKeyIdentifier = false;
@@ -144,15 +166,20 @@ namespace MKD::detail
             return;
 
         dictionary.append_child("key").text().set(std::string(key).c_str());
+
         auto languages = dictionary.append_child("dict");
-        if (value->en) string(languages, metadata::language::english, *value->en);
-        if (value->ja) string(languages, metadata::language::japanese, *value->ja);
+        if (value->en)
+            string(languages, metadata::language::english, *value->en);
+        if (value->ja)
+            string(languages, metadata::language::japanese, *value->ja);
     }
 
     Result<void> CreationMetadata::writePlist(const std::filesystem::path& path, pugi::xml_document& document)
     {
         OutputFile file(path, false);
-        if (!file.isOpen()) return std::unexpected("Cannot create property list: " + path.string());
+        if (!file.isOpen())
+            return std::unexpected("Cannot create property list: " + path.string());
+
         document.save(file.stream(), "  ", pugi::format_default, pugi::encoding_utf8);
         return file.finish().transform([](uint64_t)
         {
@@ -163,7 +190,7 @@ namespace MKD::detail
                                                 const DictionaryMetadata& metadata)
     {
         std::string json;
-        if (auto error = glz::write_json(metadata, json); error)
+        if (const auto error = glz::write_json(metadata, json); error)
             return std::unexpected("Cannot serialise product metadata");
 
         const auto bytes = std::span(reinterpret_cast<const uint8_t*>(json.data()), json.size());
@@ -194,6 +221,10 @@ namespace MKD::detail
                metadata.keyNormalization.value_or(native::search::defaultNormalization.name.data()));
         boolean(dictionary, metadata::content::hasHeadlineKeyIdentifier,
                 metadata.hasHeadlineKeyIdentifier.value_or(false));
+
+        if (metadata.presentation.fullRubyStylesheet)
+            string(dictionary, metadata::content::fullRubyStylesheet, *metadata.presentation.fullRubyStylesheet);
+
         integer(dictionary, metadata::content::headwordCount, headwords);
         integer(dictionary, metadata::content::audioCount, audio);
         localized(dictionary, metadata::content::title, metadata.title);
