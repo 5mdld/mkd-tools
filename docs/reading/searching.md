@@ -7,26 +7,50 @@ Choose three things: **policy** (dictionary-specific rules or direct lookup),
 
 ## Open a dictionary
 
-```cpp
-auto product = MKD::DictionaryProduct::openAtPath(
-    dictionariesDirectory / "DAIJISEN2").value();
+=== "C++"
 
-const auto* dictionary = product.findContent("DAIJISEN.J");
-if (!dictionary)
-    return std::unexpected("DAIJISEN.J is not present in this product.");
+    ```cpp
+    auto product = MKD::DictionaryProduct::openAtPath(
+        dictionariesDirectory / "DAIJISEN2").value();
 
-MKD::DictionarySearch search(*dictionary);
-```
+    const auto* dictionary = product.findContent("DAIJISEN.J");
+    if (!dictionary)
+        return std::unexpected("DAIJISEN.J is not present in this product.");
 
-This example selects 大辞泉 by content identifier. Keep the dictionary alive
-at the same address while `search` exists. Reuse the search object for subsequent
-queries.
+    MKD::DictionarySearch search(*dictionary);
+    ```
+
+    Keep the dictionary alive at the same address while `search` exists.
+
+=== "Python"
+
+    ```python
+    product = mkd.DictionaryProduct.open(dictionaries_directory / "DAIJISEN2")
+    dictionary = product.find_content("DAIJISEN.J")
+    if dictionary is None:
+        raise LookupError("DAIJISEN.J is not present in this product")
+
+    search = mkd.DictionarySearch(dictionary)
+    ```
+
+    The search object retains its dictionary, which retains the product.
+
+This example selects 大辞泉 by content identifier. Reuse the search object for
+subsequent queries.
 
 ## Search using the dictionary's rules
 
-```cpp
-auto result = search.search("つぐみ").value();
-```
+=== "C++"
+
+    ```cpp
+    auto result = search.search("つぐみ").value();
+    ```
+
+=== "Python"
+
+    ```python
+    result = search.search("つぐみ")
+    ```
 
 The defaults are `Headword`, `Prefix`, `Native`, with no result limit. For the
 installed 大辞泉 edition, this finds both the bird 鶫 and a book titled つぐみ.
@@ -48,10 +72,19 @@ The algorithm is not identical across these dictionaries. A scope's name alone
 does not determine the lookup steps. Native rules are implemented for recognised
 profiles, rather than by calling the native app. Linguistic support can vary by platform.
 
-```cpp
-bool recognised = search.supportsNativeSearch();
-auto availableScopes = search.scopes(MKD::SearchFallback::Native);
-```
+=== "C++"
+
+    ```cpp
+    bool recognised = search.supportsNativeSearch();
+    auto availableScopes = search.scopes(MKD::SearchFallback::Native);
+    ```
+
+=== "Python"
+
+    ```python
+    recognised = search.supports_native_search
+    available_scopes = search.scopes(fallback=mkd.SearchFallback.NATIVE)
+    ```
 
 An unrecognised native profile returns an error on native search. The support
 check covers the class, delegate, and normalisation profile, not availability of
@@ -59,13 +92,26 @@ every scope or platform linguistic feature.
 
 ## Request an exact lookup without broadening
 
-```cpp
-auto exact = search.search("つぐみ", {
-    .scope = MKD::SearchScope::Headword,
-    .match = MKD::SearchMode::Exact,
-    .fallback = MKD::SearchFallback::None,
-}).value();
-```
+=== "C++"
+
+    ```cpp
+    auto exact = search.search("つぐみ", {
+        .scope = MKD::SearchScope::Headword,
+        .match = MKD::SearchMode::Exact,
+        .fallback = MKD::SearchFallback::None,
+    }).value();
+    ```
+
+=== "Python"
+
+    ```python
+    exact = search.search(
+        "つぐみ",
+        scope=mkd.SearchScope.HEADWORD,
+        match=mkd.SearchMode.EXACT,
+        fallback=mkd.SearchFallback.NONE,
+    )
+    ```
 
 `None` treats the query as one normalised key and searches the selected scope's
 indexes. It skips native term splitting, inflection retries, supplementary-index
@@ -83,17 +129,30 @@ normalisation.
 
 ## Prefix and suffix matching
 
-```cpp
-auto beginning = search.search("つぐ", {
-    .match = MKD::SearchMode::Prefix,
-    .fallback = MKD::SearchFallback::None,
-}).value();
+=== "C++"
 
-auto ending = search.search("ぐみ", {
-    .match = MKD::SearchMode::Suffix,
-    .fallback = MKD::SearchFallback::None,
-}).value();
-```
+    ```cpp
+    auto beginning = search.search("つぐ", {
+        .match = MKD::SearchMode::Prefix,
+        .fallback = MKD::SearchFallback::None,
+    }).value();
+
+    auto ending = search.search("ぐみ", {
+        .match = MKD::SearchMode::Suffix,
+        .fallback = MKD::SearchFallback::None,
+    }).value();
+    ```
+
+=== "Python"
+
+    ```python
+    beginning = search.search(
+        "つぐ", match=mkd.SearchMode.PREFIX, fallback=mkd.SearchFallback.NONE,
+    )
+    ending = search.search(
+        "ぐみ", match=mkd.SearchMode.SUFFIX, fallback=mkd.SearchFallback.NONE,
+    )
+    ```
 
 Both queries can find `つぐみ` when that key is present. Prefix matching compares
 the start of a key, suffix matching its end. Records marked exact-only are
@@ -101,15 +160,27 @@ excluded from prefix and suffix results. An absent required index yields no matc
 
 ## Select a scope
 
-```cpp
-auto directScopes = search.scopes(MKD::SearchFallback::None);
+=== "C++"
 
-auto examples = search.search("鳥", {
-    .scope = MKD::SearchScope::Example,
-    .match = MKD::SearchMode::Prefix,
-    .fallback = MKD::SearchFallback::None,
-}).value();
-```
+    ```cpp
+    auto directScopes = search.scopes(MKD::SearchFallback::None);
+
+    auto examples = search.search("鳥", {
+        .scope = MKD::SearchScope::Example,
+        .match = MKD::SearchMode::Prefix,
+        .fallback = MKD::SearchFallback::None,
+    }).value();
+    ```
+
+=== "Python"
+
+    ```python
+    direct_scopes = search.scopes(fallback=mkd.SearchFallback.NONE)
+    examples = search.search(
+        "鳥", scope=mkd.SearchScope.EXAMPLE,
+        match=mkd.SearchMode.PREFIX, fallback=mkd.SearchFallback.NONE,
+    )
+    ```
 
 | Scope | Indexed material |
 | --- | --- |
@@ -127,25 +198,45 @@ subject to native retries when enabled.
 
 ## Read results and understand fallbacks
 
-```cpp
-for (const auto& entry : result.entries)
-{
-    auto headline = dictionary->headlineForEntryId(entry).value();
-    auto xml = dictionary->entryUtf8ById(entry.pageId).value();
-}
+=== "C++"
 
-auto effectiveScope = result.scope;
-for (const auto& match : result.matches)
-{
-    auto key = match.key;
-    auto mode = match.match;
-    auto origin = match.origin;
-}
-```
+    ```cpp
+    for (const auto& entry : result.entries)
+    {
+        auto headline = dictionary->headlineForEntryId(entry).value();
+        auto xml = dictionary->entryUtf8ById(entry.pageId).value();
+    }
 
-`entries` contains ordered page/anchor targets. A headline can contain native
-formatting tokens. `entryUtf8ById()` returns the complete article XML as an owning
-UTF-8 string, including when the target refers to an anchor within it.
+    auto effectiveScope = result.scope;
+    for (const auto& match : result.matches)
+    {
+        auto key = match.key;
+        auto mode = match.match;
+        auto origin = match.origin;
+    }
+    ```
+
+    `result.entries` contains ordered page/anchor targets. `entryUtf8ById()`
+    returns the complete article XML as an owning UTF-8 string.
+
+=== "Python"
+
+    ```python
+    for entry in result:
+        headline = dictionary.headline_for_entry_id(entry)
+        xml = dictionary.entry_xml(entry.page_id)
+
+    effective_scope = result.scope
+    for match in result.matches:
+        key, mode, origin = match.key, match.match, match.origin
+    ```
+
+    The result is an iterable sequence of `EntryId` values. Use `len(result)`
+    and `result[index]` to inspect it. `entry_xml()` returns the complete article
+    XML as a Python string.
+
+A headline can contain native formatting tokens. Article lookup returns the entire
+page even when the target refers to an anchor within it.
 
 `scope` is the scope that produced the results. `matches` describes the normalised
 query terms or variations that contributed to the search, including their actual
@@ -157,28 +248,43 @@ relevance score. No matches is a successful empty result.
 
 ## Limit or cancel a search
 
-```cpp
-std::stop_source cancellation;
-auto limited = search.search("つ", {.limit = 20}, cancellation.get_token());
-```
+=== "C++"
+
+    ```cpp
+    std::stop_source cancellation;
+    auto limited = search.search("つ", {.limit = 20}, cancellation.get_token());
+    ```
+
+    Another thread can call `cancellation.request_stop()`. Cancellation returns
+    an error. Each call has an independent cancellation token.
+
+=== "Python"
+
+    ```python
+    limited = search.search("つ", limit=20)
+    ```
+
+    Python searches currently have no cancellation token argument.
 
 `limit = 0` means unlimited. Limits apply after filtering and ordering, and
 `result.truncated` reports omitted results. This is a result-size limit, not a
-bound on work performed. Another thread can call `cancellation.request_stop()`.
-Cancellation returns an error. Calls on the same search object may run concurrently
-and have independent cancellation tokens.
+bound on work performed. Calls on the same search object may run concurrently.
 
 ## Inspect an index directly
 
 Use `DictionarySearch` for dictionary-aware queries. To inspect the keys and
 postings of one particular index, use the lower-level keystore API:
 
-```cpp
-const auto& store = dictionary->keystores().front();
-auto hits = MKD::keystoreSearchResults(store, "つぐみ", MKD::SearchMode::Exact).value();
-```
+=== "C++"
+
+    ```cpp
+    const auto& store = dictionary->keystores().front();
+    auto hits = MKD::keystoreSearchResults(store, "つぐみ", MKD::SearchMode::Exact).value();
+    ```
 
 Select the intended store by its `scope()` or `filename()` rather than assuming
 the first one is the headword index. This API compares keys in that store without
 `DictionarySearch`'s query normalisation or native rules. Supply a key already
 normalised for that index. Returned key views borrow the keystore.
+
+The low-level keystore inspection API above is currently C++ only.

@@ -28,12 +28,21 @@ DAIJISEN2/                      # Product root passed to DictionaryProduct::open
 `Shogakukan-DJS` is a directory name, while `DAIJISEN.J` is the dictionary's
 content identifier used by the API:
 
-```cpp
-auto product = MKD::DictionaryProduct::openAtPath(
-    dictionariesDirectory / "DAIJISEN2").value();
+=== "C++"
 
-const auto* dictionary = product.findContent("DAIJISEN.J");
-```
+    ```cpp
+    auto product = MKD::DictionaryProduct::openAtPath(
+        dictionariesDirectory / "DAIJISEN2").value();
+
+    const auto* dictionary = product.findContent("DAIJISEN.J");
+    ```
+
+=== "Python"
+
+    ```python
+    product = mkd.DictionaryProduct.open(dictionaries_directory / "DAIJISEN2")
+    dictionary = product.find_content("DAIJISEN.J")
+    ```
 
 `findContent()` returns `nullptr` if the identifier is absent. For other products,
 inspect `product.dictionaries()` and each dictionary's `id()` and `content()`.
@@ -55,25 +64,48 @@ For example, 大辞泉's `つぐみ` also finds a book title.
 
 When writing a dictionary, supply each part explicitly:
 
-```cpp
-dictionary.addPage(1, articleXml).value();
-dictionary.addHeadline({
-    .headline = u"鶫",
-    .sortingHeadline = u"つぐみ",
-    .entryId = {1, 0},
-}).value();
-dictionary.addSearchKey(MKD::SearchScope::Headword, "つぐみ", {1, 0}).value();
-```
+=== "C++"
+
+    ```cpp
+    dictionary.addPage(1, articleXml).value();
+    dictionary.addHeadline({
+        .headline = u"鶫",
+        .sortingHeadline = u"つぐみ",
+        .entryId = {1, 0},
+    }).value();
+    dictionary.addSearchKey(MKD::SearchScope::Headword, "つぐみ", {1, 0}).value();
+    ```
+
+=== "Python"
+
+    ```python
+    target = mkd.EntryId(1, 0)
+    dictionary.add_page(1, article_xml)
+    dictionary.add_headline(mkd.HeadlineComponents(
+        headline="鶫", sorting_headline="つぐみ", entry_id=target,
+    ))
+    dictionary.add_search_key(mkd.SearchScope.HEADWORD, "つぐみ", target)
+    ```
 
 `sortingHeadline` is separate sorting text. It does not add a searchable reading.
-Article XML and search keys use UTF-8. Headline fields use UTF-16.
+C++ article XML and search keys use UTF-8, and headline fields use UTF-16.
+Python accepts Unicode strings for all text fields.
 
 ## A target can be a page or an anchor
 
-```cpp
-MKD::EntryId article{1, 0};
-MKD::EntryId exampleInsideArticle{1, 10};
-```
+=== "C++"
+
+    ```cpp
+    MKD::EntryId article{1, 0};
+    MKD::EntryId exampleInsideArticle{1, 10};
+    ```
+
+=== "Python"
+
+    ```python
+    article = mkd.EntryId(1, 0)
+    example_inside_article = mkd.EntryId(1, 10)
+    ```
 
 `pageId` identifies the XML document. `itemId == 0` selects the whole page.
 A nonzero `itemId` selects an anchor in that page, such as an individual example
