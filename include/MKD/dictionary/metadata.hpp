@@ -10,6 +10,9 @@
 #include <glaze/glaze.hpp>
 
 #include <filesystem>
+#include <charconv>
+#include <variant>
+#include <vector>
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -61,6 +64,7 @@ namespace MKD
         std::optional<std::string> category;
         std::optional<std::string> version;
         std::optional<std::string> productSearchClass;
+        std::optional<std::string> productDelegateClass;
         std::vector<DictionaryContent> contents;
         std::vector<std::string> searchScopeNames;
         std::vector<std::string> fonts;
@@ -86,10 +90,32 @@ template <>
 struct glz::meta<MKD::DictionaryContent>
 {
     using T = MKD::DictionaryContent;
+    static constexpr auto readDictionaryId = [](T& content,
+                                                const std::optional<std::variant<uint16_t, std::string>>& value,
+                                                glz::context& context)
+    {
+        if (!value)
+            content.dictionaryId.reset();
+        else if (const auto numeric = std::get_if<uint16_t>(&*value))
+            content.dictionaryId = *numeric;
+        else
+        {
+            const auto& text = std::get<std::string>(*value);
+            uint16_t number{};
+            const auto parsed = std::from_chars(text.data(), text.data() + text.size(), number);
+            if (parsed.ec != std::errc{} || parsed.ptr != text.data() + text.size())
+            {
+                context.error = glz::error_code::constraint_violated;
+                context.custom_error_message = "Dictionary ID must be an unsigned 16-bit integer";
+            }
+            else
+                content.dictionaryId = number;
+        }
+    };
     static constexpr auto value = object(
         MKD::detail::metadata::content::identifier, &T::identifier,
         MKD::detail::metadata::content::directory, &T::directory,
-        MKD::detail::metadata::content::dictionaryId, &T::dictionaryId,
+        MKD::detail::metadata::content::dictionaryId, glz::custom<readDictionaryId, &T::dictionaryId>,
         MKD::detail::metadata::content::version, &T::version,
         MKD::detail::metadata::content::title, &T::title,
         MKD::detail::metadata::content::publisher, &T::publisher,
@@ -113,6 +139,7 @@ struct glz::meta<MKD::DictionaryMetadata>
         MKD::detail::metadata::product::category, &T::category,
         MKD::detail::metadata::product::version, &T::version,
         MKD::detail::metadata::product::searchClass, &T::productSearchClass,
+        MKD::detail::metadata::product::delegateClass, &T::productDelegateClass,
         MKD::detail::metadata::product::contents, &T::contents,
         MKD::detail::metadata::product::searchScopeNames, &T::searchScopeNames,
         MKD::detail::metadata::product::fonts, &T::fonts,

@@ -4,6 +4,7 @@
 
 #include "MKD/dictionary/dictionary_product.hpp"
 #include "native_format.hpp"
+#include "content_info.hpp"
 #include "MKD/resource/resource_loader.hpp"
 
 #include <algorithm>
@@ -101,20 +102,28 @@ namespace MKD
         }
 
         Result<std::vector<Dictionary>> buildDictionaries(const DictionaryMetadata& metadata,
-                                                          const ResourceLoader& loader)
+                                                          const ResourceLoader& loader, const DictionaryPaths& paths)
         {
             std::vector<Dictionary> dictionaries;
             dictionaries.reserve(metadata.contents.size());
             const DictionarySearchConfiguration searchConfiguration{
                 .productSearchClass = metadata.productSearchClass,
+                .productDelegateClass = metadata.productDelegateClass,
             };
 
             for (const auto& contentDef : metadata.contents)
             {
-                auto resources = loadResources(loader, contentDef);
+                auto content = contentDef;
+                auto configuration = searchConfiguration;
+                const auto directory = paths.productRoot() / detail::native::paths::productContents / content.directory;
+                if (auto info = detail::ContentInfo::load(directory, content, configuration); !info)
+                    return std::unexpected(info.error());
+
+                auto resources = loadResources(loader, content);
                 if (!resources)
                     return std::unexpected(std::format("Content '{}': {}", contentDef.identifier, resources.error()));
-                dictionaries.emplace_back(contentDef, std::move(*resources), searchConfiguration);
+
+                dictionaries.emplace_back(std::move(content), std::move(*resources), std::move(configuration));
             }
 
             return dictionaries;
@@ -126,6 +135,7 @@ namespace MKD
             dictionaries.reserve(metadata.contents.size());
             const DictionarySearchConfiguration searchConfiguration{
                 .productSearchClass = metadata.productSearchClass,
+                .productDelegateClass = metadata.productDelegateClass,
             };
 
             for (const auto& contentDef : metadata.contents)
@@ -173,7 +183,7 @@ namespace MKD
             return std::unexpected(base.error());
 
         ResourceLoader loader(base->paths);
-        auto dictionaries = buildDictionaries(base->metadata, loader);
+        auto dictionaries = buildDictionaries(base->metadata, loader, base->paths);
         if (!dictionaries)
             return std::unexpected(dictionaries.error());
         return DictionaryProduct(std::move(base->metadata), std::move(base->paths), std::move(*dictionaries));

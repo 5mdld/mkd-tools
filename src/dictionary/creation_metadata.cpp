@@ -4,6 +4,7 @@
 
 #include "creation_metadata.hpp"
 #include "native_format.hpp"
+#include "native_search.hpp"
 #include "io/output_file.hpp"
 #include "io/write_validation.hpp"
 
@@ -45,10 +46,13 @@ namespace MKD::detail
         if (!metadata.fonts.empty() || !metadata.searchScopeNames.empty())
             return std::unexpected("Fonts and search scopes are generated from dictionary resources");
 
-        if (metadata.productSearchClass && *metadata.productSearchClass != native::defaults::searchClass)
+        if (metadata.productSearchClass && *metadata.productSearchClass != native::search::defaultClass.name.data())
             return std::unexpected("Specialised native search classes need an authoring profile");
 
-        metadata.productSearchClass = native::defaults::searchClass;
+        if (metadata.productDelegateClass)
+            return std::unexpected("Specialised native delegates need an authoring profile");
+
+        metadata.productSearchClass = native::search::defaultClass.name.data();
         for (const auto* text : {&metadata.displayName, &metadata.description, &metadata.genre, &metadata.productTitle})
             if (*text)
                 for (const auto* language : {&(*text)->en, &(*text)->ja})
@@ -94,13 +98,13 @@ namespace MKD::detail
         if (content.version)
             if (auto valid = WriteValidation::xmlText(*content.version); !valid) return valid;
 
-        if (content.keyNormalization && *content.keyNormalization != native::defaults::keyNormalization)
+        if (content.keyNormalization && *content.keyNormalization != native::search::defaultNormalization.name.data())
             return std::unexpected("Creation currently supports the default native key normalisation");
 
         if (content.hasHeadlineKeyIdentifier.value_or(false))
             return std::unexpected("Headline key identifiers require a dedicated authoring profile");
 
-        content.keyNormalization = native::defaults::keyNormalization;
+        content.keyNormalization = native::search::defaultNormalization.name.data();
         content.hasHeadlineKeyIdentifier = false;
         return {};
     }
@@ -187,7 +191,7 @@ namespace MKD::detail
         integer(dictionary, metadata::content::dictionaryId, *metadata.dictionaryId);
         string(dictionary, metadata::content::version, metadata.version.value_or(native::defaults::contentVersion));
         string(dictionary, metadata::content::keyNormalization,
-               metadata.keyNormalization.value_or(native::defaults::keyNormalization));
+               metadata.keyNormalization.value_or(native::search::defaultNormalization.name.data()));
         boolean(dictionary, metadata::content::hasHeadlineKeyIdentifier,
                 metadata.hasHeadlineKeyIdentifier.value_or(false));
         integer(dictionary, metadata::content::headwordCount, headwords);

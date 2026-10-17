@@ -3,6 +3,7 @@ target_sources(mkd PRIVATE
         dictionary_product.cpp
         dictionary_search.cpp
         metadata.cpp
+        content_info.cpp
         paths.cpp
         text_normalize.cpp
         product_writer.cpp

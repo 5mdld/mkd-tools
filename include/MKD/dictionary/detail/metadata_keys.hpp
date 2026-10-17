@@ -8,11 +8,17 @@ namespace MKD::detail::metadata::language
 {
     inline constexpr char english[] = "en";
     inline constexpr char japanese[] = "ja";
+    inline constexpr char french[] = "fr";
+    inline constexpr char italian[] = "it";
+    inline constexpr char german[] = "de";
+    inline constexpr char spanish[] = "es";
+    inline constexpr char portuguese[] = "pt";
 }
 
 namespace MKD::detail::metadata::content
 {
     inline constexpr char identifier[] = "DSContentIdentifier";
+    inline constexpr char type[] = "DSContentType";
     inline constexpr char directory[] = "DSContentDirectory";
     inline constexpr char dictionaryId[] = "DSContentDictionaryID";
     inline constexpr char version[] = "DSContentVersion";
@@ -35,6 +41,7 @@ namespace MKD::detail::metadata::product
     inline constexpr char identifier[] = "DSProductIdentifier";
     inline constexpr char category[] = "DSProductCategory";
     inline constexpr char version[] = "DSProductVersion";
+    inline constexpr char delegateClass[] = "DSProductDelegateClass";
     inline constexpr char searchClass[] = "DSProductSearchClass";
     inline constexpr char contents[] = "DSProductContents";
     inline constexpr char searchScopeNames[] = "DSProductSearchScopeNames";

@@ -40,6 +40,14 @@ namespace MKD
     struct DictionarySearchConfiguration
     {
         std::optional<std::string> productSearchClass;
+        std::optional<std::string> productDelegateClass;
+        struct EntryRange
+        {
+            uint32_t minimum;
+            uint32_t maximum;
+        };
+        std::optional<EntryRange> modernEntryRange;
+        bool allowsScopeFallback = true;
     };
 
 
