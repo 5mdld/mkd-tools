@@ -16,6 +16,8 @@ namespace MKD::detail
     class OutputFile
     {
     public:
+        static Result<void> writeAll(const std::filesystem::path& path, std::span<const uint8_t> bytes);
+
         OutputFile(const std::filesystem::path& path, bool overwrite);
         ~OutputFile();
         OutputFile(const OutputFile&) = delete;

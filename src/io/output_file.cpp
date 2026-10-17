@@ -9,6 +9,20 @@
 
 namespace MKD::detail
 {
+    Result<void> OutputFile::writeAll(const std::filesystem::path& path, std::span<const uint8_t> bytes)
+    {
+        OutputFile file(path, false);
+        if (!file.isOpen())
+            return std::unexpected("Cannot create output file: " + path.string());
+
+        if (auto result = file.write(bytes); !result)
+            return result;
+
+        return file.finish().transform([](uint64_t)
+        {
+        });
+    }
+
     OutputFile::OutputFile(const std::filesystem::path& path, bool overwrite)
         : path_(path), stream_(path, std::ios::binary | std::ios::out |
                                (overwrite ? std::ios::trunc : std::ios::noreplace))
