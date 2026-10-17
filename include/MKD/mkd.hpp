@@ -11,6 +11,7 @@
 #include "MKD/dictionary/dictionary_search.hpp"
 #include "MKD/dictionary/metadata.hpp"
 #include "MKD/dictionary/paths.hpp"
+#include "MKD/dictionary/product_writer.hpp"
 
 #include "MKD/output/export.hpp"
 

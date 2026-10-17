@@ -5,6 +5,11 @@ target_sources(mkd PRIVATE
         metadata.cpp
         paths.cpp
         text_normalize.cpp
+        product_writer.cpp
+        dictionary_writer.cpp
+        creation_metadata.cpp
+        creation_page.cpp
+        creation_session.cpp
 )
 
 target_link_libraries(mkd PUBLIC glaze::glaze)
