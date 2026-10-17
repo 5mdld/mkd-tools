@@ -13,6 +13,11 @@ namespace MKD
     class DictionaryProduct
     {
     public:
+        DictionaryProduct(DictionaryProduct&&) noexcept = default;
+        DictionaryProduct& operator=(DictionaryProduct&&) noexcept = default;
+        DictionaryProduct(const DictionaryProduct&) = delete;
+        DictionaryProduct& operator=(const DictionaryProduct&) = delete;
+
         static Result<DictionaryProduct> openAtPath(const fs::path& path);
 
         // Lightweight open: loads metadata and paths only.

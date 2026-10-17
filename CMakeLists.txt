@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(BUILD_TESTING "Build tests" OFF)
+option(MKD_BUILD_PYTHON "Build Python bindings" OFF)
 option(MKD_BUILD_CLI "Build command-line interface" ON)
 option(MKD_BUILD_RECEIPT_APP "Build macOS receipt app" OFF)
 
@@ -39,4 +40,8 @@ endif ()
 if (BUILD_TESTING)
     enable_testing()
     add_subdirectory(test)
+endif ()
+
+if (MKD_BUILD_PYTHON)
+    add_subdirectory(python)
 endif ()

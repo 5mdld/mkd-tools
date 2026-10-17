@@ -88,3 +88,10 @@ coverage/
 *.app/Contents/MacOS/
 *.app/Contents/Resources/
 *.app/Contents/_CodeSignature/
+
+# Python build and interpreter files
+__pycache__/
+*.py[cod]
+.venv/
+dist/
+*.whl

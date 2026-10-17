@@ -36,6 +36,14 @@ Use `--only` to limit export to specific resource types (`audio`, `entries`, `ap
 
 Output goes to `./mkd-export/<product-id>` by default, configurable with `-o`.
 
+### Python bindings
+
+Requires Python 3.10 or newer:
+
+```sh
+python -m pip install .
+```
+
 ### macOS receipt app
 
 A lightweight SwiftUI app is included at `apps/monokakido-receipt-ui`.  Build it with the Xcode generator:

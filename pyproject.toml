@@ -1,0 +1,20 @@
+[build-system]
+requires = ["scikit-build-core>=1.1,<2", "nanobind>=3.1,<4"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "mkd-tools"
+version = "0.1.0"
+description = "Read, search, and create Monokakido dictionaries"
+requires-python = ">=3.10"
+
+[tool.scikit-build]
+cmake.version = ">=3.31"
+wheel.packages = ["python/mkd"]
+build.targets = ["_mkd", "mkd-python-stubs"]
+
+[tool.scikit-build.cmake.define]
+MKD_BUILD_PYTHON = "ON"
+MKD_BUILD_CLI = "OFF"
+MKD_BUILD_RECEIPT_APP = "OFF"
+BUILD_TESTING = "OFF"
