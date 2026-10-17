@@ -9,6 +9,7 @@
 #include <span>
 #include <vector>
 #include <optional>
+#include <stop_token>
 
 namespace MKD::detail
 {
@@ -58,5 +59,6 @@ namespace MKD::detail::keystore
      * @param wideCount  If true, count field is uint32 instead of uint16
      * @return Decoded entry ids, or an error
      */
-    [[nodiscard]] Result<std::vector<EntryId>> decodeEntryIds(std::span<const uint8_t> data, bool wideCount = false);
+    [[nodiscard]] Result<std::vector<EntryId>> decodeEntryIds(std::span<const uint8_t> data, bool wideCount = false,
+                                                              std::stop_token stop = {});
 }

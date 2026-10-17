@@ -6,6 +6,8 @@
 #include "MKD/platform/mmap_file.hpp"
 #include "binary/binary_view.hpp"
 #include "entry_id_codec.hpp"
+#include "keystore_format.hpp"
+#include "unicode/utf8.hpp"
 
 #include <array>
 #include <algorithm>
@@ -101,6 +103,8 @@ namespace MKD
             auto key = word->nullTerminatedString(5);
             if (!key)
                 return std::unexpected(key.error());
+            if (detail::unicode::firstInvalidUtf8Offset(*key))
+                return std::unexpected("Keystore key is not valid UTF-8");
 
             return WordEntry{
                 .key = *key,
@@ -109,23 +113,40 @@ namespace MKD
             };
         }
 
-        [[nodiscard]] Result<std::vector<EntryId>> decodeIds(const WordEntry& word) const
+        [[nodiscard]] Result<std::vector<EntryId>> decodeIds(const WordEntry& word,
+                                                             const KeystoreIdMapping mapping = KeystoreIdMapping::Resolved,
+                                                             std::stop_token stop = {}) const
         {
             auto data = words.tail(word.pagesOffset);
             if (!data)
                 return std::unexpected(data.error());
 
-            auto ids = detail::keystore::decodeEntryIds(data->bytes(), (word.flags & 0x04) != 0);
+            auto ids = detail::keystore::decodeEntryIds(data->bytes(),
+                (word.flags & detail::keystore::word::wideCount) != 0, stop);
             if (!ids)
                 return std::unexpected(ids.error());
 
-            for (auto& id : *ids)
-                if (id.pageId < conversions.bytes().size() / 8)
-                {
-                    const size_t offset = static_cast<size_t>(id.pageId) * 8;
-                    id = {*conversions.readLittle<uint32_t>(offset), *conversions.readLittle<uint16_t>(offset + 4)};
-                }
+            if (mapping == KeystoreIdMapping::Resolved)
+                resolveIds(*ids);
+
             return ids;
+        }
+
+        [[nodiscard]] EntryId mappedId(uint32_t keyId) const noexcept
+        {
+            const size_t offset = static_cast<size_t>(keyId) * 8;
+            return {*conversions.readLittle<uint32_t>(offset), *conversions.readLittle<uint16_t>(offset + 4)};
+        }
+
+        bool resolveIds(std::span<EntryId> ids) const noexcept
+        {
+            if (conversions.bytes().empty())
+                return false;
+
+            for (auto& id : ids)
+                if (id.pageId < conversions.bytes().size() / 8)
+                    id = mappedId(id.pageId);
+            return true;
         }
 
         Result<void> buildInverse() const
@@ -302,8 +323,15 @@ namespace MKD
         return entry->key;
     }
 
-    Result<std::vector<EntryId>> Keystore::entryIdsAt(const KeystoreIndex type, const size_t index) const
+    Result<std::vector<EntryId>> Keystore::entryIdsAt(const KeystoreIndex type, const size_t index,
+                                                      const KeystoreIdMapping mapping, std::stop_token stop) const
     {
+        if (mapping != KeystoreIdMapping::Stored && mapping != KeystoreIdMapping::Resolved)
+            return std::unexpected("Invalid keystore ID mapping mode");
+
+        if (stop.stop_requested())
+            return std::unexpected("Search cancelled");
+
         auto offset = impl_->wordOffset(type, index);
         if (!offset)
             return std::unexpected(offset.error());
@@ -312,7 +340,23 @@ namespace MKD
         if (!word)
             return std::unexpected(word.error());
 
-        return impl_->decodeIds(*word);
+        return impl_->decodeIds(*word, mapping, stop);
+    }
+
+    Result<std::optional<EntryId>> Keystore::entryIdForKeyId(uint32_t keyId) const
+    {
+        if (impl_->conversions.bytes().empty())
+            return std::optional<EntryId>{};
+
+        if (keyId >= impl_->conversions.bytes().size() / 8)
+            return std::unexpected("Keystore key ID has no entry mapping");
+
+        return impl_->mappedId(keyId);
+    }
+
+    bool Keystore::resolveEntryIds(std::span<EntryId> ids) const noexcept
+    {
+        return impl_->resolveIds(ids);
     }
 
     size_t Keystore::indexSize(KeystoreIndex type) const noexcept

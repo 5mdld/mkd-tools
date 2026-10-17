@@ -16,6 +16,8 @@
 #include <optional>
 #include <string_view>
 #include <vector>
+#include <span>
+#include <stop_token>
 
 namespace MKD
 {
@@ -25,6 +27,12 @@ namespace MKD
         Prefix = 1, // Index B — sorted by key (prefix search)
         Suffix = 2, // Index C — sorted by key suffix
         Other = 3, // Index D — other
+    };
+
+    enum class KeystoreIdMapping
+    {
+        Stored,
+        Resolved
     };
 
     struct KeystoreEntry
@@ -67,14 +75,22 @@ namespace MKD
 
         /**
          * Decode entry ids for a previously located keystore position.
-         * If the keystore has an embedded conversion table, ids are
-         * automatically remapped through it.
+         * Resolved IDs apply the embedded conversion table. Stored IDs retain
+         * native key order and can be resolved after search intersections.
          *
          * @param type Which index to query
          * @param index Position within that index
          * @return Entry ids for a keystore position, or an error
          */
-        [[nodiscard]] Result<std::vector<EntryId>> entryIdsAt(KeystoreIndex type, size_t index) const;
+        [[nodiscard]] Result<std::vector<EntryId>> entryIdsAt(KeystoreIndex type, size_t index,
+                                                              KeystoreIdMapping mapping = KeystoreIdMapping::Resolved,
+                                                              std::stop_token stop = {}) const;
+
+        /** No value means there is no conversion table. An out-of-range key ID is an error. */
+        [[nodiscard]] Result<std::optional<EntryId>> entryIdForKeyId(uint32_t keyId) const;
+
+        /** Resolve stored key IDs in place, preserving order. Returns whether a mapping exists. */
+        bool resolveEntryIds(std::span<EntryId> ids) const noexcept;
 
         /// Number of entries in the given index (0 if absent).
         [[nodiscard]] size_t indexSize(KeystoreIndex type) const noexcept;

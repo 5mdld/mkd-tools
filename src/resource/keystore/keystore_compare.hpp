@@ -22,9 +22,6 @@ namespace MKD::detail::keystore
     std::u32string normalizeKeyToUTF32(std::string_view s, bool reverse);
 
 
-    size_t normalizedLength(std::string_view s);
-
-
     enum class CompareMode
     {
         Forward, // prefix
@@ -38,4 +35,5 @@ namespace MKD::detail::keystore
      * @return <0 if a < b, 0 if equal, >0 if a > b
      */
     int compare(std::string_view a, std::string_view b, CompareMode mode);
+    int comparePrefix(std::string_view key, std::string_view query, CompareMode mode);
 }

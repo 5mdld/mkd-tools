@@ -5,6 +5,7 @@
 #include "MKD/resource/keystore_writer.hpp"
 #include "entry_id_codec.hpp"
 #include "keystore_compare.hpp"
+#include "keystore_format.hpp"
 #include "binary/binary_buffer.hpp"
 #include "io/build_directory.hpp"
 #include "io/output_file.hpp"
@@ -129,7 +130,8 @@ namespace MKD
 
         offset = static_cast<uint32_t>(words.position());
         words.writeLittle(static_cast<uint32_t>(words.position() + 6 + key.size()));
-        words.writeByte(static_cast<uint8_t>((wide ? 4 : 0) | (options.exactOnly ? 8 : 0)));
+        words.writeByte(static_cast<uint8_t>((wide ? detail::keystore::word::wideCount : 0) |
+                                                (options.exactOnly ? detail::keystore::word::exactOnly : 0)));
         words.writeBytes(std::span(reinterpret_cast<const uint8_t*>(key.data()), key.size() + 1));
         if (wide)
             words.writeLittle(static_cast<uint32_t>(postings.size()));

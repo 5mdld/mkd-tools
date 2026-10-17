@@ -1,5 +1,5 @@
 //
-// Public keystore search API.
+// kiwakiwaaにより 2026/04/05 に作成されました。
 //
 
 #pragma once
@@ -9,6 +9,7 @@
 #include "MKD/resource/search_mode.hpp"
 
 #include <string_view>
+#include <stop_token>
 
 namespace MKD
 {
@@ -37,16 +38,17 @@ namespace MKD
     };
 
     /**
-     * Search a keystore index and return matching [begin, end) positions.
+     * Return matching [begin, end) positions. Exact searches exclude longer keys.
+     * Empty queries and absent indexes produce an empty range. Flags are filtered when collecting results.
      */
     [[nodiscard]] Result<KeystoreSearchRange> keystoreSearch(const Keystore& keystore,
                                                              std::string_view query,
-                                                             SearchMode mode);
+                                                             SearchMode mode, std::stop_token stop = {});
 
     /**
      * Collect full key + entry-id hits for the query.
      */
     [[nodiscard]] Result<std::vector<KeystoreSearchResult>> keystoreSearchResults(const Keystore& keystore,
-                                                                                   std::string_view query,
-                                                                                   SearchMode mode);
+        std::string_view query,
+        SearchMode mode, std::stop_token stop = {});
 }

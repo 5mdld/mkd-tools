@@ -39,9 +39,9 @@ TEST_F(KeystoreCompareTest, LengthModeShorterFirst)
     EXPECT_EQ(keystore::compare("abc", "ab", keystore::CompareMode::Length), 1);
 }
 
-TEST_F(KeystoreCompareTest, LengthModeIgnoreablesNotCounted)
+TEST_F(KeystoreCompareTest, LengthModeCountsSeparators)
 {
-    EXPECT_EQ(keystore::compare("a b", "ab", keystore::CompareMode::Length), 0);
+    EXPECT_EQ(keystore::compare("a b", "ab", keystore::CompareMode::Length), 1);
 }
 
 TEST_F(KeystoreCompareTest, LengthModeSameLengthFallsToForward)

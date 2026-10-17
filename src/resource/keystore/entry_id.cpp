@@ -98,7 +98,7 @@ namespace MKD::detail::keystore
         return entry;
     }
 
-    Result<std::vector<EntryId>> decodeEntryIds(std::span<const uint8_t> data, bool wideCount)
+    Result<std::vector<EntryId>> decodeEntryIds(std::span<const uint8_t> data, bool wideCount, std::stop_token stop)
     {
         const BinaryView input(data);
         auto count = wideCount ? input.readLittle<uint32_t>(0) : input.readLittle<uint32_t, 2>(0);
@@ -112,12 +112,19 @@ namespace MKD::detail::keystore
             return std::unexpected("Entry count exceeds the encoded data size");
 
         std::vector<EntryId> result;
+        if (stop.stop_requested())
+            return std::unexpected("Search cancelled");
+
         result.reserve(*count);
         for (uint32_t i = 0; i < *count; ++i)
         {
+            if ((i & 255) == 0 && stop.stop_requested())
+                return std::unexpected("Search cancelled");
+
             auto decoded = decodeKeystoreEntry(remaining->bytes());
             if (!decoded)
                 return std::unexpected(std::format("Entry {}: {}", i, decoded.error()));
+
             result.push_back({decoded->page, decoded->item});
             remaining = remaining->tail(decoded->bytesConsumed);
         }

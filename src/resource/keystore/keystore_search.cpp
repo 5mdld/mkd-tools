@@ -4,186 +4,116 @@
 
 #include "MKD/resource/keystore_search.hpp"
 #include "keystore_compare.hpp"
+#include "keystore_format.hpp"
 #include "unicode/unicode.hpp"
 
-#include <algorithm>
-#include <utility>
-
-namespace MKD
+namespace MKD::detail::keystore
 {
-    namespace detail
+    class IndexSearch
     {
-        keystore::CompareMode compareModeForSearch(const SearchMode mode)
+    public:
+        IndexSearch(const Keystore& store, std::string_view query, const SearchMode mode, std::stop_token stop)
+            : store_(store), query_(query), mode_(mode), stop_(stop),
+              index_(mode == SearchMode::Suffix ? KeystoreIndex::Suffix : KeystoreIndex::Prefix),
+              comparison_(mode == SearchMode::Suffix ? CompareMode::Backward : CompareMode::Forward)
         {
-            switch (mode)
-            {
-            case SearchMode::Prefix:
-            case SearchMode::Exact:
-                return keystore::CompareMode::Forward;
-            case SearchMode::Suffix:
-                return keystore::CompareMode::Backward;
-            }
-            std::unreachable();
         }
 
-
-        KeystoreIndex indexForSearch(const SearchMode mode)
+        [[nodiscard]] Result<KeystoreSearchRange> range() const
         {
-            switch (mode)
-            {
-            case SearchMode::Prefix:
-            case SearchMode::Exact: // todo should use KeystoreIndex::Length later
-                return KeystoreIndex::Prefix;
-            case SearchMode::Suffix:
-                return KeystoreIndex::Suffix;
-            }
-            std::unreachable();
+            const auto count = store_.indexSize(index_);
+            if (stop_.stop_requested())
+                return std::unexpected("Search cancelled");
+
+            if (unicode::firstInvalidUtf8Offset(query_) || query_.contains('\0'))
+                return std::unexpected("Search query must be valid UTF-8 without embedded nulls");
+
+            if (query_.empty() || count == 0)
+                return KeystoreSearchRange{.indexType = index_};
+
+            auto first = bound(0, count, false);
+            if (!first)
+                return std::unexpected(first.error());
+
+            auto last = bound(*first, count, true);
+            if (!last)
+                return std::unexpected(last.error());
+
+            return KeystoreSearchRange{*first, *last, index_};
         }
 
-        Result<size_t> indexLowerBound(const Keystore& keystore,
-                                       const KeystoreIndex indexType,
-                                       std::string_view searchKey,
-                                       const keystore::CompareMode mode)
+    private:
+        [[nodiscard]] Result<size_t> bound(size_t first, size_t last, bool upper) const
         {
-            size_t first = 0;
-            size_t count = keystore.indexSize(indexType);
-            while (count != 0)
+            // An ignorable-only query must not pull unrelated punctuation into its range.
+            const bool exact = mode_ == SearchMode::Exact || compare(query_, {}, comparison_) == 0;
+            while (first < last)
             {
-                const size_t step = count / 2;
-                const size_t middle = first + step;
-                auto key = keystore.keyAt(indexType, middle);
+                if (stop_.stop_requested())
+                    return std::unexpected("Search cancelled");
+
+                const auto middle = first + (last - first) / 2;
+                auto key = store_.keyAt(index_, middle);
                 if (!key)
                     return std::unexpected(key.error());
-                if (keystore::compare(*key, searchKey, mode) < 0)
-                {
+
+                const auto order = exact
+                                       ? compare(*key, query_, comparison_)
+                                       : comparePrefix(*key, query_, comparison_);
+                if (order < 0 || (upper && order == 0))
                     first = middle + 1;
-                    count -= step + 1;
-                }
                 else
-                    count = step;
+                    last = middle;
             }
             return first;
         }
 
+        const Keystore& store_;
+        std::string_view query_;
+        SearchMode mode_;
+        std::stop_token stop_;
+        KeystoreIndex index_;
+        CompareMode comparison_;
+    };
+}
 
-        /*
-         * Create the "next key" utf8 string for upperbound search
-         * returns empty if no upper bound needed
-         * that is search to end of index
-         */
-        std::string createNextKey(std::string_view searchKey, const SearchMode mode)
-        {
-            const bool reverse = (mode == SearchMode::Suffix);
+namespace MKD
+{
+    Result<KeystoreSearchRange> keystoreSearch(const Keystore& store, std::string_view query,
+                                               const SearchMode mode, std::stop_token stop)
+    {
+        if (mode != SearchMode::Prefix && mode != SearchMode::Exact && mode != SearchMode::Suffix)
+            return std::unexpected("Invalid search mode");
 
-            std::u32string norm;
-            size_t offset = 0;
-
-            while (offset < searchKey.size())
-            {
-                const char32_t cp = unicode::nextCodepoint(searchKey, offset);
-                if (keystore::isIgnorable(cp)) continue;
-                norm.push_back(keystore::foldCase(cp));
-            }
-
-            if (reverse)
-                std::ranges::reverse(norm);
-
-            if (norm.empty()) return {};
-
-            // increment last cp
-            // if max then pop or return empty if all max
-            while (!norm.empty() && norm.back() == 0x10FFFF)
-                norm.pop_back();
-
-            if (norm.empty()) return {};
-
-            ++norm.back();
-
-            if (reverse)
-                std::ranges::reverse(norm);
-
-            return unicode::toUtf8(norm);
-        }
+        return detail::keystore::IndexSearch(store, query, mode, stop).range();
     }
 
-
-    Result<KeystoreSearchRange> keystoreSearch(const Keystore& keystore, std::string_view query, const SearchMode mode)
+    Result<std::vector<KeystoreSearchResult>> keystoreSearchResults(const Keystore& store, std::string_view query,
+                                                                    SearchMode mode, std::stop_token stop)
     {
-        if (query.empty())
-            return std::unexpected("Empty search query");
-
-        const auto indexType = detail::indexForSearch(mode);
-        const auto cmpMode = detail::compareModeForSearch(mode);
-        const size_t indexSize = keystore.indexSize(indexType);
-
-        if (indexSize == 0)
-            return std::unexpected("Index is empty or does not exist");
-
-        auto lowerBound = detail::indexLowerBound(keystore, indexType, query, cmpMode);
-        if (!lowerBound) return std::unexpected(lowerBound.error());
-        size_t upperBound = indexSize; // find upper bound via "next key"
-
-        if (*lowerBound < indexSize)
-        {
-            const std::string nextKey = detail::createNextKey(query, mode);
-            if (!nextKey.empty())
-            {
-                auto upper = detail::indexLowerBound(keystore, indexType, nextKey, cmpMode);
-                if (!upper) return std::unexpected(upper.error());
-                upperBound = *upper;
-            }
-        }
-
-        return KeystoreSearchRange{
-            .begin = *lowerBound,
-            .end = upperBound,
-            .indexType = indexType
-        };
-    }
-
-
-    Result<std::vector<KeystoreSearchResult>> keystoreSearchResults(const Keystore& keystore,
-                                                                    std::string_view query,
-                                                                    const SearchMode mode)
-    {
-        auto range = keystoreSearch(keystore, query, mode);
-        if (!range) return std::unexpected(range.error());
+        auto range = keystoreSearch(store, query, mode, stop);
+        if (!range)
+            return std::unexpected(range.error());
 
         std::vector<KeystoreSearchResult> results;
-        results.reserve(range->count());
-
-        std::u32string queryNorm;
-        if (mode == SearchMode::Exact)
-            queryNorm = detail::keystore::normalizeKeyToUTF32(query, false);
-
-        for (size_t i = range->begin; i < range->end; i++)
+        for (auto i = range->begin; i < range->end; ++i)
         {
-            auto entry = keystore.entryAt(range->indexType, i);
-            if (!entry) return std::unexpected(entry.error());
+            if (stop.stop_requested())
+                return std::unexpected("Search cancelled");
 
-            // Flag 0x08 on the word entry marks exact-search-only keys.
-            // For non-exact searches, skip these entries.
-            if (mode != SearchMode::Exact && (entry->flags & 0x08))
+            auto entry = store.entryAt(range->indexType, i);
+            if (!entry)
+                return std::unexpected(entry.error());
+
+            if (mode != SearchMode::Exact && (entry->flags & detail::keystore::word::exactOnly))
                 continue;
 
-            if (mode == SearchMode::Exact)
-            {
-                auto entryNorm = detail::keystore::normalizeKeyToUTF32(entry->key, false);
-                if (entryNorm != queryNorm)
-                    continue;
-            }
+            auto ids = store.entryIdsAt(range->indexType, i, KeystoreIdMapping::Resolved, stop);
+            if (!ids)
+                return std::unexpected(ids.error());
 
-            auto entryIds = keystore.entryIdsAt(range->indexType, i);
-            if (!entryIds)
-                return std::unexpected(entryIds.error());
-
-            results.push_back({
-                .key = entry->key,
-                .index = entry->index,
-                .entryIds = std::move(*entryIds),
-            });
+            results.push_back({entry->key, i, std::move(*ids)});
         }
-
         return results;
     }
 }

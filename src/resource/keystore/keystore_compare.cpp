@@ -5,145 +5,89 @@
 #include "keystore_compare.hpp"
 #include "unicode/unicode.hpp"
 
-#include <algorithm>
-
 namespace MKD::detail::keystore
 {
+    class KeyCursor
+    {
+    public:
+        KeyCursor(std::string_view text, bool reverse)
+            : text_(text), reverse_(reverse), offset_(reverse ? text.size() : 0)
+        {
+        }
+
+        std::optional<char32_t> next()
+        {
+            while (reverse_ ? offset_ > 0 : offset_ < text_.size())
+            {
+                const auto cp = reverse_
+                                    ? unicode::previousCodepoint(text_, offset_)
+                                    : unicode::nextCodepoint(text_, offset_);
+                if (!isIgnorable(cp))
+                    return foldCase(cp);
+            }
+            return std::nullopt;
+        }
+
+    private:
+        std::string_view text_;
+        bool reverse_;
+        size_t offset_;
+    };
+
     char32_t foldCase(const char32_t cp)
     {
-        // ascii uppercase to lowercase
-        if (cp >= 0x41 && cp <= 0x5A)
+        if (cp >= U'A' && cp <= U'Z')
             return cp | 0x20;
-
-        // skip CJK / kana
         if (cp >= 0x3000 && cp < 0xA000)
             return cp;
-
-        // everything else goes through the case map
         return unicode::toLowercase(cp);
     }
 
-
-    std::u32string normalizeKeyToUTF32(std::string_view s, const bool reverse)
+    std::u32string normalizeKeyToUTF32(std::string_view text, bool reverse)
     {
         std::u32string result;
-        size_t offset = 0;
-        while (offset < s.size())
-        {
-            const char32_t cp = unicode::nextCodepoint(s, offset);
-            if (isIgnorable(cp)) continue;
-            result.push_back(foldCase(cp));
-        }
-
-        if (reverse)
-            std::ranges::reverse(result);
-
+        KeyCursor cursor(text, reverse);
+        while (auto cp = cursor.next())
+            result.push_back(*cp);
         return result;
     }
 
-
-    size_t normalizedLength(std::string_view s)
+    int comparePrefix(std::string_view key, std::string_view query, const CompareMode mode)
     {
-        size_t offset = 0;
-        size_t len = 0;
-        while (offset < s.size())
+        KeyCursor left(key, mode == CompareMode::Backward);
+        KeyCursor right(query, mode == CompareMode::Backward);
+        while (auto b = right.next())
         {
-            if (const char32_t cp = unicode::nextCodepoint(s, offset); !isIgnorable(cp))
-                ++len;
+            const auto a = left.next();
+            if (!a || *a < *b) return -1;
+            if (*a > *b) return 1;
         }
-        return len;
+        return 0;
     }
 
-
-    int compare(std::string_view a, std::string_view b, CompareMode mode)
+    int compare(std::string_view a, std::string_view b, const CompareMode mode)
     {
-        if (mode == CompareMode::Length) // first by codepoint len then forward (prefix) with fold case
+        if (mode == CompareMode::Length)
         {
-            const size_t lenA = normalizedLength(a);
-            const size_t lenB = normalizedLength(b);
-            if (lenA < lenB) return -1;
-            if (lenA > lenB) return 1;
-
-            mode = CompareMode::Forward;
+            // Native index A counts all code points, including spaces and hyphens.
+            const auto left = unicode::codepointCount(a);
+            const auto right = unicode::codepointCount(b);
+            if (left != right)
+                return left < right ? -1 : 1;
         }
 
-        if (mode == CompareMode::Backward) // for suffix search
+        KeyCursor left(a, mode == CompareMode::Backward);
+        KeyCursor right(b, mode == CompareMode::Backward);
+        while (true)
         {
-            size_t pa = a.size(); // reverse both strings
-            size_t pb = b.size();
-
-            while (true)
+            const auto ca = left.next();
+            const auto cb = right.next();
+            if (ca == cb)
             {
-                char32_t ca{};
-                char32_t cb{};
-                bool hasA = false;
-                bool hasB = false;
-
-                while (pa > 0)
-                {
-                    if (const char32_t cp = unicode::previousCodepoint(a, pa); !isIgnorable(cp))
-                    {
-                        ca = foldCase(cp);
-                        hasA = true;
-                        break;
-                    }
-                }
-
-                while (pb > 0)
-                {
-                    if (const char32_t cp = unicode::previousCodepoint(b, pb); !isIgnorable(cp))
-                    {
-                        cb = foldCase(cp);
-                        hasB = true;
-                        break;
-                    }
-                }
-
-                if (!hasA && !hasB) return 0;
-                if (!hasA) return -1;
-                if (!hasB) return 1;
-                if (ca < cb) return -1;
-                if (ca > cb) return 1;
+                if (!ca) return 0;
+                continue;
             }
-        }
-        else // Forward
-        {
-            size_t pa = 0;
-            size_t pb = 0;
-
-            while (true)
-            {
-                char32_t ca{};
-                char32_t cb{};
-                bool hasA = false;
-                bool hasB = false;
-
-                while (pa < a.size())
-                {
-                    if (const char32_t cp = unicode::nextCodepoint(a, pa); !isIgnorable(cp))
-                    {
-                        ca = foldCase(cp);
-                        hasA = true;
-                        break;
-                    }
-                }
-
-                while (pb < b.size())
-                {
-                    if (const char32_t cp = unicode::nextCodepoint(b, pb); !isIgnorable(cp))
-                    {
-                        cb = foldCase(cp);
-                        hasB = true;
-                        break;
-                    }
-                }
-
-                if (!hasA && !hasB) return 0;
-                if (!hasA) return -1;
-                if (!hasB) return 1;
-                if (ca < cb) return -1;
-                if (ca > cb) return 1;
-            }
+            return ca < cb ? -1 : 1;
         }
     }
 }

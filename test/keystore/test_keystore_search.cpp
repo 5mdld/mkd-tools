@@ -64,10 +64,11 @@ TEST_F(KeystoreSearchTest, PrefixSearchNonExistentTermReturnsEmpty)
     EXPECT_TRUE(result->empty()) << "Should find no results for non-existent term";
 }
 
-TEST_F(KeystoreSearchTest, PrefixSearchEmptyQueryReturnsError)
+TEST_F(KeystoreSearchTest, PrefixSearchEmptyQueryReturnsNoMatches)
 {
     auto result = MKD::keystoreSearchResults(*keystore_, "", MKD::SearchMode::Prefix);
-    EXPECT_FALSE(result.has_value()) << "Empty query should return error";
+    ASSERT_TRUE(result);
+    EXPECT_TRUE(result->empty());
 }
 
 TEST_F(KeystoreSearchTest, ExactSearchExistingTermReturnsSingleResult)

@@ -337,11 +337,11 @@ namespace MKD::test
 
     TEST_F(ResourceFormatTest, InvalidKeystoreOffsetsReachTheCallerAsErrors)
     {
-        words("bad.keystore", {0x10000, 0, 16, 20, 0, 4, 20, 0, 0, 0, 1, 0xFFFFFFFF});
+        words("bad.keystore", {0x10000, 0, 16, 20, 0, 4, 0, 20, 0, 0, 1, 0xFFFFFFFF});
         auto store = Keystore::open(directory / "bad.keystore");
         ASSERT_TRUE(store) << store.error();
-        EXPECT_FALSE(store->entryAt(KeystoreIndex::Length, 0));
-        for (auto entry : store->entries(KeystoreIndex::Length))
+        EXPECT_FALSE(store->entryAt(KeystoreIndex::Prefix, 0));
+        for (auto entry : store->entries(KeystoreIndex::Prefix))
             EXPECT_FALSE(entry);
         EXPECT_FALSE(keystoreSearch(*store, "a", SearchMode::Exact));
     }

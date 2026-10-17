@@ -1,5 +1,5 @@
 //
-// Created for the public search API.
+// kiwakiwaaにより 2026/04/05 に作成されました。
 //
 
 #pragma once
@@ -10,7 +10,7 @@ namespace MKD
 {
     /*
      * Prefix -> Index B: sorted by normalised key, forward comparison
-     * Exact -> Index B: prefix search range + exact key filter
+     * Exact -> Index B: keys equal under the native index comparator
      * Suffix -> Index C: sorted by reversed normalised key, backward comparison
      */
     enum class SearchMode : uint8_t
