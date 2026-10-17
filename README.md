@@ -2,6 +2,8 @@
 
 A C++23 toolkit for reading and exporting 物書堂 dictionary resources.
 
+[Library documentation](https://kiwakiwaa.github.io/mkd-tools/) · C++ and Python guides
+
 ### Building
 
 Requires a C++23 compiler and CMake 3.31 or newer.
