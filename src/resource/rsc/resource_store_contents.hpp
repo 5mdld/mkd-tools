@@ -19,6 +19,11 @@
 #include <vector>
 
 
+namespace MKD::detail
+{
+    class ResourceBatch;
+}
+
 namespace MKD
 {
     /**
@@ -84,6 +89,7 @@ namespace MKD
         [[nodiscard]] Result<RetainedSpan> get(const ResourceStoreMapRecord& record) const;
 
     private:
+        friend class detail::ResourceBatch;
         explicit ResourceStoreContents(detail::ResourceFiles files,
                                        std::optional<std::array<uint8_t, 32>> key);
         [[nodiscard]] Result<RetainedSpan> readDirectData(size_t offset) const;

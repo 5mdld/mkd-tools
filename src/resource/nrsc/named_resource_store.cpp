@@ -5,6 +5,9 @@
 #include "MKD/resource/named_resource_store.hpp"
 #include "named_resource_store_index.hpp"
 #include "named_resource_store_contents.hpp"
+#include "named_resource_scan.hpp"
+
+#include <algorithm>
 
 #include <format>
 
@@ -92,5 +95,53 @@ namespace MKD
     Result<size_t> NamedResourceStore::indexOf(std::string_view id) const
     {
         return impl_->index.indexOf(id);
+    }
+}
+
+namespace MKD::detail
+{
+    Result<NamedResourceScan> NamedResourceScan::open(const NamedResourceStore& store)
+    {
+        NamedResourceScan scan;
+        scan.contents_ = &store.impl_->data;
+        scan.records_.reserve(store.size());
+        for (auto item : store.impl_->index.items())
+        {
+            if (!item)
+                return std::unexpected(item.error());
+
+            scan.records_.push_back({item->first, item->second});
+        }
+        std::ranges::sort(scan.records_, {}, [](const NamedScanRecord& record)
+        {
+            return std::pair{record.location.fileSequence, record.location.fileOffset};
+        });
+        return scan;
+    }
+
+    size_t NamedResourceScan::size() const noexcept
+    {
+        return (records_.size() + batchSize - 1) / batchSize;
+    }
+
+    NamedResourceBatch NamedResourceScan::batchAt(const size_t index) const
+    {
+        const auto begin = index * batchSize;
+        return {
+            *contents_, std::span(records_).subspan(begin, std::min(batchSize, records_.size() - begin))
+        };
+    }
+
+    NamedResourceBatch::NamedResourceBatch(const NamedResourceStoreContents& contents,
+                                           std::span<const NamedScanRecord> records)
+        : contents_(&contents), records_(records)
+    {
+    }
+
+    Result<RetainedSpan> NamedResourceBatch::dataAt(const size_t index) const
+    {
+        if (index >= records_.size())
+            return std::unexpected("Batch item index out of range");
+        return contents_->get(records_[index].location);
     }
 }

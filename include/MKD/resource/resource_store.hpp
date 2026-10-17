@@ -13,6 +13,11 @@
 #include <string>
 #include <string_view>
 
+namespace MKD::detail
+{
+    class ResourceScan;
+}
+
 namespace MKD
 {
     struct ResourceStoreItem
@@ -47,6 +52,7 @@ namespace MKD
         auto items() const && = delete;
 
     private:
+        friend class detail::ResourceScan;
         struct Impl;
         std::unique_ptr<Impl> impl_;
         explicit ResourceStore(std::unique_ptr<Impl> impl) noexcept;
