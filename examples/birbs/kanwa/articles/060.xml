@@ -1,0 +1,37 @@
+<p class="eyebrow">鳥の漢字辞典 <span class="edition">字とことばを読む</span></p>
+<table class="character-header">
+    <tr>
+        <td class="character-cell">
+            <h1 class="character">
+                <headword>鶴</headword>
+            </h1>
+        </td>
+        <td class="facts">
+            <p>鳥部・21画</p>
+            <p>部首外 10画</p>
+        </td>
+    </tr>
+</table>
+<p class="readings"><span class="badge">音</span> カク　<span class="badge">訓</span> つる　</p>
+<entry-index id="index">
+  <a href="${meaning_section}">意味</a>
+  <a href="${origin_section}">なりたち</a>
+  <a href="${compounds_section}">熟語</a>
+</entry-index>
+<section id="${meaning_section}"><h2>意味</h2><p id="${meaning}"><span class="number">①</span> つる。首と脚の長い鳥。</p></section>
+<section id="${origin_section}"><h2>なりたち</h2><p>鳥を意味する部分を含む字。</p></section>
+<section id="${compounds_section}" class="compounds">
+  <h2>熟語</h2>
+  <div class="compound" id="${compound_1}">
+    <p class="compound-heading"><headword>千羽鶴</headword><span class="compound-reading">せんばづる</span></p>
+    <p>多くの折り鶴を糸でつないだもの。</p>
+    <p id="${example_1}" class="example">「回復を願って千羽鶴を折る。」</p>
+  </div>
+  <div class="compound" id="${compound_2}">
+    <p class="compound-heading"><headword>鶴首</headword><span class="compound-reading">かくしゅ</span></p>
+    <p>鶴の首のように首を長くすること。知らせなどを待ち望むたとえ。</p>
+    <p id="${example_2}" class="example">「渡来の知らせを鶴首して待つ。」</p>
+  </div>
+</section>
+<p class="character-code">U+9DB4</p>
+<p class="related">${related}</p>

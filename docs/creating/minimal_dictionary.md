@@ -5,6 +5,10 @@
 Create a product with one article about 鶫（つぐみ）, searchable by its spelling
 and reading. Use a new directory for `destination`.
 
+For a more complete reference, see [Birb dictionaries](https://github.com/kiwakiwaa/mkd-tools/tree/main/examples/birbs).
+It has two dictionary products (general and kanwa profiles) with subentries, search
+keys, ruby, gaiji, media, styling and appendix menus.
+
 ## Create the product and its dictionary
 
 === "Python"

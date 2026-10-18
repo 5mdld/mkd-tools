@@ -1,0 +1,9 @@
+<p class="eyebrow">鳥のことば辞典 <span class="edition">小さな日本語辞典</span></p>
+${heading}
+<p class="labels"><span class="badge">名</span> <span class="badge">冬鳥</span> <span class="english">dusky thrush</span></p>
+<section class="sense"><h2>意味</h2><p><span class="number">①</span> 冬に日本の草地や林で見られる鳥。胸から腹にかけて暗い斑がある。</p></section>
+<section id="${example}" class="example"><h2>用例</h2><p>「芝生で鶫が餌を探している。」</p></section>
+<section class="note"><h2>語のひろがり</h2><p>歩いては立ち止まり、胸を起こす姿が目につく。</p></section>
+<p class="pronunciation"><a href="audio/tsugumi.m4a"><img src="speaker.png" alt="音声"/> つぐみを聞く</a></p>
+<figure><img class="illustration" src="graphics/thrush.png" alt="鶫の模式図"/><figcaption>淡い眉斑と胸の斑に注目。模式図。</figcaption></figure>
+<p class="related">${related}</p>

@@ -1,0 +1,37 @@
+<p class="eyebrow">鳥の漢字辞典 <span class="edition">字とことばを読む</span></p>
+<table class="character-header">
+    <tr>
+        <td class="character-cell">
+            <h1 class="character">
+                <headword>鷹</headword>
+            </h1>
+        </td>
+        <td class="facts">
+            <p>鳥部・24画</p>
+            <p>部首外 13画</p>
+        </td>
+    </tr>
+</table>
+<p class="readings"><span class="badge">音</span> ヨウ　<span class="badge">訓</span> たか　</p>
+<entry-index id="index">
+  <a href="${meaning_section}">意味</a>
+  <a href="${origin_section}">なりたち</a>
+  <a href="${compounds_section}">熟語</a>
+</entry-index>
+<section id="${meaning_section}"><h2>意味</h2><p id="${meaning}"><span class="number">①</span> たか。鋭い爪とくちばしをもつ鳥。</p></section>
+<section id="${origin_section}"><h2>なりたち</h2><p>鳥を意味する部分を含む字。</p></section>
+<section id="${compounds_section}" class="compounds">
+  <h2>熟語</h2>
+  <div class="compound" id="${compound_1}">
+    <p class="compound-heading"><headword>鷹揚</headword><span class="compound-reading">おうよう</span></p>
+    <p>細かなことにこだわらず、ゆったりしていること。</p>
+    <p id="${example_1}" class="example">「鷹揚にうなずく。」</p>
+  </div>
+  <div class="compound" id="${compound_2}">
+    <p class="compound-heading"><headword>鷹狩り</headword><span class="compound-reading">たかがり</span></p>
+    <p>飼い慣らした鷹を放ち、野鳥などを捕らえさせる狩り。</p>
+    <p id="${example_2}" class="example">「鷹狩りの歴史を調べる。」</p>
+  </div>
+</section>
+<p class="character-code">U+9DF9</p>
+<p class="related">${related}</p>

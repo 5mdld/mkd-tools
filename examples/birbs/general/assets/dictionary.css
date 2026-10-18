@@ -1,0 +1,131 @@
+@color link = #23625A;
+@color accent = #32665E;
+@color muted = #626C68;
+
+body {
+    margin: 1em 44px 1em 1.5em;
+    font-family: BirdMincho;
+    font-size: 1.2em;
+    line-height: 1.5em;
+    color: black;
+}
+
+h1, h2, h3, section, figure, figcaption {
+    display: block;
+}
+
+p {
+    margin: 0.15em 0;
+}
+
+a {
+    color: link;
+    text-decoration: none;
+}
+
+.eyebrow {
+    display: none;
+}
+
+h1 {
+    margin: 0 0 0.3em;
+    font-size: 1.25em;
+    font-weight: bold;
+}
+
+.reading {
+    font-size: 1em;
+}
+
+.spelling {
+    font-size: 0.85em;
+    font-weight: normal;
+}
+
+.labels {
+    margin-bottom: 0.45em;
+}
+
+.badge {
+    font-family: gothic;
+    font-size: 0.75em;
+    border: solid 0.05em muted;
+    padding: 0.05em 0.15em;
+    margin-right: 0.2em;
+    word-break: keep-all;
+}
+
+.english {
+    font-size: 0.85em;
+    color: muted;
+}
+
+section {
+    margin-top: 0.55em;
+}
+
+h2, h3 {
+    margin: 0 0 0.15em;
+    font-family: gothic;
+    font-size: 0.85em;
+    font-weight: bold;
+    color: accent;
+}
+
+.sense p {
+    margin-left: 1.2em;
+}
+
+.number {
+    display: hang;
+    margin-right: 0.2em;
+    font-family: gothic;
+    color: accent;
+}
+
+.example p {
+    margin-left: 0.75em;
+    font-size: 0.9em;
+}
+
+.note p {
+    font-size: 0.9em;
+}
+
+.idiom h2 {
+    font-size: 1em;
+}
+
+.related {
+    margin-top: 0.8em;
+    font-size: 0.85em;
+}
+
+.illustration {
+    zoom: 40%;
+}
+
+figure {
+    margin: 0.7em 0;
+}
+
+figcaption {
+    margin-top: 0.2em;
+    font-size: 0.75em;
+    color: muted;
+}
+
+.pronunciation {
+    margin-top: 0.6em;
+    font-size: 0.85em;
+}
+
+.pronunciation img {
+    display: gaiji;
+    height: 1em;
+}
+
+rt {
+    display: ruby-text;
+    font-size: 0.5em;
+}

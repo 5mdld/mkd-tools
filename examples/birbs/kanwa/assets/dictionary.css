@@ -1,0 +1,129 @@
+@color link = #87493C;
+@color accent = #984E3E;
+@color muted = #75685F;
+
+body {
+    margin: 1em 44px 1em 1.5em;
+    font-family: BirdMincho;
+    font-size: 1.2em;
+    line-height: 1.4em;
+    color: black;
+    writing-mode: vertical-rl;
+}
+
+entry-index, .eyebrow {
+    display: none;
+}
+
+h1, h2, p {
+    margin: 0;
+}
+
+h1, h2, section, headword {
+    display: block;
+}
+
+.character-header {
+    writing-mode: horizontal-tb;
+}
+
+.character-cell {
+    writing-mode: horizontal-tb;
+    vertical-align: middle;
+    text-align: center;
+}
+
+.character {
+    font-size: 2.8em;
+    line-height: 1em;
+    font-weight: normal;
+}
+
+.facts {
+    writing-mode: horizontal-tb;
+    vertical-align: middle;
+    text-align: center;
+    padding-top: 0.3em;
+    font-size: 0.65em;
+    line-height: 1.5em;
+}
+
+.character-code {
+    margin-top: 1em;
+    font-family: gothic;
+    font-size: 0.6em;
+    color: muted;
+    text-combine-horizontal: all;
+}
+
+.numeral {
+    text-combine-horizontal: all;
+}
+
+.readings {
+    margin-top: 0.5em;
+}
+
+.badge {
+    font-family: gothic;
+    font-size: 0.75em;
+    color: accent;
+    border: solid 0.05em accent;
+    padding: 0.05em 0.15em;
+    word-break: keep-all;
+}
+
+section {
+    margin-top: 0.5em;
+}
+
+h2 {
+    font-family: gothic;
+    font-size: 0.85em;
+    font-weight: bold;
+    color: accent;
+    margin-bottom: 0.15em;
+}
+
+.number {
+    font-family: gothic;
+    color: accent;
+}
+
+.compound {
+    display: block;
+    margin-top: 0.4em;
+}
+
+.compound-heading headword {
+    display: inline;
+    font-family: gothic;
+    font-weight: bold;
+    color: accent;
+}
+
+.compound-heading {
+    margin-bottom: 0.15em;
+}
+
+.compound-reading {
+    display: warichu;
+    font-size: 0.5em;
+    margin-left: 0.25em;
+}
+
+.example {
+    margin-top: 0.15em;
+    margin-left: 0.75em;
+    font-size: 0.9em;
+}
+
+.related {
+    margin-top: 0.8em;
+    font-size: 0.85em;
+}
+
+a {
+    text-decoration: none;
+    color: link;
+}

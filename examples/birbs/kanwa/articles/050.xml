@@ -1,0 +1,37 @@
+<p class="eyebrow">鳥の漢字辞典 <span class="edition">字とことばを読む</span></p>
+<table class="character-header">
+    <tr>
+        <td class="character-cell">
+            <h1 class="character">
+                <headword>鴨</headword>
+            </h1>
+        </td>
+        <td class="facts">
+            <p>鳥部・16画</p>
+            <p>部首外 5画</p>
+        </td>
+    </tr>
+</table>
+<p class="readings"><span class="badge">音</span> オウ　<span class="badge">訓</span> かも　</p>
+<entry-index id="index">
+  <a href="${meaning_section}">意味</a>
+  <a href="${origin_section}">なりたち</a>
+  <a href="${compounds_section}">熟語</a>
+</entry-index>
+<section id="${meaning_section}"><h2>意味</h2><p id="${meaning}"><span class="number">①</span> かも。水辺にすむ鳥。</p></section>
+<section id="${origin_section}"><h2>なりたち</h2><p>鳥と、音を表す甲を組み合わせた字。</p></section>
+<section id="${compounds_section}" class="compounds">
+  <h2>熟語</h2>
+  <div class="compound" id="${compound_1}">
+    <p class="compound-heading"><headword>鴨居</headword><span class="compound-reading">かもい</span></p>
+    <p>引き戸などの上部にある、溝を設けた横木。</p>
+    <p id="${example_1}" class="example">「鴨居のほこりを払う。」</p>
+  </div>
+  <div class="compound" id="${compound_2}">
+    <p class="compound-heading"><headword>鴨鍋</headword><span class="compound-reading">かもなべ</span></p>
+    <p>鴨肉を野菜などと煮ながら食べる鍋料理。</p>
+    <p id="${example_2}" class="example">「冬の夕食に鴨鍋を囲む。」</p>
+  </div>
+</section>
+<p class="character-code">U+9D28</p>
+<p class="related">${related}</p>

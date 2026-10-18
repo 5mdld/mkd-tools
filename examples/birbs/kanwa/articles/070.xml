@@ -1,0 +1,37 @@
+<p class="eyebrow">鳥の漢字辞典 <span class="edition">字とことばを読む</span></p>
+<table class="character-header">
+    <tr>
+        <td class="character-cell">
+            <h1 class="character">
+                <headword>${glyph}</headword>
+            </h1>
+        </td>
+        <td class="facts">
+            <p>鳥部・20画</p>
+            <p>部首外 9画</p>
+        </td>
+    </tr>
+</table>
+<p class="readings"><span class="badge">音</span> —　<span class="badge">訓</span> つぐみ　<span class="badge">国字</span></p>
+<entry-index id="index">
+  <a href="${meaning_section}">意味</a>
+  <a href="${origin_section}">なりたち</a>
+  <a href="${compounds_section}">熟語</a>
+</entry-index>
+<section id="${meaning_section}"><h2>意味</h2><p id="${meaning}"><span class="number">①</span> つぐみ。冬に日本で見られる小鳥。</p></section>
+<section id="${origin_section}"><h2>なりたち</h2><p>鳥を表す部分を含む、日本で作られた字。</p></section>
+<section id="${compounds_section}" class="compounds">
+  <h2>熟語</h2>
+  <div class="compound" id="${compound_1}">
+    <p class="compound-heading"><headword>虎鶫</headword><span class="compound-reading">とらつぐみ</span></p>
+    <p>黄褐色の地に黒い斑がある鳥。林の地上などで餌を探す。</p>
+    <p id="${example_1}" class="example">「林で虎鶫を見かける。」</p>
+  </div>
+  <div class="compound" id="${compound_2}">
+    <p class="compound-heading"><headword>黒鶫</headword><span class="compound-reading">くろつぐみ</span></p>
+    <p>夏に日本の林で見られる鳥。雄は頭と背が黒く、腹は白地に黒い斑がある。</p>
+    <p id="${example_2}" class="example">「黒鶫が枝の上でさえずる。」</p>
+  </div>
+</section>
+<p class="character-code">U+9DAB</p>
+<p class="related">${related}</p>

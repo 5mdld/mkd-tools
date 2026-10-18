@@ -1,0 +1,611 @@
+[
+  {
+    "character": "鳥",
+    "reading": "とり",
+    "on": "チョウ",
+    "kun": "とり",
+    "radical": "鳥",
+    "strokes": 11,
+    "residual_strokes": 0,
+    "article": "010.xml",
+    "keys": {
+      "HEADWORD": [
+        "鳥",
+        "とり",
+        "チョウ"
+      ],
+      "IDIOM": [
+        {
+          "key": "鳥類",
+          "target": "compound_1"
+        },
+        {
+          "key": "ちょうるい",
+          "target": "compound_1"
+        },
+        {
+          "key": "鳥声",
+          "target": "compound_2"
+        },
+        {
+          "key": "ちょうせい",
+          "target": "compound_2"
+        }
+      ],
+      "SENSE": [
+        {
+          "key": "鳥を表す字",
+          "target": "meaning"
+        }
+      ],
+      "EXAMPLE": [
+        {
+          "key": "群鳥が空を渡る。",
+          "target": "example_1"
+        },
+        {
+          "key": "朝の林に鳥声が響く。",
+          "target": "example_2"
+        }
+      ]
+    },
+    "compounds": [
+      {
+        "word": "鳥類",
+        "reading": "ちょうるい"
+      },
+      {
+        "word": "鳥声",
+        "reading": "ちょうせい"
+      }
+    ]
+  },
+  {
+    "character": "羽",
+    "reading": "はね",
+    "on": "ウ",
+    "kun": "は・はね",
+    "radical": "羽",
+    "strokes": 6,
+    "residual_strokes": 0,
+    "article": "020.xml",
+    "keys": {
+      "HEADWORD": [
+        "羽",
+        "はね",
+        "ウ"
+      ],
+      "IDIOM": [
+        {
+          "key": "羽毛",
+          "target": "compound_1"
+        },
+        {
+          "key": "うもう",
+          "target": "compound_1"
+        },
+        {
+          "key": "羽音",
+          "target": "compound_2"
+        },
+        {
+          "key": "はおと",
+          "target": "compound_2"
+        }
+      ],
+      "SENSE": [
+        {
+          "key": "鳥の羽",
+          "target": "meaning"
+        }
+      ],
+      "EXAMPLE": [
+        {
+          "key": "羽毛が風に揺れる。",
+          "target": "example_1"
+        },
+        {
+          "key": "頭の上で羽音がした。",
+          "target": "example_2"
+        }
+      ]
+    },
+    "compounds": [
+      {
+        "word": "羽毛",
+        "reading": "うもう"
+      },
+      {
+        "word": "羽音",
+        "reading": "はおと"
+      }
+    ]
+  },
+  {
+    "character": "雀",
+    "reading": "すずめ",
+    "on": "ジャク",
+    "kun": "すずめ",
+    "radical": "隹",
+    "strokes": 11,
+    "residual_strokes": 3,
+    "article": "030.xml",
+    "keys": {
+      "HEADWORD": [
+        "雀",
+        "すずめ",
+        "ジャク"
+      ],
+      "IDIOM": [
+        {
+          "key": "雀躍",
+          "target": "compound_1"
+        },
+        {
+          "key": "じゃくやく",
+          "target": "compound_1"
+        },
+        {
+          "key": "群雀",
+          "target": "compound_2"
+        },
+        {
+          "key": "ぐんじゃく",
+          "target": "compound_2"
+        }
+      ],
+      "SENSE": [
+        {
+          "key": "すずめ",
+          "target": "meaning"
+        }
+      ],
+      "EXAMPLE": [
+        {
+          "key": "知らせを聞いて雀躍する。",
+          "target": "example_1"
+        },
+        {
+          "key": "群雀が刈り田に降りる。",
+          "target": "example_2"
+        }
+      ]
+    },
+    "compounds": [
+      {
+        "word": "雀躍",
+        "reading": "じゃくやく"
+      },
+      {
+        "word": "群雀",
+        "reading": "ぐんじゃく"
+      }
+    ]
+  },
+  {
+    "character": "鳴",
+    "reading": "なく",
+    "on": "メイ",
+    "kun": "な・く／な・る／な・らす",
+    "radical": "鳥",
+    "strokes": 14,
+    "residual_strokes": 3,
+    "article": "040.xml",
+    "keys": {
+      "HEADWORD": [
+        "鳴",
+        "なく",
+        "メイ"
+      ],
+      "IDIOM": [
+        {
+          "key": "共鳴",
+          "target": "compound_1"
+        },
+        {
+          "key": "きょうめい",
+          "target": "compound_1"
+        },
+        {
+          "key": "鳴禽",
+          "target": "compound_2"
+        },
+        {
+          "key": "めいきん",
+          "target": "compound_2"
+        }
+      ],
+      "SENSE": [
+        {
+          "key": "鳥などが声を出す",
+          "target": "meaning"
+        }
+      ],
+      "EXAMPLE": [
+        {
+          "key": "その意見に共鳴する。",
+          "target": "example_1"
+        },
+        {
+          "key": "春の林で鳴禽の声を聞く。",
+          "target": "example_2"
+        }
+      ]
+    },
+    "compounds": [
+      {
+        "word": "共鳴",
+        "reading": "きょうめい"
+      },
+      {
+        "word": "鳴禽",
+        "reading": "めいきん"
+      }
+    ]
+  },
+  {
+    "character": "鴨",
+    "reading": "かも",
+    "on": "オウ",
+    "kun": "かも",
+    "radical": "鳥",
+    "strokes": 16,
+    "residual_strokes": 5,
+    "article": "050.xml",
+    "keys": {
+      "HEADWORD": [
+        "鴨",
+        "かも",
+        "オウ"
+      ],
+      "IDIOM": [
+        {
+          "key": "鴨居",
+          "target": "compound_1"
+        },
+        {
+          "key": "かもい",
+          "target": "compound_1"
+        },
+        {
+          "key": "鴨鍋",
+          "target": "compound_2"
+        },
+        {
+          "key": "かもなべ",
+          "target": "compound_2"
+        }
+      ],
+      "SENSE": [
+        {
+          "key": "かも",
+          "target": "meaning"
+        }
+      ],
+      "EXAMPLE": [
+        {
+          "key": "鴨居のほこりを払う。",
+          "target": "example_1"
+        },
+        {
+          "key": "冬の夕食に鴨鍋を囲む。",
+          "target": "example_2"
+        }
+      ]
+    },
+    "compounds": [
+      {
+        "word": "鴨居",
+        "reading": "かもい"
+      },
+      {
+        "word": "鴨鍋",
+        "reading": "かもなべ"
+      }
+    ]
+  },
+  {
+    "character": "鶴",
+    "reading": "つる",
+    "on": "カク",
+    "kun": "つる",
+    "radical": "鳥",
+    "strokes": 21,
+    "residual_strokes": 10,
+    "article": "060.xml",
+    "keys": {
+      "HEADWORD": [
+        "鶴",
+        "つる",
+        "カク"
+      ],
+      "IDIOM": [
+        {
+          "key": "千羽鶴",
+          "target": "compound_1"
+        },
+        {
+          "key": "せんばづる",
+          "target": "compound_1"
+        },
+        {
+          "key": "鶴首",
+          "target": "compound_2"
+        },
+        {
+          "key": "かくしゅ",
+          "target": "compound_2"
+        }
+      ],
+      "SENSE": [
+        {
+          "key": "つる",
+          "target": "meaning"
+        }
+      ],
+      "EXAMPLE": [
+        {
+          "key": "回復を願って千羽鶴を折る。",
+          "target": "example_1"
+        },
+        {
+          "key": "渡来の知らせを鶴首して待つ。",
+          "target": "example_2"
+        }
+      ]
+    },
+    "compounds": [
+      {
+        "word": "千羽鶴",
+        "reading": "せんばづる"
+      },
+      {
+        "word": "鶴首",
+        "reading": "かくしゅ"
+      }
+    ]
+  },
+  {
+    "character": "鶫",
+    "reading": "つぐみ",
+    "on": "—",
+    "kun": "つぐみ",
+    "radical": "鳥",
+    "strokes": 20,
+    "residual_strokes": 9,
+    "article": "070.xml",
+    "keys": {
+      "HEADWORD": [
+        "鶫",
+        "つぐみ"
+      ],
+      "IDIOM": [
+        {
+          "key": "虎鶫",
+          "target": "compound_1"
+        },
+        {
+          "key": "とらつぐみ",
+          "target": "compound_1"
+        },
+        {
+          "key": "黒鶫",
+          "target": "compound_2"
+        },
+        {
+          "key": "くろつぐみ",
+          "target": "compound_2"
+        }
+      ],
+      "SENSE": [
+        {
+          "key": "つぐみ",
+          "target": "meaning"
+        }
+      ],
+      "EXAMPLE": [
+        {
+          "key": "林で虎鶫を見かける。",
+          "target": "example_1"
+        },
+        {
+          "key": "黒鶫が枝の上でさえずる。",
+          "target": "example_2"
+        }
+      ]
+    },
+    "compounds": [
+      {
+        "word": "虎鶫",
+        "reading": "とらつぐみ"
+      },
+      {
+        "word": "黒鶫",
+        "reading": "くろつぐみ"
+      }
+    ]
+  },
+  {
+    "character": "翼",
+    "reading": "つばさ",
+    "on": "ヨク",
+    "kun": "つばさ",
+    "radical": "羽",
+    "strokes": 17,
+    "residual_strokes": 11,
+    "article": "080.xml",
+    "keys": {
+      "HEADWORD": [
+        "翼",
+        "つばさ",
+        "ヨク"
+      ],
+      "IDIOM": [
+        {
+          "key": "翼端",
+          "target": "compound_1"
+        },
+        {
+          "key": "よくたん",
+          "target": "compound_1"
+        },
+        {
+          "key": "翼幅",
+          "target": "compound_2"
+        },
+        {
+          "key": "よくふく",
+          "target": "compound_2"
+        }
+      ],
+      "SENSE": [
+        {
+          "key": "つばさ",
+          "target": "meaning"
+        }
+      ],
+      "EXAMPLE": [
+        {
+          "key": "翼端の形を比べる。",
+          "target": "example_1"
+        },
+        {
+          "key": "飛ぶ鳥の翼幅を見積もる。",
+          "target": "example_2"
+        }
+      ]
+    },
+    "compounds": [
+      {
+        "word": "翼端",
+        "reading": "よくたん"
+      },
+      {
+        "word": "翼幅",
+        "reading": "よくふく"
+      }
+    ]
+  },
+  {
+    "character": "鷹",
+    "reading": "たか",
+    "on": "ヨウ",
+    "kun": "たか",
+    "radical": "鳥",
+    "strokes": 24,
+    "residual_strokes": 13,
+    "article": "090.xml",
+    "keys": {
+      "HEADWORD": [
+        "鷹",
+        "たか",
+        "ヨウ"
+      ],
+      "IDIOM": [
+        {
+          "key": "鷹揚",
+          "target": "compound_1"
+        },
+        {
+          "key": "おうよう",
+          "target": "compound_1"
+        },
+        {
+          "key": "鷹狩り",
+          "target": "compound_2"
+        },
+        {
+          "key": "たかがり",
+          "target": "compound_2"
+        }
+      ],
+      "SENSE": [
+        {
+          "key": "たか",
+          "target": "meaning"
+        }
+      ],
+      "EXAMPLE": [
+        {
+          "key": "鷹揚にうなずく。",
+          "target": "example_1"
+        },
+        {
+          "key": "鷹狩りの歴史を調べる。",
+          "target": "example_2"
+        }
+      ]
+    },
+    "compounds": [
+      {
+        "word": "鷹揚",
+        "reading": "おうよう"
+      },
+      {
+        "word": "鷹狩り",
+        "reading": "たかがり"
+      }
+    ]
+  },
+  {
+    "character": "鳩",
+    "reading": "はと",
+    "on": "キュウ",
+    "kun": "はと",
+    "radical": "鳥",
+    "strokes": 13,
+    "residual_strokes": 2,
+    "article": "100.xml",
+    "keys": {
+      "HEADWORD": [
+        "鳩",
+        "はと",
+        "キュウ"
+      ],
+      "IDIOM": [
+        {
+          "key": "鳩首",
+          "target": "compound_1"
+        },
+        {
+          "key": "きゅうしゅ",
+          "target": "compound_1"
+        },
+        {
+          "key": "山鳩",
+          "target": "compound_2"
+        },
+        {
+          "key": "やまばと",
+          "target": "compound_2"
+        }
+      ],
+      "SENSE": [
+        {
+          "key": "はと",
+          "target": "meaning"
+        }
+      ],
+      "EXAMPLE": [
+        {
+          "key": "関係者が鳩首して話し合う。",
+          "target": "example_1"
+        },
+        {
+          "key": "山鳩の声が谷に響く。",
+          "target": "example_2"
+        }
+      ]
+    },
+    "compounds": [
+      {
+        "word": "鳩首",
+        "reading": "きゅうしゅ"
+      },
+      {
+        "word": "山鳩",
+        "reading": "やまばと"
+      }
+    ]
+  }
+]

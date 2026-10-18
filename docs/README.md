@@ -60,6 +60,10 @@ python -m pip install .
 
 This builds the bindings and installs the `mkd` module.
 
+For a more complete creation example, see [Birb dictionaries](https://github.com/kiwakiwaa/mkd-tools/tree/main/examples/birbs).
+It includes a general dictionary, a kanwa dictionary and a field guide, with
+article XML, stylesheets and media.
+
 ## CLI usage
 
 ```sh

@@ -1,0 +1,57 @@
+<p class="eyebrow">鳥の漢字辞典
+    <span class="edition">字とことばを読む</span>
+</p>
+<table class="character-header">
+    <tr>
+        <td class="character-cell">
+            <h1 class="character">
+                <headword>鳥</headword>
+            </h1>
+        </td>
+        <td class="facts">
+            <p>鳥部・11画</p>
+            <p>部首外 0画</p>
+        </td>
+    </tr>
+</table>
+<p class="readings">
+<span class="badge">音</span>
+チョウ　<span class="badge">訓</span> とり　
+</p>
+<entry-index id="index">
+<a href="${meaning_section}">意味</a>
+<a href="${origin_section}">なりたち</a>
+<a href="${compounds_section}">熟語</a>
+</entry-index>
+<section id="${meaning_section}">
+<h2>意味</h2>
+<p id="${meaning}">
+    <span class="number">①</span>
+    鳥を表す字。鳥類の総称。
+</p>
+</section>
+<section id="${origin_section}">
+<h2>なりたち</h2>
+<p>姿を描いた形に由来する。</p>
+</section>
+<section id="${compounds_section}" class="compounds">
+<h2>熟語</h2>
+<div class="compound" id="${compound_1}">
+    <p class="compound-heading">
+        <headword>鳥類</headword>
+        <span class="compound-reading">ちょうるい</span>
+    </p>
+    <p>鳥の仲間をひとまとめにいう語。</p>
+    <p id="${example_1}" class="example">「群鳥が空を渡る。」</p>
+</div>
+<div class="compound" id="${compound_2}">
+    <p class="compound-heading">
+        <headword>鳥声</headword>
+        <span class="compound-reading">ちょうせい</span>
+    </p>
+    <p>鳥の鳴き声。声の高さや長さ、繰り返し方は種類によって異なる。</p>
+    <p id="${example_2}" class="example">「朝の林に鳥声が響く。」</p>
+</div>
+</section>
+<p class="character-code">U+9CE5</p>
+<p class="related">${related}</p>

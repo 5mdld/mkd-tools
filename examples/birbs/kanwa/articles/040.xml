@@ -1,0 +1,37 @@
+<p class="eyebrow">鳥の漢字辞典 <span class="edition">字とことばを読む</span></p>
+<table class="character-header">
+    <tr>
+        <td class="character-cell">
+            <h1 class="character">
+                <headword>鳴</headword>
+            </h1>
+        </td>
+        <td class="facts">
+            <p>鳥部・14画</p>
+            <p>部首外 3画</p>
+        </td>
+    </tr>
+</table>
+<p class="readings"><span class="badge">音</span> メイ　<span class="badge">訓</span> な・く／な・る／な・らす　</p>
+<entry-index id="index">
+  <a href="${meaning_section}">意味</a>
+  <a href="${origin_section}">なりたち</a>
+  <a href="${compounds_section}">熟語</a>
+</entry-index>
+<section id="${meaning_section}"><h2>意味</h2><p id="${meaning}"><span class="number">①</span> 鳥などが声を出す。音がする。</p></section>
+<section id="${origin_section}"><h2>なりたち</h2><p>口と鳥を組み合わせた字。</p></section>
+<section id="${compounds_section}" class="compounds">
+  <h2>熟語</h2>
+  <div class="compound" id="${compound_1}">
+    <p class="compound-heading"><headword>共鳴</headword><span class="compound-reading">きょうめい</span></p>
+    <p>他の振動に応じて振動すること。また、人の考えに心が動くこと。</p>
+    <p id="${example_1}" class="example">「その意見に共鳴する。」</p>
+  </div>
+  <div class="compound" id="${compound_2}">
+    <p class="compound-heading"><headword>鳴禽</headword><span class="compound-reading">めいきん</span></p>
+    <p>発達した発声器官をもち、複雑な声でさえずる鳥の一群。スズメやウグイスなど。</p>
+    <p id="${example_2}" class="example">「春の林で鳴禽の声を聞く。」</p>
+  </div>
+</section>
+<p class="character-code">U+9CF4</p>
+<p class="related">${related}</p>

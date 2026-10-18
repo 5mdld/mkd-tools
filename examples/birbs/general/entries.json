@@ -1,0 +1,629 @@
+[
+  {
+    "reading": "とり",
+    "word": "鳥",
+    "article": "010.xml",
+    "keys": {
+      "HEADWORD": [
+        "鳥",
+        "とり"
+      ],
+      "ENGLISH": [
+        "bird"
+      ],
+      "EXAMPLE": [
+        {
+          "key": "庭に鳥が来る。",
+          "target": "example"
+        }
+      ],
+      "SENSE": [
+        "羽毛をもち、卵を産む脊椎動物の一群"
+      ],
+      "FULLTEXT": [
+        "鳥",
+        "とり",
+        "動物"
+      ],
+      "CATEGORY": [
+        "動物"
+      ],
+      "KANJI": [
+        "鳥"
+      ]
+    }
+  },
+  {
+    "reading": "つぐみ",
+    "word": "鶫",
+    "article": "020.xml",
+    "keys": {
+      "HEADWORD": [
+        "鶫",
+        "つぐみ"
+      ],
+      "ENGLISH": [
+        "dusky thrush"
+      ],
+      "EXAMPLE": [
+        {
+          "key": "芝生で鶫が餌を探している。",
+          "target": "example"
+        }
+      ],
+      "SENSE": [
+        "冬に日本の草地や林で見られる鳥"
+      ],
+      "FULLTEXT": [
+        "鶫",
+        "つぐみ",
+        "冬鳥"
+      ],
+      "CATEGORY": [
+        "冬鳥"
+      ],
+      "KANJI": [
+        "鶫"
+      ]
+    },
+    "aliases": [
+      "ツグミ"
+    ]
+  },
+  {
+    "reading": "すずめ",
+    "word": "雀",
+    "article": "030.xml",
+    "keys": {
+      "HEADWORD": [
+        "雀",
+        "すずめ"
+      ],
+      "ENGLISH": [
+        "Eurasian tree sparrow"
+      ],
+      "EXAMPLE": [
+        {
+          "key": "垣根で雀が鳴いている。",
+          "target": "example"
+        }
+      ],
+      "SENSE": [
+        "人家の近くにすむ小鳥"
+      ],
+      "FULLTEXT": [
+        "雀",
+        "すずめ",
+        "留鳥"
+      ],
+      "CATEGORY": [
+        "留鳥"
+      ],
+      "KANJI": [
+        "雀"
+      ]
+    }
+  },
+  {
+    "reading": "つる",
+    "word": "鶴",
+    "article": "040.xml",
+    "keys": {
+      "HEADWORD": [
+        "鶴",
+        "つる"
+      ],
+      "ENGLISH": [
+        "crane"
+      ],
+      "EXAMPLE": [
+        {
+          "key": "湿原に鶴が舞い降りた。",
+          "target": "example"
+        }
+      ],
+      "SENSE": [
+        "首と脚が長い大型の鳥の総称"
+      ],
+      "FULLTEXT": [
+        "鶴",
+        "つる",
+        "水辺の鳥"
+      ],
+      "CATEGORY": [
+        "水辺の鳥"
+      ],
+      "KANJI": [
+        "鶴"
+      ]
+    }
+  },
+  {
+    "reading": "うぐいす",
+    "word": "鶯",
+    "article": "050.xml",
+    "keys": {
+      "HEADWORD": [
+        "鶯",
+        "うぐいす"
+      ],
+      "ENGLISH": [
+        "Japanese bush warbler"
+      ],
+      "EXAMPLE": [
+        {
+          "key": "谷から鶯の声が聞こえる。",
+          "target": "example"
+        }
+      ],
+      "SENSE": [
+        "低木の茂みなどにすむ鳥"
+      ],
+      "FULLTEXT": [
+        "鶯",
+        "うぐいす",
+        "春の鳥"
+      ],
+      "CATEGORY": [
+        "春の鳥"
+      ],
+      "KANJI": [
+        "鶯"
+      ]
+    }
+  },
+  {
+    "reading": "つばめ",
+    "word": "燕",
+    "article": "060.xml",
+    "keys": {
+      "HEADWORD": [
+        "燕",
+        "つばめ"
+      ],
+      "ENGLISH": [
+        "barn swallow"
+      ],
+      "EXAMPLE": [
+        {
+          "key": "軒下で燕が子を育てる。",
+          "target": "example"
+        }
+      ],
+      "SENSE": [
+        "細い翼と深く二つに分かれた尾をもつ鳥"
+      ],
+      "FULLTEXT": [
+        "燕",
+        "つばめ",
+        "夏鳥"
+      ],
+      "CATEGORY": [
+        "夏鳥"
+      ],
+      "KANJI": [
+        "燕"
+      ]
+    }
+  },
+  {
+    "reading": "からす",
+    "word": "烏",
+    "article": "070.xml",
+    "keys": {
+      "HEADWORD": [
+        "烏",
+        "からす"
+      ],
+      "ENGLISH": [
+        "crow"
+      ],
+      "EXAMPLE": [
+        {
+          "key": "烏が木の実を運んでいく。",
+          "target": "example"
+        }
+      ],
+      "SENSE": [
+        "主に黒い羽をもつカラス科の鳥の総称"
+      ],
+      "FULLTEXT": [
+        "烏",
+        "からす",
+        "留鳥"
+      ],
+      "CATEGORY": [
+        "留鳥"
+      ],
+      "KANJI": [
+        "烏"
+      ]
+    },
+    "aliases": [
+      "鴉"
+    ]
+  },
+  {
+    "reading": "かも",
+    "word": "鴨",
+    "article": "080.xml",
+    "keys": {
+      "HEADWORD": [
+        "鴨",
+        "かも"
+      ],
+      "ENGLISH": [
+        "duck"
+      ],
+      "EXAMPLE": [
+        {
+          "key": "池で鴨の群れが休んでいる。",
+          "target": "example"
+        }
+      ],
+      "SENSE": [
+        "水面に浮かび、川や池などで暮らすカモ科の鳥の総称"
+      ],
+      "FULLTEXT": [
+        "鴨",
+        "かも",
+        "水辺の鳥"
+      ],
+      "CATEGORY": [
+        "水辺の鳥"
+      ],
+      "KANJI": [
+        "鴨"
+      ]
+    }
+  },
+  {
+    "reading": "はと",
+    "word": "鳩",
+    "article": "090.xml",
+    "keys": {
+      "HEADWORD": [
+        "鳩",
+        "はと"
+      ],
+      "ENGLISH": [
+        "dove"
+      ],
+      "EXAMPLE": [
+        {
+          "key": "鳩が木陰を歩いている。",
+          "target": "example"
+        }
+      ],
+      "SENSE": [
+        "小さな頭とふっくらした体をもつハト科の鳥の総称"
+      ],
+      "FULLTEXT": [
+        "鳩",
+        "はと",
+        "留鳥"
+      ],
+      "CATEGORY": [
+        "留鳥"
+      ],
+      "KANJI": [
+        "鳩"
+      ]
+    }
+  },
+  {
+    "reading": "たか",
+    "word": "鷹",
+    "article": "100.xml",
+    "keys": {
+      "HEADWORD": [
+        "鷹",
+        "たか"
+      ],
+      "ENGLISH": [
+        "hawk"
+      ],
+      "EXAMPLE": [
+        {
+          "key": "上空を鷹が旋回している。",
+          "target": "example"
+        }
+      ],
+      "SENSE": [
+        "鋭い爪と曲がったくちばしをもつ猛禽のうち、タカと呼ばれる鳥の総称"
+      ],
+      "FULLTEXT": [
+        "鷹",
+        "たか",
+        "猛禽"
+      ],
+      "CATEGORY": [
+        "猛禽"
+      ],
+      "KANJI": [
+        "鷹"
+      ]
+    }
+  },
+  {
+    "reading": "はね",
+    "word": "羽",
+    "article": "110.xml",
+    "keys": {
+      "HEADWORD": [
+        "羽",
+        "はね"
+      ],
+      "ENGLISH": [
+        "feather"
+      ],
+      "EXAMPLE": [
+        {
+          "key": "道に小さな羽が落ちていた。",
+          "target": "example"
+        }
+      ],
+      "SENSE": [
+        "鳥の体を覆う、軽くて弾力のあるもの"
+      ],
+      "FULLTEXT": [
+        "羽",
+        "はね",
+        "体のつくり"
+      ],
+      "CATEGORY": [
+        "体のつくり"
+      ],
+      "KANJI": [
+        "羽"
+      ],
+      "NUMERAL": [
+        "一羽",
+        "二羽",
+        "三羽"
+      ]
+    }
+  },
+  {
+    "reading": "つばさ",
+    "word": "翼",
+    "article": "120.xml",
+    "keys": {
+      "HEADWORD": [
+        "翼",
+        "つばさ"
+      ],
+      "ENGLISH": [
+        "wing"
+      ],
+      "EXAMPLE": [
+        {
+          "key": "鳥が大きく翼を広げた。",
+          "target": "example"
+        }
+      ],
+      "SENSE": [
+        "鳥などが飛ぶために動かす器官"
+      ],
+      "FULLTEXT": [
+        "翼",
+        "つばさ",
+        "体のつくり"
+      ],
+      "CATEGORY": [
+        "体のつくり"
+      ],
+      "KANJI": [
+        "翼"
+      ],
+      "COLLOCATION": [
+        {
+          "key": "翼を広げる",
+          "target": "example"
+        }
+      ]
+    }
+  },
+  {
+    "reading": "くちばし",
+    "word": "嘴",
+    "article": "130.xml",
+    "keys": {
+      "HEADWORD": [
+        "嘴",
+        "くちばし"
+      ],
+      "ENGLISH": [
+        "bill"
+      ],
+      "EXAMPLE": [
+        {
+          "key": "嘴の形を観察する。",
+          "target": "example"
+        }
+      ],
+      "SENSE": [
+        "鳥の口の先に突き出た、硬い部分"
+      ],
+      "FULLTEXT": [
+        "嘴",
+        "くちばし",
+        "体のつくり"
+      ],
+      "CATEGORY": [
+        "体のつくり"
+      ],
+      "KANJI": [
+        "嘴"
+      ]
+    }
+  },
+  {
+    "reading": "わたりどり",
+    "word": "渡り鳥",
+    "article": "140.xml",
+    "keys": {
+      "HEADWORD": [
+        "渡り鳥",
+        "わたりどり"
+      ],
+      "ENGLISH": [
+        "migratory bird"
+      ],
+      "EXAMPLE": [
+        {
+          "key": "秋になると渡り鳥がやってくる。",
+          "target": "example"
+        }
+      ],
+      "SENSE": [
+        "繁殖や越冬のため、季節によってすむ地域を移す鳥"
+      ],
+      "FULLTEXT": [
+        "渡り鳥",
+        "わたりどり",
+        "渡り"
+      ],
+      "CATEGORY": [
+        "渡り"
+      ],
+      "COMPOUND": [
+        "渡り鳥"
+      ]
+    }
+  },
+  {
+    "reading": "りゅうちょう",
+    "word": "留鳥",
+    "article": "150.xml",
+    "keys": {
+      "HEADWORD": [
+        "留鳥",
+        "りゅうちょう"
+      ],
+      "ENGLISH": [
+        "resident bird"
+      ],
+      "EXAMPLE": [
+        {
+          "key": "雀は身近な留鳥の一つだ。",
+          "target": "example"
+        }
+      ],
+      "SENSE": [
+        "ある地域で一年を通して見られる鳥"
+      ],
+      "FULLTEXT": [
+        "留鳥",
+        "りゅうちょう",
+        "渡り"
+      ],
+      "CATEGORY": [
+        "渡り"
+      ],
+      "COMPOUND": [
+        "留鳥"
+      ]
+    }
+  },
+  {
+    "reading": "さえずる",
+    "word": "囀る",
+    "article": "160.xml",
+    "keys": {
+      "HEADWORD": [
+        "囀る",
+        "さえずる"
+      ],
+      "ENGLISH": [
+        "sing"
+      ],
+      "EXAMPLE": [
+        {
+          "key": "枝先で小鳥がさえずる。",
+          "target": "example"
+        }
+      ],
+      "SENSE": [
+        "鳥が、繁殖期などに特徴のある声で鳴く"
+      ],
+      "FULLTEXT": [
+        "囀る",
+        "さえずる",
+        "声"
+      ],
+      "CATEGORY": [
+        "声"
+      ]
+    }
+  },
+  {
+    "reading": "むれ",
+    "word": "群れ",
+    "article": "170.xml",
+    "keys": {
+      "HEADWORD": [
+        "群れ",
+        "むれ"
+      ],
+      "ENGLISH": [
+        "flock"
+      ],
+      "EXAMPLE": [
+        {
+          "key": "夕空を鳥の群れが横切る。",
+          "target": "example"
+        }
+      ],
+      "SENSE": [
+        "同じ種類の動物などが集まっていること"
+      ],
+      "FULLTEXT": [
+        "群れ",
+        "むれ",
+        "行動"
+      ],
+      "CATEGORY": [
+        "行動"
+      ]
+    }
+  },
+  {
+    "reading": "いっせきにちょう",
+    "word": "一石二鳥",
+    "article": "180.xml",
+    "keys": {
+      "HEADWORD": [
+        "一石二鳥",
+        "いっせきにちょう"
+      ],
+      "ENGLISH": [
+        "two birds with one stone"
+      ],
+      "EXAMPLE": [
+        {
+          "key": "散歩をしながら鳥も観察できて一石二鳥だ。",
+          "target": "example"
+        }
+      ],
+      "SENSE": [
+        "一つの行動で、二つの利益や目的を得ること"
+      ],
+      "FULLTEXT": [
+        "一石二鳥",
+        "いっせきにちょう",
+        "ことば"
+      ],
+      "CATEGORY": [
+        "ことば"
+      ],
+      "IDIOM": [
+        {
+          "key": "一石二鳥",
+          "exact_only": true
+        },
+        "いっせきにちょう"
+      ]
+    }
+  }
+]
