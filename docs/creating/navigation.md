@@ -129,3 +129,6 @@ ascending page ID. This writes native browsing order. It does not reorder search
 results or the resource-store iteration sequence.
 
 Finish the dictionary and product after adding the desired content.
+
+After reopening, use [browsing order](../reading/browsing.md#follow-browsing-order)
+to retrieve this sequence or find the previous and next article.
