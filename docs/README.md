@@ -92,6 +92,9 @@ Use `mkd-tools --help` or `mkd-tools export --help` for all options.
 
 ## macOS receipt app
 
+Intended only for activating custom third-party dictionaries you are authorised
+to use. For store purchases, use the Dictionaries app's purchase restoration.
+
 The SwiftUI receipt app requires Xcode:
 
 ```sh
