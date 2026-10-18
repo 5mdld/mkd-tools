@@ -4,6 +4,8 @@
 
 #include "MKD/resource/resource_store_writer.hpp"
 #include "resource_store_crypto.hpp"
+#include "resource_store_index_record.hpp"
+#include "resource_store_map.hpp"
 #include "resource/detail/segmented_file_writer.hpp"
 #include "resource/detail/zlib.hpp"
 #include "io/build_directory.hpp"
@@ -18,25 +20,13 @@ namespace MKD
 {
     struct ResourceStoreWriter::Impl
     {
-        struct IndexRecord
-        {
-            uint32_t id;
-            uint32_t mapIndex;
-        };
-
-        struct MapRecord
-        {
-            uint32_t chunk;
-            uint32_t item;
-        };
-
         std::unique_ptr<detail::BuildDirectory> build;
         detail::SegmentedFileWriter files;
         ResourceStoreWriteOptions options;
         std::optional<std::array<uint8_t, 32>> key;
         detail::BinaryBuffer pending;
-        std::vector<IndexRecord> index;
-        std::vector<MapRecord> map;
+        std::vector<ResourceStoreIndexRecord> index;
+        std::vector<ResourceStoreMapRecord> map;
         std::vector<uint32_t> offsets;
         std::unordered_set<uint32_t> ids;
         size_t count = 0;
@@ -155,22 +145,22 @@ namespace MKD
 
         for (const auto record : map)
         {
-            buffer.writeLittle(record.chunk);
-            buffer.writeLittle(record.item);
+            buffer.writeLittle(record.chunkGlobalOffset);
+            buffer.writeLittle(record.itemOffset);
         }
 
         if (auto written = detail::OutputFile::writeAll(build->path() / "contents.map", buffer.data()); !written)
             return written;
 
-        std::ranges::sort(index, {}, &IndexRecord::id);
+        std::ranges::sort(index, {}, &ResourceStoreIndexRecord::itemId);
         buffer.clear();
         buffer.writeLittle(static_cast<uint32_t>(index.size()));
         buffer.writeLittle(uint32_t{0});
 
         for (const auto record : index)
         {
-            buffer.writeLittle(record.id);
-            buffer.writeLittle(record.mapIndex);
+            buffer.writeLittle(record.itemId);
+            buffer.writeLittle(record.mapIdx);
         }
 
         return detail::OutputFile::writeAll(build->path() / "contents.idx", buffer.data());

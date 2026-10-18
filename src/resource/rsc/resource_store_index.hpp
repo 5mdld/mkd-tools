@@ -71,11 +71,6 @@ namespace MKD
      *                  Direct use          via MapRecord
      *
      */
-    struct ResourceStoreIndexHeader
-    {
-        uint32_t length; // Number of IdxRecords in the file
-        uint32_t padding;
-    };
 
 
     class ResourceStoreIndex

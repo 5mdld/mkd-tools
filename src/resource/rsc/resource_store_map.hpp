@@ -9,15 +9,6 @@
 
 namespace MKD
 {
-    /**
-     * MapHeader - contents.map File Header
-     */
-    struct ResourceStoreMapHeader
-    {
-        uint32_t version; // Format version identifier. 0x01 means the contents have encryption applied
-        uint32_t recordCount; // Number of MapRecords in file
-    };
-
     struct ResourceStoreMapRecord
     {
         uint32_t chunkGlobalOffset; // Global offset to compressed chunk

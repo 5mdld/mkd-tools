@@ -3,7 +3,6 @@ target_sources(mkd PRIVATE
         resource_store_contents.cpp
         resource_store_crypto.cpp
         resource_store_index.cpp
-        resource_store_index_record.cpp
         resource_store_writer.cpp
 )
 

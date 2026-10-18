@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <filesystem>
+#include <compare>
 #include <cstdint>
 
 namespace MKD
@@ -20,22 +20,6 @@ namespace MKD
         uint32_t itemId; // Custom item ID
         uint32_t mapIdx; // Index into map file
 
-        /**
-         * Get the item ID
-         * @return Item ID value
-         */
-        [[nodiscard]] uint32_t id() const noexcept;
-
-        /**
-         * Get the map index
-         * @return Index into MapRecords array
-         */
-        [[nodiscard]] size_t mapIndex() const noexcept;
-
-        /**
-         * Default comparison operators
-         * Enables sorting and binary search by all fields
-         */
         auto operator<=>(const ResourceStoreIndexRecord&) const noexcept = default;
     };
 

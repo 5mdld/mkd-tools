@@ -5,6 +5,7 @@
 #pragma once
 
 #include "MKD/resource/entry_id.hpp"
+#include "MKD/resource/keystore_version.hpp"
 #include "MKD/result.hpp"
 
 #include <filesystem>
@@ -31,8 +32,6 @@ namespace MKD
         bool exactOnly = false;
         auto operator<=>(const SearchKeyOptions&) const = default;
     };
-
-    enum class KeystoreVersion : uint32_t { Version1 = 0x10000, Version2 = 0x20000 };
 
     struct KeystoreWriteOptions
     {

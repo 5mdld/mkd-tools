@@ -3,6 +3,7 @@
 //
 
 #include "MKD/resource/named_resource_store_writer.hpp"
+#include "named_resource_store_index_record.hpp"
 #include "resource/detail/segmented_file_writer.hpp"
 #include "resource/detail/zlib.hpp"
 #include "io/build_directory.hpp"
@@ -19,10 +20,7 @@ namespace MKD
         struct Record
         {
             std::string id;
-            uint16_t format;
-            uint16_t sequence;
-            uint32_t offset;
-            uint32_t length;
+            NamedResourceStoreIndexRecord location;
         };
 
         std::unique_ptr<detail::BuildDirectory> build;
@@ -105,8 +103,8 @@ namespace MKD
             return impl_->build->fail(location.error());
 
         impl_->records.push_back({
-            std::string(id), static_cast<uint16_t>(compressedStorage ? 1 : 0),
-            static_cast<uint16_t>(location->sequence), location->fileOffset, location->length
+            std::string(id), {static_cast<uint16_t>(compressedStorage ? 1 : 0),
+            static_cast<uint16_t>(location->sequence), 0, location->fileOffset, location->length}
         });
         ++impl_->count;
         return {};
@@ -131,11 +129,11 @@ namespace MKD
         auto stringOffset = static_cast<uint32_t>(stringsStart);
         for (const auto& record : records)
         {
-            index.writeLittle(record.format);
-            index.writeLittle(record.sequence);
+            index.writeLittle(record.location.format);
+            index.writeLittle(record.location.fileSequence);
             index.writeLittle(stringOffset);
-            index.writeLittle(record.offset);
-            index.writeLittle(record.length);
+            index.writeLittle(record.location.fileOffset);
+            index.writeLittle(record.location.length);
             stringOffset += static_cast<uint32_t>(record.id.size() + 1);
         }
 

@@ -18,9 +18,6 @@ namespace MKD::detail
 
 namespace MKD::detail::keystore
 {
-    inline constexpr uint32_t version1 = 0x10000;
-    inline constexpr uint32_t version2 = 0x20000;
-
     // Variable-length encoding
     //
     // Each entry is bit-packed with a leading flags byte:

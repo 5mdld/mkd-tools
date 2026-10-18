@@ -6,6 +6,8 @@
 #include "MKD/platform/mmap_file.hpp"
 #include "binary/binary_view.hpp"
 #include "entry_id_codec.hpp"
+#include "MKD/resource/keystore_version.hpp"
+#include <utility>
 #include "keystore_format.hpp"
 #include "unicode/utf8.hpp"
 
@@ -114,7 +116,8 @@ namespace MKD
         }
 
         [[nodiscard]] Result<std::vector<EntryId>> decodeIds(const WordEntry& word,
-                                                             const KeystoreIdMapping mapping = KeystoreIdMapping::Resolved,
+                                                             const KeystoreIdMapping mapping =
+                                                                 KeystoreIdMapping::Resolved,
                                                              std::stop_token stop = {}) const
         {
             auto data = words.tail(word.pagesOffset);
@@ -122,7 +125,7 @@ namespace MKD
                 return std::unexpected(data.error());
 
             auto ids = detail::keystore::decodeEntryIds(data->bytes(),
-                (word.flags & detail::keystore::word::wideCount) != 0, stop);
+                                                        (word.flags & detail::keystore::word::wideCount) != 0, stop);
             if (!ids)
                 return std::unexpected(ids.error());
 
@@ -199,13 +202,14 @@ namespace MKD
             return std::unexpected(header.error());
 
         const auto version = *header->readLittle<uint32_t>(0);
-        if (version != detail::keystore::version1 && version != detail::keystore::version2)
+        if (version != std::to_underlying(KeystoreVersion::Version1) && version != std::to_underlying(
+            KeystoreVersion::Version2))
             return std::unexpected(std::format("Invalid keystore version: 0x{:x}", version));
 
         if (*header->readLittle<uint32_t>(4) != 0)
             return std::unexpected("Invalid keystore magic");
 
-        const bool version2 = version == detail::keystore::version2;
+        const bool version2 = version == std::to_underlying(KeystoreVersion::Version2);
         auto conversionOffset = version2 ? readVersion2Header(data) : Result<uint32_t>(0);
         if (!conversionOffset)
             return std::unexpected(conversionOffset.error());
