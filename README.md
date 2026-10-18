@@ -4,6 +4,14 @@ A C++23 library for reading, searching and creating 物書堂 dictionaries, with
 
 [Library documentation](https://kiwakiwaa.github.io/mkd-tools/) · C++ and Python guides
 
+## Install the CLI
+
+With [Homebrew](https://brew.sh/):
+
+```sh
+brew install kiwakiwaa/tap/mkd-tools
+```
+
 ## Acknowledgements
 
 Dictionary-format research used [Hopper](https://www.hopperapp.com/) and [Frida](https://frida.re/).
