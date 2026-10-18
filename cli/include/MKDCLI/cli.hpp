@@ -37,10 +37,16 @@ namespace MKDCLI
         std::filesystem::path outputDirectory;
     };
 
+    struct InstallCommand
+    {
+        std::filesystem::path package;
+        bool replace = false;
+    };
+
     struct Invocation
     {
         GlobalOptions global;
-        std::variant<ListCommand, InfoCommand, ExportCommand> command;
+        std::variant<ListCommand, InfoCommand, ExportCommand, InstallCommand> command;
     };
 
     class CLIApp
@@ -57,12 +63,14 @@ namespace MKDCLI
 
     private:
         void addInfoCommand();
+        void addInstallCommand();
         void addExportCommand();
         void addResourceOptions(CLI::App& command);
 
         CLI::App app_{"mkd-tools"};
         Invocation invocation_;
         InfoCommand info_;
+        InstallCommand install_;
         ExportCommand export_;
     };
 }

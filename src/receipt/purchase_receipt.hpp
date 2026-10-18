@@ -14,7 +14,7 @@
 #include <string_view>
 #include <vector>
 
-namespace MKD
+namespace MKD::detail
 {
     struct Purchase
     {
@@ -58,6 +58,9 @@ namespace MKD
          * Existing detailed records and occupied map keys are rejected.
          */
         Result<void> addPurchase(Purchase purchase);
+
+        /** Returns false when this product is already activated. */
+        Result<bool> activateLocalProduct(std::string_view productId);
 
         [[nodiscard]] const ReceiptMetadata& metadata() const noexcept;
         [[nodiscard]] ReceiptMetadata& metadata() noexcept;

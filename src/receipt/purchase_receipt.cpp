@@ -2,7 +2,7 @@
 // kiwakiwaaにより 2026/10/16 に作成されました。
 //
 
-#include "MKD/receipt/purchase_receipt.hpp"
+#include "purchase_receipt.hpp"
 #include "MKD/platform/mmap_file.hpp"
 #include "platform/macos/chacha_poly.hpp"
 
@@ -62,7 +62,7 @@ struct glz::meta<MKD::detail::ReceiptData>
     static constexpr auto unknown_write = &T::extra;
 };
 
-namespace MKD
+namespace MKD::detail
 {
     struct PurchaseReceipt::Impl
     {
@@ -201,6 +201,22 @@ namespace MKD
             return std::unexpected("Purchase map key already exists: " + id);
 
         return {};
+    }
+
+    Result<bool> PurchaseReceipt::activateLocalProduct(std::string_view productId)
+    {
+        if (contains(productId))
+            return false;
+
+        const auto now = std::chrono::floor<std::chrono::seconds>(std::chrono::system_clock::now());
+        const auto transaction = "mkd-" + std::string(productId) + std::format("-{:%Y%m%d%H%M%S}", now);
+        if (auto added = addPurchase({std::string(productId), transaction, transaction, std::format("{:%FT%TZ}", now)});
+            !added)
+            return std::unexpected(added.error());
+
+        impl_->data.unitedPurchases.emplace_back(productId);
+        impl_->data.uploadedTransactions.push_back(transaction);
+        return true;
     }
 
     const ReceiptMetadata& PurchaseReceipt::metadata() const noexcept { return impl_->data; }

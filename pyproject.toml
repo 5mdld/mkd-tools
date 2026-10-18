@@ -16,5 +16,4 @@ build.targets = ["_mkd", "mkd-python-stubs"]
 [tool.scikit-build.cmake.define]
 MKD_BUILD_PYTHON = "ON"
 MKD_BUILD_CLI = "OFF"
-MKD_BUILD_RECEIPT_APP = "OFF"
 BUILD_TESTING = "OFF"

@@ -23,6 +23,11 @@ int main(int argc, char* argv[])
         if (!invocation)
             return invocation.error();
 
+#ifdef __APPLE__
+        if (const auto* command = std::get_if<MKDCLI::InstallCommand>(&invocation->command))
+            return MKDCLI::runCommand(*command);
+#endif
+
         auto source = MKDCLI::createSource(invocation->global);
         if (!source)
         {
@@ -34,6 +39,8 @@ int main(int argc, char* argv[])
         {
             if constexpr (std::is_same_v<std::decay_t<decltype(command)>, MKDCLI::ListCommand>)
                 return MKDCLI::runCommand(**source, command);
+            else if constexpr (std::is_same_v<std::decay_t<decltype(command)>, MKDCLI::InstallCommand>)
+                return 1;
             else
             {
                 auto info = (*source)->findById(command.productId);

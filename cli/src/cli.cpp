@@ -18,6 +18,17 @@ namespace MKDCLI
         app_.add_subcommand("list", "List available dictionary products")->fallthrough();
         addInfoCommand();
         addExportCommand();
+#ifdef __APPLE__
+        addInstallCommand();
+#endif
+    }
+
+    void CLIApp::addInstallCommand()
+    {
+        auto* command = app_.add_subcommand("install", "Install an mkd-created product in Monokakido Dictionaries app");
+        command->add_option("package", install_.package, "Path to a finished mkd package")->required()->check(CLI::ExistingDirectory);
+        command->add_flag("--replace", install_.replace, "Replace an installed mkd package");
+        command->callback([this] { invocation_.command = std::move(install_); });
     }
 
     void CLIApp::addInfoCommand()
@@ -78,6 +89,8 @@ namespace MKDCLI
         try
         {
             app_.parse(argc, argv);
+            if (std::holds_alternative<InstallCommand>(invocation_.command) && !invocation_.global.directory.empty())
+                throw CLI::ValidationError("--dir", "does not apply to installation");
         }
         catch (const CLI::ParseError& error)
         {

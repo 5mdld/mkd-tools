@@ -24,9 +24,4 @@ namespace MKD::macOS
     {
         return dataDirectory / "Library/Application Support/com.dictionarystore/dictionaries";
     }
-
-    std::filesystem::path purchasesPath(const std::filesystem::path& dataDirectory)
-    {
-        return dataDirectory / "Library/Application Support/com.dictionarystore/receipt/purchases";
-    }
 }

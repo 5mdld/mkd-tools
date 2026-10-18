@@ -8,7 +8,6 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 option(BUILD_TESTING "Build tests" OFF)
 option(MKD_BUILD_PYTHON "Build Python bindings" OFF)
 option(MKD_BUILD_CLI "Build command-line interface" ON)
-option(MKD_BUILD_RECEIPT_APP "Build macOS receipt app" OFF)
 
 add_library(mkd)
 add_library(MKD::mkd ALIAS mkd)
@@ -31,10 +30,6 @@ add_subdirectory(src)
 
 if (MKD_BUILD_CLI)
     add_subdirectory(cli)
-endif ()
-
-if (MKD_BUILD_RECEIPT_APP)
-    add_subdirectory(apps)
 endif ()
 
 if (MKD_BUILD_PYTHON OR BUILD_TESTING)

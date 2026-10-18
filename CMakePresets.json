@@ -12,8 +12,7 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "BUILD_TESTING": true,
-        "MKD_BUILD_CLI": true,
-        "MKD_BUILD_RECEIPT_APP": false
+        "MKD_BUILD_CLI": true
       }
     },
     {
@@ -22,8 +21,7 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "BUILD_TESTING": false,
-        "MKD_BUILD_CLI": true,
-        "MKD_BUILD_RECEIPT_APP": false
+        "MKD_BUILD_CLI": true
       }
     }
   ],

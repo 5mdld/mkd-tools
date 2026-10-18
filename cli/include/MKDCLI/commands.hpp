@@ -11,6 +11,9 @@
 namespace MKDCLI
 {
     int runCommand(const MKD::DictionarySource& source, const ListCommand& command);
+#ifdef __APPLE__
+    int runCommand(const InstallCommand& command);
+#endif
     int runCommand(const MKD::DictionaryProduct& product, const InfoCommand& command);
     int runCommand(const MKD::DictionaryProduct& product, const ExportCommand& command);
 }

@@ -6,6 +6,11 @@ add_library(mkd-cli-core STATIC
         src/progress.cpp
 )
 
+if (APPLE)
+    target_sources(mkd-cli-core PRIVATE src/macos/install.cpp src/macos/install_transaction.cpp)
+    target_link_libraries(mkd-cli-core PRIVATE pugixml::pugixml)
+endif ()
+
 target_include_directories(mkd-cli-core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_include_directories(mkd-cli-core PRIVATE
         ${PROJECT_SOURCE_DIR}/src

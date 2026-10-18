@@ -21,7 +21,6 @@
 
 #ifdef __APPLE__
 #include "MKD/platform/macos/paths.hpp"
-#include "MKD/receipt/purchase_receipt.hpp"
 #endif
 
 #include "MKD/resource/resource_loader.hpp"
