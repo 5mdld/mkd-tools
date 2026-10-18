@@ -7,25 +7,6 @@ and reading. Use a new directory for `destination`.
 
 ## Create the product and its dictionary
 
-=== "C++"
-
-    ```cpp
-    auto product = MKD::ProductWriter::create(destination, {
-        .displayName = MKD::LocalizedString{.en = "Birds", .ja = "鳥の辞典"},
-        .version = "1.0",
-    }).value();
-
-    auto dictionary = product.addDictionary({
-        .identifier = "example.birds.ja",
-        .directory = "ja",
-        .dictionaryId = 1000,
-        .title = MKD::LocalizedString{.ja = "鳥の辞典"},
-        .languages = std::vector<std::string>{"ja"},
-    }).value();
-    ```
-
-    Keep `product` alive while using its dictionary writer.
-
 === "Python"
 
     ```python
@@ -48,6 +29,25 @@ and reading. Use a new directory for `destination`.
 
     The dictionary writer retains its product writer automatically.
 
+=== "C++"
+
+    ```cpp
+    auto product = MKD::ProductWriter::create(destination, {
+        .displayName = MKD::LocalizedString{.en = "Birds", .ja = "鳥の辞典"},
+        .version = "1.0",
+    }).value();
+
+    auto dictionary = product.addDictionary({
+        .identifier = "example.birds.ja",
+        .directory = "ja",
+        .dictionaryId = 1000,
+        .title = MKD::LocalizedString{.ja = "鳥の辞典"},
+        .languages = std::vector<std::string>{"ja"},
+    }).value();
+    ```
+
+    Keep `product` alive while using its dictionary writer.
+
 `destination` is a new product directory, for example `/path/to/Birds`. The writer
 refuses an existing destination. This creates one dictionary under `Contents/ja`.
 
@@ -65,19 +65,6 @@ intend to use together. `1000` is an example, not a reserved custom ID.
 
 ## Add an article
 
-=== "C++"
-
-    ```cpp
-    constexpr std::string_view articleXml = R"(<html xmlns="http://www.w3.org/1999/xhtml" hmhtml="5" lang="ja">
-    <head><title>鶫</title></head>
-    <body><h1>鶫（つぐみ）</h1><p>冬に日本で見られる鳥。</p></body>
-    </html>)";
-
-    auto entry = dictionary.createEntry().value();
-    const auto target = entry.target();
-    entry.writeXml(articleXml).value();
-    ```
-
 === "Python"
 
     ```python
@@ -91,23 +78,24 @@ intend to use together. `1000` is an example, not a reserved custom ID.
     entry.write_xml(article_xml)
     ```
 
+=== "C++"
+
+    ```cpp
+    constexpr std::string_view articleXml = R"(<html xmlns="http://www.w3.org/1999/xhtml" hmhtml="5" lang="ja">
+    <head><title>鶫</title></head>
+    <body><h1>鶫（つぐみ）</h1><p>冬に日本で見られる鳥。</p></body>
+    </html>)";
+
+    auto entry = dictionary.createEntry().value();
+    const auto target = entry.target();
+    entry.writeXml(articleXml).value();
+    ```
+
 Supply a complete UTF-8 XML document using the native article markup shown above.
 The namespace is part of that markup. `createEntry()` / `create_entry()` allocates
 a page ID. `target` refers to the whole article.
 
 ## Give the article a headline
-
-=== "C++"
-
-    ```cpp
-    dictionary.addHeadline({
-        .headline = u"鶫",
-        .sortingHeadline = u"つぐみ",
-        .entryId = target,
-    }).value();
-    ```
-
-    Headline fields use UTF-16.
 
 === "Python"
 
@@ -121,17 +109,22 @@ a page ID. `target` refers to the whole article.
 
     Headline fields accept Python strings and convert them automatically.
 
+=== "C++"
+
+    ```cpp
+    dictionary.addHeadline({
+        .headline = u"鶫",
+        .sortingHeadline = u"つぐみ",
+        .entryId = target,
+    }).value();
+    ```
+
+    Headline fields use UTF-16.
+
 Every page needs a primary headline. `sortingHeadline` / `sorting_headline`
 controls headline ordering. Neither field comes from the XML heading.
 
 ## Add spelling and reading keys
-
-=== "C++"
-
-    ```cpp
-    dictionary.addSearchKey(MKD::SearchScope::Headword, "鶫", target).value();
-    dictionary.addSearchKey(MKD::SearchScope::Headword, "つぐみ", target).value();
-    ```
 
 === "Python"
 
@@ -140,24 +133,31 @@ controls headline ordering. Neither field comes from the XML heading.
     dictionary.add_search_key(mkd.SearchScope.HEADWORD, "つぐみ", target)
     ```
 
+=== "C++"
+
+    ```cpp
+    dictionary.addSearchKey(MKD::SearchScope::Headword, "鶫", target).value();
+    dictionary.addSearchKey(MKD::SearchScope::Headword, "つぐみ", target).value();
+    ```
+
 Search keys use UTF-8. Both keys point to the same article. Neither the headline
 nor `sortingHeadline` automatically adds search keys. The writer normalises
 these keys using its supported default native profile.
 
 ## Publish the files
 
-=== "C++"
-
-    ```cpp
-    dictionary.finish().value();
-    product.finish().value();
-    ```
-
 === "Python"
 
     ```python
     dictionary.finish()
     product.finish()
+    ```
+
+=== "C++"
+
+    ```cpp
+    dictionary.finish().value();
+    product.finish().value();
     ```
 
 Finish each dictionary before finishing the product. Dictionary completion checks
@@ -170,6 +170,20 @@ a mutating operation or completion fails, start a fresh build. Writers are used
 serially, and input strings and byte spans are borrowed only for the call.
 
 ## Search the finished dictionary
+
+=== "Python"
+
+    ```python
+    opened = mkd.DictionaryProduct.open(destination)
+    birds = opened.find_content("example.birds.ja")
+    search = mkd.DictionarySearch(birds)
+
+    result = search.search(
+        "つぐみ", match=mkd.SearchMode.EXACT, fallback=mkd.SearchFallback.NONE,
+    )
+    ```
+
+    `result[0]` equals the allocated `target`.
 
 === "C++"
 
@@ -186,20 +200,6 @@ serially, and input strings and byte spans are borrowed only for the call.
 
     `result.entries` contains the allocated `target`.
 
-=== "Python"
-
-    ```python
-    opened = mkd.DictionaryProduct.open(destination)
-    birds = opened.find_content("example.birds.ja")
-    search = mkd.DictionarySearch(birds)
-
-    result = search.search(
-        "つぐみ", match=mkd.SearchMode.EXACT, fallback=mkd.SearchFallback.NONE,
-    )
-    ```
-
-    `result[0]` equals the allocated `target`.
-
 Searching for `鶫` returns the same target.
 See [Searching](../reading/searching.md) for scope selection, match modes, and
 native dictionary rules.
@@ -210,16 +210,16 @@ Apply these changes to the earlier steps before finishing the writers.
 
 ### Restrict a key to exact matching
 
-=== "C++"
-
-    ```cpp
-    dictionary.addSearchKey(MKD::SearchScope::Headword, "とり", target, {.exactOnly = true}).value();
-    ```
-
 === "Python"
 
     ```python
     dictionary.add_search_key(mkd.SearchScope.HEADWORD, "とり", target, exact_only=True)
+    ```
+
+=== "C++"
+
+    ```cpp
+    dictionary.addSearchKey(MKD::SearchScope::Headword, "とり", target, {.exactOnly = true}).value();
     ```
 
 This key participates in exact lookups and is excluded from prefix and suffix

@@ -5,13 +5,6 @@
 Continue with 大辞泉 example opened in the previous guide.
 Create a search object and reuse it for subsequent queries:
 
-=== "C++"
-
-    ```cpp
-    MKD::DictionarySearch search(*dictionary);
-    auto result = search.search("つぐみ").value();
-    ```
-
 === "Python"
 
     ```python
@@ -19,11 +12,30 @@ Create a search object and reuse it for subsequent queries:
     result = search.search("つぐみ")
     ```
 
+=== "C++"
+
+    ```cpp
+    MKD::DictionarySearch search(*dictionary);
+    auto result = search.search("つぐみ").value();
+    ```
+
 This searches headwords by prefix, using the dictionary's native rules.
 In 大辞泉 it finds the bird 鶫 and a book titled つぐみ, among other entries
 beginning with that reading. Search uses indexed keys, not the displayed XML text.
 
 ## Read the results
+
+=== "Python"
+
+    ```python
+    for entry in result:
+        headline = dictionary.headline_for_entry_id(entry)
+        xml = dictionary.entry_xml(entry.page_id)
+    ```
+
+    The result is an iterable sequence of `EntryId` values. Use `len(result)`
+    and `result[index]` to inspect it. `entry_xml()` returns the complete article
+    XML as a Python string.
 
 === "C++"
 
@@ -37,18 +49,6 @@ beginning with that reading. Search uses indexed keys, not the displayed XML tex
 
     `result.entries` contains ordered page/anchor targets. `entryUtf8ById()`
     returns the complete article XML as an owning UTF-8 string.
-
-=== "Python"
-
-    ```python
-    for entry in result:
-        headline = dictionary.headline_for_entry_id(entry)
-        xml = dictionary.entry_xml(entry.page_id)
-    ```
-
-    The result is an iterable sequence of `EntryId` values. Use `len(result)`
-    and `result[index]` to inspect it. `entry_xml()` returns the complete article
-    XML as a Python string.
 
 A headline can contain native formatting tokens. Article lookup returns the entire
 page even when the target refers to an anchor within it.
@@ -68,18 +68,18 @@ A scope selects what kind of material to search. These are the common choices:
 Names here use C++ spelling. Python uses uppercase names such as `HEADWORD`.
 Ask the dictionary which scopes are available:
 
-=== "C++"
-
-    ```cpp
-    auto availableScopes = search.scopes(MKD::SearchFallback::Native);
-    auto examples = search.search("鳥", {.scope = MKD::SearchScope::Example}).value();
-    ```
-
 === "Python"
 
     ```python
     available_scopes = search.scopes(fallback=mkd.SearchFallback.NATIVE)
     examples = search.search("鳥", scope=mkd.SearchScope.EXAMPLE)
+    ```
+
+=== "C++"
+
+    ```cpp
+    auto availableScopes = search.scopes(MKD::SearchFallback::Native);
+    auto examples = search.search("鳥", {.scope = MKD::SearchScope::Example}).value();
     ```
 
 Other scopes are available for dictionaries that supply those indexes:
@@ -106,6 +106,17 @@ Use `match` to choose prefix, suffix or exact lookup. Set `fallback` to `None`
 when you want the match and scope to stay fixed. The default, `Native`, can try
 variations according to the dictionary's rules.
 
+=== "Python"
+
+    ```python
+    beginning = search.search(
+        "つぐ", match=mkd.SearchMode.PREFIX, fallback=mkd.SearchFallback.NONE,
+    )
+    ending = search.search(
+        "ぐみ", match=mkd.SearchMode.SUFFIX, fallback=mkd.SearchFallback.NONE,
+    )
+    ```
+
 === "C++"
 
     ```cpp
@@ -120,32 +131,11 @@ variations according to the dictionary's rules.
     }).value();
     ```
 
-=== "Python"
-
-    ```python
-    beginning = search.search(
-        "つぐ", match=mkd.SearchMode.PREFIX, fallback=mkd.SearchFallback.NONE,
-    )
-    ending = search.search(
-        "ぐみ", match=mkd.SearchMode.SUFFIX, fallback=mkd.SearchFallback.NONE,
-    )
-    ```
-
 Both queries can find `つぐみ` when that key is present. Prefix matching compares
 the start of a key, suffix matching its end. Records marked exact-only are
 excluded from prefix and suffix results. An absent required index yields no matches.
 
 ## Request an exact lookup without broadening
-
-=== "C++"
-
-    ```cpp
-    auto exact = search.search("つぐみ", {
-        .scope = MKD::SearchScope::Headword,
-        .match = MKD::SearchMode::Exact,
-        .fallback = MKD::SearchFallback::None,
-    }).value();
-    ```
 
 === "Python"
 
@@ -156,6 +146,16 @@ excluded from prefix and suffix results. An absent required index yields no matc
         match=mkd.SearchMode.EXACT,
         fallback=mkd.SearchFallback.NONE,
     )
+    ```
+
+=== "C++"
+
+    ```cpp
+    auto exact = search.search("つぐみ", {
+        .scope = MKD::SearchScope::Headword,
+        .match = MKD::SearchMode::Exact,
+        .fallback = MKD::SearchFallback::None,
+    }).value();
     ```
 
 Exact lookup still normalises the query using the dictionary's rules. It does
@@ -183,22 +183,30 @@ The algorithm is not identical across these dictionaries. A scope's name alone
 does not determine the lookup steps. Native rules are implemented for recognised
 profiles, rather than by calling the native app. Linguistic support can vary by platform.
 
-=== "C++"
-
-    ```cpp
-    bool recognised = search.supportsNativeSearch();
-    ```
-
 === "Python"
 
     ```python
     recognised = search.supports_native_search
     ```
 
+=== "C++"
+
+    ```cpp
+    bool recognised = search.supportsNativeSearch();
+    ```
+
 An unrecognised native profile returns an error on native search. Direct lookup
 with `None` can still work if the dictionary's normalisation is supported.
 
 ## Inspect how a query matched
+
+=== "Python"
+
+    ```python
+    effective_scope = result.scope
+    for match in result.matches:
+        key, mode, origin = match.key, match.match, match.origin
+    ```
 
 === "C++"
 
@@ -212,14 +220,6 @@ with `None` can still work if the dictionary's normalisation is supported.
     }
     ```
 
-=== "Python"
-
-    ```python
-    effective_scope = result.scope
-    for match in result.matches:
-        key, mode, origin = match.key, match.match, match.origin
-    ```
-
 `scope` is the scope that produced the results. `matches` describes the normalised
 query terms or variations that contributed to the search, including their actual
 match mode and origin (`Query`, `Inflection`, `Compound`, or `JoinedQuery`). It is
@@ -230,6 +230,14 @@ relevance score. No matches is a successful empty result.
 
 ## Limit or cancel a search
 
+=== "Python"
+
+    ```python
+    limited = search.search("つ", limit=20)
+    ```
+
+    Python searches currently have no cancellation token argument.
+
 === "C++"
 
     ```cpp
@@ -239,14 +247,6 @@ relevance score. No matches is a successful empty result.
 
     Another thread can call `cancellation.request_stop()`. Cancellation returns
     an error. Each call has an independent cancellation token.
-
-=== "Python"
-
-    ```python
-    limited = search.search("つ", limit=20)
-    ```
-
-    Python searches currently have no cancellation token argument.
 
 `limit = 0` means unlimited. Limits apply after filtering and ordering, and
 `result.truncated` reports omitted results. This is a result-size limit, not a

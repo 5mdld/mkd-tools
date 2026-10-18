@@ -5,6 +5,19 @@ with the open `dictionary` from the reading and searching guides.
 
 ## Export selected resources
 
+=== "Python"
+
+    ```python
+    options = mkd.ExportOptions(
+        resources=[mkd.ResourceType.CONTENTS, mkd.ResourceType.GRAPHICS],
+        overwrite_existing=False,
+    )
+    result = mkd.export_to_directory(dictionary, output_path, options=options)
+    if not result.is_success:
+        for error in result.errors:
+            print(error)
+    ```
+
 === "C++"
 
     ```cpp
@@ -17,19 +30,6 @@ with the open `dictionary` from the reading and searching guides.
         for (const auto& error : result.errors)
             std::cerr << error << '\n';
     }
-    ```
-
-=== "Python"
-
-    ```python
-    options = mkd.ExportOptions(
-        resources=[mkd.ResourceType.CONTENTS, mkd.ResourceType.GRAPHICS],
-        overwrite_existing=False,
-    )
-    result = mkd.export_to_directory(dictionary, output_path, options=options)
-    if not result.is_success:
-        for error in result.errors:
-            print(error)
     ```
 
 An empty resource selection exports all supported categories. Output uses
@@ -45,16 +45,6 @@ in the result, so a returned result still needs checking.
 
 ## Report progress
 
-=== "C++"
-
-    ```cpp
-    result = MKD::exportToDirectory(*dictionary, outputPath, options,
-        [](const MKD::ExportEvent& event) {
-            if (const auto* progress = std::get_if<MKD::ProgressEvent>(&event))
-                std::cout << progress->completedItems << '/' << progress->totalItems << '\n';
-        }).value();
-    ```
-
 === "Python"
 
     ```python
@@ -65,6 +55,16 @@ in the result, so a returned result still needs checking.
     result = mkd.export_to_directory(
         dictionary, output_path, options=options, progress=report,
     )
+    ```
+
+=== "C++"
+
+    ```cpp
+    result = MKD::exportToDirectory(*dictionary, outputPath, options,
+        [](const MKD::ExportEvent& event) {
+            if (const auto* progress = std::get_if<MKD::ProgressEvent>(&event))
+                std::cout << progress->completedItems << '/' << progress->totalItems << '\n';
+        }).value();
     ```
 
 Events are `ExportBeginEvent`, `PhaseBeginEvent`, `ProgressEvent` and
@@ -79,20 +79,20 @@ exception is raised on the calling thread. It does not roll back written files.
 
 ## Adjust output
 
-=== "C++"
-
-    ```cpp
-    options.prettyPrintXml = true;
-    options.keystoreExportMode = MKD::KeystoreExportMode::Both;
-    options.concurrency = 1;
-    ```
-
 === "Python"
 
     ```python
     options.pretty_print_xml = True
     options.keystore_export_mode = mkd.KeystoreExportMode.BOTH
     options.concurrency = 1
+    ```
+
+=== "C++"
+
+    ```cpp
+    options.prettyPrintXml = true;
+    options.keystoreExportMode = MKD::KeystoreExportMode::Both;
+    options.concurrency = 1;
     ```
 
 Concurrency defaults to automatic worker selection. One runs sequentially.

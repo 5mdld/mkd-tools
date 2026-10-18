@@ -5,6 +5,13 @@ Use these operations before finishing the dictionary writer from
 
 ## Add packed media
 
+=== "Python"
+
+    ```python
+    dictionary.add_graphic("bird.svg", mkd.Buffer.map("bird.svg"))
+    dictionary.add_audio("bird.aac", mkd.Buffer.map("bird.aac"))
+    ```
+
 === "C++"
 
     ```cpp
@@ -12,13 +19,6 @@ Use these operations before finishing the dictionary writer from
     auto sound = MKD::RetainedSpan::map("bird.aac").value();
     dictionary.addGraphic("bird.svg", image.span()).value();
     dictionary.addAudio("bird.aac", sound.span()).value();
-    ```
-
-=== "Python"
-
-    ```python
-    dictionary.add_graphic("bird.svg", mkd.Buffer.map("bird.svg"))
-    dictionary.add_audio("bird.aac", mkd.Buffer.map("bird.aac"))
     ```
 
 Names must be single filenames. Reference these assets with the content-relative
@@ -29,6 +29,13 @@ Native playback still depends on a supported media format.
 
 ## Add stylesheets and loose assets
 
+=== "Python"
+
+    ```python
+    dictionary.add_asset("Birds.css", mkd.Buffer.map("Birds.css"))
+    dictionary.add_asset("Birds-nightmode.css", mkd.Buffer.map("Birds-nightmode.css"))
+    ```
+
 === "C++"
 
     ```cpp
@@ -36,13 +43,6 @@ Native playback still depends on a supported media format.
     dictionary.addAsset("Birds.css", css.span()).value();
     auto nightCss = MKD::RetainedSpan::map("Birds-nightmode.css").value();
     dictionary.addAsset("Birds-nightmode.css", nightCss.span()).value();
-    ```
-
-=== "Python"
-
-    ```python
-    dictionary.add_asset("Birds.css", mkd.Buffer.map("Birds.css"))
-    dictionary.add_asset("Birds-nightmode.css", mkd.Buffer.map("Birds-nightmode.css"))
     ```
 
 Reference `Birds.css` from an article's `<head>` with
@@ -55,17 +55,17 @@ to the product root. Use dictionary assets for content-relative references.
 
 ## Register a font
 
+=== "Python"
+
+    ```python
+    dictionary.add_font("Birds.otf", mkd.Buffer.map("Birds.otf"))
+    ```
+
 === "C++"
 
     ```cpp
     auto font = MKD::RetainedSpan::map("Birds.otf").value();
     dictionary.addFont("Birds.otf", font.span()).value();
-    ```
-
-=== "Python"
-
-    ```python
-    dictionary.add_font("Birds.otf", mkd.Buffer.map("Birds.otf"))
     ```
 
 The writer stores the font under `fonts/` and registers its filename in product
@@ -90,15 +90,6 @@ and read stylesheets after reopening the product.
 The product generates its information page from its title, description, version
 and content publishers. Supply copyright and license text separately:
 
-=== "C++"
-
-    ```cpp
-    product.setInformation({
-        .copyright = MKD::LocalizedString{.ja = "© 2026 鳥の辞典編集室"},
-        .licenses = {{.title = "Font license", .text = licenseText}},
-    }).value();
-    ```
-
 === "Python"
 
     ```python
@@ -106,6 +97,15 @@ and content publishers. Supply copyright and license text separately:
         copyright=mkd.LocalizedString(ja="© 2026 鳥の辞典編集室"),
         licenses=[mkd.ProductLicense("Font license", license_text)],
     ))
+    ```
+
+=== "C++"
+
+    ```cpp
+    product.setInformation({
+        .copyright = MKD::LocalizedString{.ja = "© 2026 鳥の辞典編集室"},
+        .licenses = {{.title = "Font license", .text = licenseText}},
+    }).value();
     ```
 
 The native その他 tab includes copyright, license pages and settings.
@@ -116,17 +116,17 @@ Custom pages must exist before `finish()`.
 
 ## Product icon
 
+=== "Python"
+
+    ```python
+    product.set_icon(mkd.Buffer.map("icon.png"))
+    ```
+
 === "C++"
 
     ```cpp
     auto icon = MKD::RetainedSpan::map("icon.png").value();
     product.setIcon(icon.span()).value();
-    ```
-
-=== "Python"
-
-    ```python
-    product.set_icon(mkd.Buffer.map("icon.png"))
     ```
 
 Supply one square PNG or JPEG, up to 4096 pixels wide. The writer generates all

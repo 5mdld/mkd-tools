@@ -31,23 +31,6 @@ Create a separate product using the kanwa profile. The steps follow the same
 pattern as the preceding guide, now with a compound inside the article. Use a
 new directory for `destination`.
 
-=== "C++"
-
-    ```cpp
-    auto product = MKD::ProductWriter::create(destination, {
-        .displayName = MKD::LocalizedString{.ja = "鳥の漢字辞典"},
-        .version = "1.0",
-    }, MKD::CreationProfile::Kanwa).value();
-
-    auto dictionary = product.addDictionary({
-        .identifier = "example.birds.kanwa",
-        .directory = "kanwa",
-        .dictionaryId = 1001,
-        .title = MKD::LocalizedString{.ja = "鳥の漢字辞典"},
-        .languages = std::vector<std::string>{"ja"},
-    }).value();
-    ```
-
 === "Python"
 
     ```python
@@ -69,15 +52,24 @@ new directory for `destination`.
     ))
     ```
 
-## Allocate the article and compound
-
 === "C++"
 
     ```cpp
-    auto article = dictionary.createEntry().value();
-    const auto target = article.target();
-    const auto compound = article.addTarget(MKD::EntryTargetKind::Compound).value();
+    auto product = MKD::ProductWriter::create(destination, {
+        .displayName = MKD::LocalizedString{.ja = "鳥の漢字辞典"},
+        .version = "1.0",
+    }, MKD::CreationProfile::Kanwa).value();
+
+    auto dictionary = product.addDictionary({
+        .identifier = "example.birds.kanwa",
+        .directory = "kanwa",
+        .dictionaryId = 1001,
+        .title = MKD::LocalizedString{.ja = "鳥の漢字辞典"},
+        .languages = std::vector<std::string>{"ja"},
+    }).value();
     ```
+
+## Allocate the article and compound
 
 === "Python"
 
@@ -85,6 +77,14 @@ new directory for `destination`.
     article = dictionary.create_entry()
     target = article.target
     compound = article.add_target(mkd.EntryTargetKind.COMPOUND)
+    ```
+
+=== "C++"
+
+    ```cpp
+    auto article = dictionary.createEntry().value();
+    const auto target = article.target();
+    const auto compound = article.addTarget(MKD::EntryTargetKind::Compound).value();
     ```
 
 `target` opens the whole 鳥 article. `compound` opens 鳥語 inside it.
@@ -95,21 +95,6 @@ links. You do not choose numeric IDs or ranges.
 
 Kanwa parent entries use `Headword`. Their jukugo use `Idiom`, the same search
 scope used for phrases in general dictionaries.
-
-=== "C++"
-
-    ```cpp
-    dictionary.addHeadline({
-        .headline = u"鳥", .sortingHeadline = u"とり", .entryId = target,
-    }).value();
-    dictionary.addSearchKey(MKD::SearchScope::Headword, "とり", target).value();
-    dictionary.addSearchKey(MKD::SearchScope::Headword, "鳥", target).value();
-
-    dictionary.addHeadline({
-        .headline = u"鳥語", .sortingHeadline = u"ちょうご", .entryId = compound,
-    }).value();
-    dictionary.addSearchKey(MKD::SearchScope::Idiom, "ちょうご", compound).value();
-    ```
 
 === "Python"
 
@@ -126,26 +111,25 @@ scope used for phrases in general dictionaries.
     dictionary.add_search_key(mkd.SearchScope.IDIOM, "ちょうご", compound)
     ```
 
+=== "C++"
+
+    ```cpp
+    dictionary.addHeadline({
+        .headline = u"鳥", .sortingHeadline = u"とり", .entryId = target,
+    }).value();
+    dictionary.addSearchKey(MKD::SearchScope::Headword, "とり", target).value();
+    dictionary.addSearchKey(MKD::SearchScope::Headword, "鳥", target).value();
+
+    dictionary.addHeadline({
+        .headline = u"鳥語", .sortingHeadline = u"ちょうご", .entryId = compound,
+    }).value();
+    dictionary.addSearchKey(MKD::SearchScope::Idiom, "ちょうご", compound).value();
+    ```
+
 ## Write the XML
 
 Use the compound target as the container's `id`. Formatting it produces the
 native ID spelling, such as `00001-8001`.
-
-=== "C++"
-
-    ```cpp
-    article.writeXml(std::format(R"(<html xmlns="http://www.w3.org/1999/xhtml" hmhtml="5">
-      <head><title>鳥</title></head>
-      <body>
-        <headword>鳥</headword>
-        <p>とり。</p>
-        <div id="{}">
-          <headword>鳥語</headword>
-          <p>鳥の鳴き声。</p>
-        </div>
-      </body>
-    </html>)", compound.toString())).value();
-    ```
 
 === "Python"
 
@@ -161,6 +145,22 @@ native ID spelling, such as `00001-8001`.
         </div>
       </body>
     </html>""")
+    ```
+
+=== "C++"
+
+    ```cpp
+    article.writeXml(std::format(R"(<html xmlns="http://www.w3.org/1999/xhtml" hmhtml="5">
+      <head><title>鳥</title></head>
+      <body>
+        <headword>鳥</headword>
+        <p>とり。</p>
+        <div id="{}">
+          <headword>鳥語</headword>
+          <p>鳥の鳴き声。</p>
+        </div>
+      </body>
+    </html>)", compound.toString())).value();
     ```
 
 Every allocated passage target must appear in the XML. Writing consumes the XML
@@ -186,19 +186,19 @@ to find it. Allocating a target does not add keys or XML for you.
 For example, before writing an article, allocate an example target and put it on
 the example's element:
 
+=== "Python"
+
+    ```python
+    example = article.add_target(mkd.EntryTargetKind.EXAMPLE)
+    example_xml = f'<p id="{example}">朝、鳥の声で目を覚ます。</p>'
+    ```
+
 === "C++"
 
     ```cpp
     const auto example = article.addTarget(MKD::EntryTargetKind::Example).value();
     auto exampleXml = std::format(
         R"(<p id="{}">朝、鳥の声で目を覚ます。</p>)", example.toString());
-    ```
-
-=== "Python"
-
-    ```python
-    example = article.add_target(mkd.EntryTargetKind.EXAMPLE)
-    example_xml = f'<p id="{example}">朝、鳥の声で目を覚ます。</p>'
     ```
 
 Insert that fragment into the article XML. Add a headline and `Example` search
@@ -209,20 +209,20 @@ keys if the example should appear in search results.
 `InlineText` builds escaped text and native links. Use an existing target, such as
 the `compound` above:
 
-=== "C++"
-
-    ```cpp
-    MKD::InlineText link;
-    link.append(MKD::EntryLink{compound, "鳥語"});
-    auto linkXml = link.toXhtml().value();
-    ```
-
 === "Python"
 
     ```python
     link = mkd.InlineText()
     link.append(mkd.EntryLink(compound, "鳥語"))
     link_xml = link.to_xml()
+    ```
+
+=== "C++"
+
+    ```cpp
+    MKD::InlineText link;
+    link.append(MKD::EntryLink{compound, "鳥語"});
+    auto linkXml = link.toXhtml().value();
     ```
 
 Insert the fragment into another article before writing it. Reserve entries and

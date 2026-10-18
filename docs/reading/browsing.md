@@ -8,16 +8,6 @@ Use the path to a product folder. Here `dictionariesDirectory` /
 `dictionaries_directory` is the directory containing installed products.
 C++ snippets use `.value()` for readability. Error handling is covered below.
 
-=== "C++"
-
-    ```cpp
-    auto product = MKD::DictionaryProduct::openAtPath(
-        dictionariesDirectory / "DAIJISEN2").value();
-    const auto* dictionary = product.findContent("DAIJISEN.J");
-    if (!dictionary)
-        return std::unexpected("DAIJISEN.J is not present in this product.");
-    ```
-
 === "Python"
 
     ```python
@@ -29,6 +19,16 @@ C++ snippets use `.value()` for readability. Error handling is covered below.
         raise LookupError("DAIJISEN.J is not present in this product")
     ```
 
+=== "C++"
+
+    ```cpp
+    auto product = MKD::DictionaryProduct::openAtPath(
+        dictionariesDirectory / "DAIJISEN2").value();
+    const auto* dictionary = product.findContent("DAIJISEN.J");
+    if (!dictionary)
+        return std::unexpected("DAIJISEN.J is not present in this product.");
+    ```
+
 For another product, inspect `product.dictionaries()` / `product.dictionaries`
 and each dictionary's `id()` / `id`. Opening loads metadata and resource indexes.
 Article and media payloads are read on demand.
@@ -37,13 +37,6 @@ Article and media payloads are read on demand.
 
 Read the first stored article, or use a page ID obtained from a search result:
 
-=== "C++"
-
-    ```cpp
-    auto firstId = dictionary->entries()->idAt(0).value();
-    auto text = dictionary->entryUtf8ById(firstId).value();
-    ```
-
 === "Python"
 
     ```python
@@ -51,10 +44,26 @@ Read the first stored article, or use a page ID obtained from a search result:
     text = dictionary.entry_xml(first_id)
     ```
 
+=== "C++"
+
+    ```cpp
+    auto firstId = dictionary->entries()->idAt(0).value();
+    auto text = dictionary->entryUtf8ById(firstId).value();
+    ```
+
 The returned text is an owning string. This example assumes the selected
 dictionary contains articles.
 
 ## Walk through articles
+
+=== "Python"
+
+    ```python
+    if dictionary.entries is not None:
+        for page in dictionary.entries:
+            page_id = page.id
+            xml = page.data.utf8()
+    ```
 
 === "C++"
 
@@ -67,20 +76,24 @@ dictionary contains articles.
     }
     ```
 
-=== "Python"
-
-    ```python
-    if dictionary.entries is not None:
-        for page in dictionary.entries:
-            page_id = page.id
-            xml = page.data.utf8()
-    ```
-
 Each step reads or decompresses one page. Earlier pages are not kept unless you
 retain them. Page IDs may have gaps. Storage order can differ from browsing
 order in the app.
 
 ## Read graphics and audio
+
+=== "Python"
+
+    ```python
+    if dictionary.graphics is not None:
+        graphics = dictionary.graphics
+        name = graphics.id_at(0)
+        data = graphics.get(name)
+
+    if dictionary.audio is not None:
+        for clip in dictionary.audio:
+            print(clip.id, len(clip.data))
+    ```
 
 === "C++"
 
@@ -100,19 +113,6 @@ order in the app.
     }
     ```
 
-=== "Python"
-
-    ```python
-    if dictionary.graphics is not None:
-        graphics = dictionary.graphics
-        name = graphics.id_at(0)
-        data = graphics.get(name)
-
-    if dictionary.audio is not None:
-        for clip in dictionary.audio:
-            print(clip.id, len(clip.data))
-    ```
-
 Graphics have string IDs. Audio may have string IDs or numeric IDs in legacy
 stores. Both Python store types use the same sequence and `get(id)` interface.
 Absent stores are null pointers / `None`.
@@ -123,16 +123,6 @@ file listing and does not resolve numeric legacy audio IDs.
 
 ## Read fonts and stylesheets
 
-=== "C++"
-
-    ```cpp
-    for (const auto& font : dictionary->fonts())
-        font.writeTo(outputDirectory / font.filename()).value();
-    if (const auto* css = dictionary->stylesheet()) {
-        auto text = css->data();
-    }
-    ```
-
 === "Python"
 
     ```python
@@ -141,6 +131,16 @@ file listing and does not resolve numeric legacy audio IDs.
 
     if dictionary.stylesheet is not None:
         text = dictionary.stylesheet.data
+    ```
+
+=== "C++"
+
+    ```cpp
+    for (const auto& font : dictionary->fonts())
+        font.writeTo(outputDirectory / font.filename()).value();
+    if (const auto* css = dictionary->stylesheet()) {
+        auto text = css->data();
+    }
     ```
 
 A font can be an ordinary mapped file or several packed fragments. Opening
@@ -166,13 +166,6 @@ assembling a contiguous font buffer. Night-mode CSS is available through
 
 On macOS, the library provides the expected installed location:
 
-=== "C++"
-
-    ```cpp
-    auto dataPath = MKD::macOS::monokakidoDataDirectory().value();
-    dictionariesDirectory = MKD::macOS::dictionariesDirectory(dataPath);
-    ```
-
 === "Python"
 
     ```python
@@ -180,19 +173,16 @@ On macOS, the library provides the expected installed location:
     dictionaries_directory = mkd.dictionaries_directory(data_path)
     ```
 
-Set this directory before opening a product. These helpers return paths without
-checking existence or granting access.
-On any platform, you can supply a directory of your own.
-
 === "C++"
 
     ```cpp
-    MKD::DirectoryDictionarySource source(dictionariesDirectory);
-    for (const auto& info : source.findAllAvailable().value())
-        std::cout << info.id << ": " << info.path << '\n';
-
-    auto info = source.findById("DAIJISEN2").value();
+    auto dataPath = MKD::macOS::monokakidoDataDirectory().value();
+    dictionariesDirectory = MKD::macOS::dictionariesDirectory(dataPath);
     ```
+
+Set this directory before opening a product. These helpers return paths without
+checking existence or granting access.
+On any platform, you can supply a directory of your own.
 
 === "Python"
 
@@ -204,6 +194,16 @@ On any platform, you can supply a directory of your own.
     info = source.find_by_id("DAIJISEN2")
     ```
 
+=== "C++"
+
+    ```cpp
+    MKD::DirectoryDictionarySource source(dictionariesDirectory);
+    for (const auto& info : source.findAllAvailable().value())
+        std::cout << info.id << ": " << info.path << '\n';
+
+    auto info = source.findById("DAIJISEN2").value();
+    ```
+
 Discovery checks for product files. A missing product in `findById()` /
 `find_by_id()` is an error. Use `loadMetadata()` / `load_metadata()` instead of
 opening the full product when you only need metadata.
@@ -211,17 +211,6 @@ opening the full product when you only need metadata.
 ## Retain article bytes
 
 Use retained buffers when you need bytes without an extra payload copy.
-
-=== "C++"
-
-    ```cpp
-    auto page = dictionary->entryById(firstId).value();
-    auto bytes = page.data.span();
-    auto xml = page.data.utf8().value();
-    ```
-
-    The byte span and text view borrow `page.data`. Keep the owning data alive
-    while using them.
 
 === "Python"
 
@@ -240,10 +229,35 @@ Use retained buffers when you need bytes without an extra payload copy.
     copies. `data.utf8()` returns an owning string, while
     `data.slice(offset, length)` retains a byte slice.
 
+=== "C++"
+
+    ```cpp
+    auto page = dictionary->entryById(firstId).value();
+    auto bytes = page.data.span();
+    auto xml = page.data.utf8().value();
+    ```
+
+    The byte span and text view borrow `page.data`. Keep the owning data alive
+    while using them.
+
 Compressed resources require decompression. Retained buffers can keep an entire
 decompressed chunk alive. Python releases the GIL during reading and searching.
 
 ## Inspect headlines and search keys
+
+=== "Python"
+
+    ```python
+    for store in dictionary.headlines:
+        for headline in store:
+            print(headline.headline, headline.entry_id)
+
+    for store in dictionary.keystores:
+        index = mkd.KeystoreIndex.PREFIX
+        for i in range(store.index_size(index)):
+            key = store.key_at(index, i)
+            targets = store.entry_ids_at(index, i)
+    ```
 
 === "C++"
 
@@ -263,20 +277,6 @@ decompressed chunk alive. Python releases the GIL during reading and searching.
     }
     ```
 
-=== "Python"
-
-    ```python
-    for store in dictionary.headlines:
-        for headline in store:
-            print(headline.headline, headline.entry_id)
-
-    for store in dictionary.keystores:
-        index = mkd.KeystoreIndex.PREFIX
-        for i in range(store.index_size(index)):
-            key = store.key_at(index, i)
-            targets = store.entry_ids_at(index, i)
-    ```
-
 Headline records own their component strings. Python keys are owning strings.
 C++ key views borrow their store. Targets default to resolved entry IDs. Request
 `KeystoreIdMapping::Stored` / `KeystoreIdMapping.STORED` only when inspecting the
@@ -291,23 +291,6 @@ been normalised. For example, an authored `すずめ` key may be stored as `ス�
 
 Fallible C++ operations return `MKD::Result<T>`, an alias for
 `std::expected<T, std::string>`. Python operations raise `mkd.Error`.
-
-=== "C++"
-
-    Snippets use `.value()` to keep API calls visible. In application code,
-    handle errors before accessing the value:
-
-    ```cpp
-    auto opened = MKD::DictionaryProduct::openAtPath(productPath);
-    if (!opened)
-        return std::unexpected(opened.error());
-
-    auto product = std::move(*opened);
-    ```
-
-    Return errors from a function returning `MKD::Result<T>`. Keep the product
-    alive while using its dictionaries, and the dictionary alive at the same
-    address while using its search object.
 
 === "Python"
 
@@ -326,5 +309,22 @@ Fallible C++ operations return `MKD::Result<T>`, an alias for
     Dictionaries retain their product, search objects retain their dictionary,
     and dictionary writers retain their product writer. Readers need no explicit
     `close()`.
+
+=== "C++"
+
+    Snippets use `.value()` to keep API calls visible. In application code,
+    handle errors before accessing the value:
+
+    ```cpp
+    auto opened = MKD::DictionaryProduct::openAtPath(productPath);
+    if (!opened)
+        return std::unexpected(opened.error());
+
+    auto product = std::move(*opened);
+    ```
+
+    Return errors from a function returning `MKD::Result<T>`. Keep the product
+    alive while using its dictionaries, and the dictionary alive at the same
+    address while using its search object.
 
 Next: [Searching](searching.md).
