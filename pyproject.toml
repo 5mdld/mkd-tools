@@ -68,8 +68,7 @@ before-all = [
     "dnf install -y openssl-devel",
     '''install -Dm644 /usr/share/licenses/openssl-libs/LICENSE.txt "{package}/python/mkd/licenses/OpenSSL.txt"''',
 ]
-environment = { LDFLAGS = "-static-libstdc++ -static-libgcc" }
-repair-wheel-command = "auditwheel show {wheel} && auditwheel repair -w {dest_dir} {wheel}"
+environment = { LDFLAGS = "-static-libstdc++" }
 
 [tool.cibuildwheel.windows]
 environment = { CXXFLAGS = "/utf-8" }
