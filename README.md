@@ -4,64 +4,6 @@ A C++23 toolkit for reading and exporting 物書堂 dictionary resources.
 
 [Library documentation](https://kiwakiwaa.github.io/mkd-tools/) · C++ and Python guides
 
-### Building
-
-Requires a C++23 compiler and CMake 3.31 or newer.
-
-Clone with `git clone --recurse-submodules https://github.com/kiwakiwaa/mkd-tools.git`.
-
-```
-cmake --preset release
-cmake --build --preset release
-```
-
-### Usage
-
-```
-mkd-tools <command> [options]
-```
-
-**Commands:** `list`, `info <product-id>`, `export <product-id>`
-
-Use `--help` for usage information, including command-specific help such as `mkd-tools export --help`. Commands must be explicit; bare IDs and the former `-l`, `--list`, `-e`, and `--export` aliases are no longer supported.
-
-On macOS, installed dictionaries are detected automatically.\
-You can also point to a dictionary directory with `-d <path>`.
-```
-mkd-tools export <product-id>
-mkd-tools -d /path/to/dicts export <product-id>
-mkd-tools export <product-id> --only entries --pretty
-mkd-tools export <product-id> --only appendix-entries
-```
-
-Use `--only` to limit export to specific resource types (`audio`, `entries`, `appendix-entries`, `graphics`, `fonts`, `keystores`, `headlines`). `--pretty` will format XML entry content.
-
-Output goes to `./mkd-export/<product-id>` by default, configurable with `-o`.
-
-### Python bindings
-
-Requires Python 3.10 or newer:
-
-```sh
-python -m pip install .
-```
-
-### macOS receipt app
-
-A lightweight SwiftUI app is included at `apps/monokakido-receipt-ui`.  Build it with the Xcode generator:
-
-```
-cmake -S . -B build-xcode -G Xcode -DMKD_BUILD_CLI=OFF -DMKD_BUILD_RECEIPT_APP=ON -DCMAKE_OSX_DEPLOYMENT_TARGET=13.3
-cmake --build build-xcode --target MKDReceiptApp --config Release
-```
-
-The built app bundle will be under:
-
-```
-build-xcode/apps/monokakido-receipt-ui/Release/MKDReceiptApp.app
-```
-
-
 ### Acknowledgements
 This work benefited greatly from the use of [Hopper Disassembler](https://www.hopperapp.com) and [Frida](https://frida.re). 
 Their capabilities made the analysis of the dictionary formats substantially more tractable.
