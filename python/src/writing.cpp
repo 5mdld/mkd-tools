@@ -3,7 +3,6 @@
 //
 
 #include "bindings.hpp"
-#include "appendix.hpp"
 #include "buffer.hpp"
 #include <MKD/dictionary/product_writer.hpp>
 #include <nanobind/stl/filesystem.h>
@@ -15,13 +14,8 @@
 namespace MKD::Python
 {
     void addAppendixEntries(const DictionaryWriter& dictionary, std::string_view name, std::string_view title,
-                            const std::vector<AppendixItem>& items, const uint32_t rows, const uint32_t columns)
+                            const std::vector<AppendixEntry>& entries, const uint32_t rows, const uint32_t columns)
     {
-        std::vector<AppendixEntry> entries;
-        entries.reserve(items.size());
-        for (const auto& item : items)
-            entries.push_back(item.asNative());
-
         unwrap(dictionary.addAppendix(name, title, entries, {.rows = rows, .columns = columns}));
     }
 
@@ -73,9 +67,9 @@ namespace MKD::Python
             }, "path"_a, "data"_a);
 
         type.def("set_information", [](const ProductWriter& product, ProductInformation information)
-                 {
-                     unwrap(product.setInformation(std::move(information)));
-                 }, "information"_a);
+        {
+            unwrap(product.setInformation(std::move(information)));
+        }, "information"_a);
 
         type.def("set_icon", [](const ProductWriter& product, nb::handle image)
                  {

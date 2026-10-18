@@ -16,13 +16,25 @@
 
 namespace MKD
 {
+    /** Owns its label. Used for authoring and for values which outlive a list. */
     struct AppendixEntry
+    {
+        EntryId entryId;
+        std::optional<std::string> label;
+        std::optional<char16_t> firstCharacter;
+        /** Native target dictionary. Zero selects the owner during dictionary creation. */
+        uint16_t dictionaryId = 0;
+    };
+
+    /** Borrows its label from the appendix list. */
+    struct AppendixEntryView
     {
         EntryId entryId;
         std::optional<std::string_view> label;
         std::optional<char16_t> firstCharacter;
-        /** Native target dictionary. Zero selects the owner during dictionary creation. */
         uint16_t dictionaryId = 0;
+
+        [[nodiscard]] AppendixEntry copy() const;
     };
 
     /** An appendix entry matrix. Entry labels are borrowed from the list. */
@@ -55,7 +67,7 @@ namespace MKD
 
         [[nodiscard]] std::string_view title() const noexcept;
 
-        [[nodiscard]] Result<AppendixEntry> entryAt(size_t index) const;
+        [[nodiscard]] Result<AppendixEntryView> entryAt(size_t index) const;
 
     private:
         struct Impl;

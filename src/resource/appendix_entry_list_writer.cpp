@@ -14,17 +14,9 @@ namespace MKD
 {
     struct AppendixEntryListWriter::Impl
     {
-        struct Entry
-        {
-            EntryId id;
-            std::optional<std::string> label;
-            std::optional<char16_t> firstCharacter;
-            uint16_t dictionaryId;
-        };
-
         std::unique_ptr<detail::BuildDirectory> build;
         AppendixListWriteOptions options;
-        std::vector<Entry> entries;
+        std::vector<AppendixEntry> entries;
 
         Impl(std::unique_ptr<detail::BuildDirectory> build, const AppendixListWriteOptions options)
             : build(std::move(build)), options(options)
@@ -55,7 +47,7 @@ namespace MKD
         return AppendixEntryListWriter(std::make_unique<Impl>(std::move(*build), options));
     }
 
-    Result<void> AppendixEntryListWriter::add(const AppendixEntry& entry) const
+    Result<void> AppendixEntryListWriter::add(AppendixEntry entry) const
     {
         if (auto state = impl_->build->check(); !state)
             return state;
@@ -70,10 +62,7 @@ namespace MKD
                 valid)
                 return impl_->build->fail(valid.error());
 
-        impl_->entries.push_back({
-            entry.entryId, entry.label ? std::optional(std::string(*entry.label)) : std::nullopt,
-            entry.firstCharacter, entry.dictionaryId
-        });
+        impl_->entries.push_back(std::move(entry));
         return {};
     }
 
@@ -115,8 +104,8 @@ namespace MKD
 
         for (const auto& entry : entries)
         {
-            output.writeLittle(entry.id.pageId);
-            output.writeLittle(entry.id.itemId);
+            output.writeLittle(entry.entryId.pageId);
+            output.writeLittle(entry.entryId.itemId);
             output.writeLittle(entry.dictionaryId);
         }
 

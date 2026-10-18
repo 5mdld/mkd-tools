@@ -11,6 +11,12 @@
 
 namespace MKD
 {
+    AppendixEntry AppendixEntryView::copy() const
+    {
+        return {entryId, label ? std::optional(std::string(*label)) : std::nullopt,
+                firstCharacter, dictionaryId};
+    }
+
     struct AppendixEntryList::Impl
     {
         struct Layout
@@ -27,7 +33,7 @@ namespace MKD
         static Result<std::optional<detail::BinaryView>> readOptionalTable(
             detail::BinaryView data, uint32_t offset, uint32_t count, size_t entriesEnd);
         static Result<Layout> readLayout(detail::BinaryView data);
-        [[nodiscard]] Result<AppendixEntry> readEntry(size_t index) const;
+        [[nodiscard]] Result<AppendixEntryView> readEntry(size_t index) const;
         static Result<void> validateLabels(const Layout& layout);
         static Result<std::unique_ptr<Impl>> read(MappedFile file, std::string filename, std::string title);
 
@@ -104,9 +110,9 @@ namespace MKD
         return {};
     }
 
-    Result<AppendixEntry> AppendixEntryList::Impl::readEntry(size_t index) const
+    Result<AppendixEntryView> AppendixEntryList::Impl::readEntry(size_t index) const
     {
-        AppendixEntry entry{
+        AppendixEntryView entry{
             .entryId = {
                 *layout.entries.readLittle<uint32_t>(index * 8),
                 *layout.entries.readLittle<uint16_t>(index * 8 + 4)
@@ -170,7 +176,7 @@ namespace MKD
     std::string_view AppendixEntryList::filename() const noexcept { return impl_->filename; }
     std::string_view AppendixEntryList::title() const noexcept { return impl_->title; }
 
-    Result<AppendixEntry> AppendixEntryList::entryAt(size_t index) const
+    Result<AppendixEntryView> AppendixEntryList::entryAt(size_t index) const
     {
         if (index >= size())
             return std::unexpected(std::format("Appendix entry index {} out of range", index));

@@ -264,7 +264,7 @@ namespace MKD
                 if (target.dictionaryId && target.dictionaryId != *build.metadata.dictionaryId)
                     return std::unexpected("Appendix target must belong to this dictionary");
 
-                if (auto result = writer->add(target); !result)
+                if (auto result = writer->add(std::move(target)); !result)
                     return result;
 
                 if (entry.entryId.pageId) build.references.insert(entry.entryId);

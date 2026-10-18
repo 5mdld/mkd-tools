@@ -28,6 +28,22 @@ when you need a grid; the default is one column with the row count inferred.
 
 After reopening, lists are available through `appendixEntryLists()` /
 `appendix_entry_lists`. Read individual items with `entryAt(i)` / `entry_at(i)`.
+C++ returns an `AppendixEntryView` whose label borrows the list. Call `copy()`
+to obtain an owning `AppendixEntry` that can outlive it. Python returns the
+owning value automatically.
+
+=== "C++"
+
+    ```cpp
+    const auto view = list.entryAt(0).value();
+    auto owned = view.copy();
+    ```
+
+=== "Python"
+
+    ```python
+    owned = appendix.entry_at(0)
+    ```
 
 ## Register a document appendix
 
