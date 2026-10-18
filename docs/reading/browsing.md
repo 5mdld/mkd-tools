@@ -199,6 +199,62 @@ The C++ stream overload and `fragments()` remain available. Both approaches avoi
 assembling a contiguous font buffer. Night-mode CSS is available through
 `nightmodeStylesheet()` / `nightmode_stylesheet`.
 
+## Read the appendix menu
+
+Appendices belong to the product. Sections preserve menu order, including unnamed
+sections. An item's target tells you what it opens:
+
+=== "Python"
+
+    ```python
+    for section in product.appendices.sections:
+        for item in section.items:
+            print(section.name, item.name)
+            target = item.target
+            if isinstance(target, mkd.AppendixList):
+                entries = product.open_appendix_list(target)
+            elif isinstance(target, mkd.AppendixDocument):
+                data = product.open_appendix_document(target)
+            elif isinstance(target, mkd.AppendixMenu):
+                nested_sections = target.sections
+            elif isinstance(target, mkd.AppendixEntryLink):
+                owner = product.find_content(target.dictionary_id)
+                if owner is not None:
+                    xml = owner.entry_xml(target.entry_id.page_id)
+    ```
+
+=== "C++"
+
+    ```cpp
+    for (const auto& section : product.appendices().sections) {
+        for (const auto& item : section.items) {
+            if (const auto* list = std::get_if<MKD::AppendixList>(&item.target)) {
+                auto entries = product.openAppendixList(*list).value();
+            } else if (const auto* document = std::get_if<MKD::AppendixDocument>(&item.target)) {
+                auto data = product.openAppendixDocument(*document).value();
+            } else if (const auto* submenu = std::get_if<MKD::AppendixMenu>(&item.target)) {
+                const auto& nestedSections = submenu->sections;
+            } else if (const auto* link = std::get_if<MKD::AppendixEntryLink>(&item.target)) {
+                if (const auto* owner = product.findContent(link->dictionaryId))
+                    auto xml = owner->entryUtf8ById(link->entryId.pageId).value();
+            }
+        }
+    }
+    ```
+
+Menu metadata includes submenus. List and document payloads open on demand.
+Document bytes are retained independently of the product. `fragment` identifies
+an HTML element to scroll to. Article links can similarly point to a subentry
+within the returned page.
+
+`AppendixGallery.images` contains product-relative image paths. Read one with
+`product.resource(path)`. Custom presenters and unrecognised targets remain visible
+as `AppendixCustom`. Names retain native headline markup such as ruby.
+
+Products without `Appendix.plist` have an empty menu. This API describes the
+appendix menu, rather than product-specific search and index screens.
+See [authoring menus](../creating/navigation.md#arrange-the-product-menu).
+
 ## Find installed products
 
 On macOS, the library provides the expected installed location:
