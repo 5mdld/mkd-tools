@@ -31,6 +31,7 @@ namespace MKD::detail::native::paths
     inline constexpr char productInfo[] = "ContentInfo.plist";
     inline constexpr char contentInfo[] = "DSContentInfo.plist";
     inline constexpr char appendixInfo[] = "Appendix.plist";
+    inline constexpr char appendixMenus[] = "appendix-menus";
     inline constexpr char graphicsInfo[] = "graphics.plist";
     inline constexpr char moreInfo[] = "More.plist";
     inline constexpr char informationPage[] = "about.html";

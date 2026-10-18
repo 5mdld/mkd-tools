@@ -108,6 +108,9 @@ namespace MKD::detail
         if (auto valid = WriteValidation::xmlText(content.directory); !valid)
             return valid;
 
+        if (content.directory == native::paths::appendixMenus)
+            return std::unexpected("Content directory is reserved for appendix menus");
+
         if (content.directory.contains('/') || content.directory.starts_with('.'))
             return std::unexpected("Content directory must be a single visible path component");
 

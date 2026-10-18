@@ -208,40 +208,46 @@ namespace MKD
         });
     }
 
-    Result<void> DictionaryWriter::addAppendix(std::string_view relative, std::string_view title) const
+    Result<AppendixDocument> DictionaryWriter::addAppendix(std::string_view relative, std::string_view title) const
     {
-        return impl_->write([&](detail::DictionaryBuild& build) -> Result<void>
+        return impl_->write([&](detail::DictionaryBuild& build) -> Result<AppendixDocument>
         {
             if (auto valid = detail::WriteValidation::relativePath(relative); !valid)
-                return valid;
+                return std::unexpected(valid.error());
 
             if (auto valid = detail::WriteValidation::xmlText(title); !valid)
-                return valid;
+                return std::unexpected(valid.error());
 
-            const auto extension = detail::WriteValidation::fromUtf8(relative).extension();
-            if (extension != ".html" && extension != ".xhtml" && extension != ".pdf")
-                return std::unexpected("Document appendices must be HTML, XHTML or PDF assets");
+            const auto path = relative.substr(0, relative.find('#'));
+            const auto extension = detail::WriteValidation::fromUtf8(path).extension();
+            if (extension != ".html" && extension != ".pdf")
+                return std::unexpected("Document appendices must be HTML or PDF assets");
 
-            build.assetReferences.emplace(relative);
-            build.appendices.push_back({std::string(relative), std::string(title)});
-            return {};
+            build.assetReferences.emplace(path);
+            const auto hash = relative.find('#');
+            AppendixDocument document{
+                build.metadata.directory + "/" + std::string(path),
+                hash == std::string_view::npos ? std::nullopt : std::optional(std::string(relative.substr(hash + 1)))
+            };
+            build.appendices.push_back({.name = std::string(title), .target = document});
+            return document;
         });
     }
 
-    Result<void> DictionaryWriter::addAppendix(std::string_view name, std::string_view title,
-                                               std::span<const AppendixEntry> entries,
-                                               const AppendixListWriteOptions options) const
+    Result<AppendixList> DictionaryWriter::addAppendix(std::string_view name, std::string_view title,
+                                                       std::span<const AppendixEntry> entries,
+                                                       const AppendixListWriteOptions options) const
     {
-        return impl_->write([&](detail::DictionaryBuild& build) -> Result<void>
+        return impl_->write([&](detail::DictionaryBuild& build) -> Result<AppendixList>
         {
             if (auto valid = detail::WriteValidation::relativePath(name); !valid)
-                return valid;
+                return std::unexpected(valid.error());
 
             if (auto valid = detail::WriteValidation::xmlText(title); !valid)
-                return valid;
+                return std::unexpected(valid.error());
 
             if (auto valid = detail::WriteValidation::xmlText(name); !valid)
-                return valid;
+                return std::unexpected(valid.error());
 
             if (name.contains('/'))
                 return std::unexpected("Appendix name must be a single path component");
@@ -256,25 +262,34 @@ namespace MKD
             {
                 if (entry.entryId.pageId || entry.entryId.itemId)
                     if (auto valid = detail::WriteValidation::entryId(entry.entryId); !valid)
-                        return valid;
+                        return std::unexpected(valid.error());
 
                 auto target = entry;
                 if (!target.dictionaryId && target.entryId.pageId)
                     target.dictionaryId = *build.metadata.dictionaryId;
-                if (target.dictionaryId && target.dictionaryId != *build.metadata.dictionaryId)
-                    return std::unexpected("Appendix target must belong to this dictionary");
 
+                if (entry.entryId.pageId)
+                {
+                    if (target.dictionaryId == *build.metadata.dictionaryId) build.references.insert(entry.entryId);
+                    else
+                    {
+                        auto product = build.owner();
+                        if (!product)
+                            return std::unexpected(product.error());
+
+                        (*product)->appendixReferences.push_back({entry.entryId, target.dictionaryId});
+                    }
+                }
                 if (auto result = writer->add(std::move(target)); !result)
-                    return result;
-
-                if (entry.entryId.pageId) build.references.insert(entry.entryId);
+                    return std::unexpected(result.error());
             }
             if (auto result = writer->finish(); !result)
-                return result;
+                return std::unexpected(result.error());
 
-            build.appendices.push_back({relative, std::string(title)});
+            AppendixList list{build.metadata.directory + "/" + relative};
+            build.appendices.push_back({.name = std::string(title), .target = list});
             build.assets.insert(relative);
-            return {};
+            return list;
         });
     }
 

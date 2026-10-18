@@ -6,6 +6,7 @@ target_include_directories(mkd PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 
 target_sources(mkd PRIVATE
         appendix_reader.cpp
+        appendix_writer.cpp
         inline_text.cpp
         native_content.cpp
         content_resources.cpp

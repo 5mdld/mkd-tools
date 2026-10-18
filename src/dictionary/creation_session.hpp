@@ -29,6 +29,8 @@ namespace MKD::detail
         std::string name;
         CreationProfile profile = CreationProfile::General;
         ProductInformation information;
+        std::optional<AppendixMenu> appendices;
+        std::vector<AppendixEntryLink> appendixReferences;
         std::vector<std::shared_ptr<DictionaryBuild>> dictionaries;
         explicit ProductBuild(std::unique_ptr<BuildDirectory> output, DictionaryMetadata metadata, std::string name);
         Result<void> writeAsset(std::string_view relative, std::span<const uint8_t> bytes) const;
@@ -61,13 +63,7 @@ namespace MKD::detail
         std::set<std::string> audioNames;
         std::vector<uint32_t> order;
 
-        struct Appendix
-        {
-            std::string path;
-            std::string title;
-        };
-
-        std::vector<Appendix> appendices;
+        std::vector<AppendixItem> appendices;
         bool finished = false;
 
         DictionaryBuild(std::shared_ptr<ProductBuild> product, DictionaryContent metadata,

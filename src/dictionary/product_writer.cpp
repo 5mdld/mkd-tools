@@ -101,6 +101,16 @@ namespace MKD
         return impl_->product->writeAsset(relative, bytes);
     }
 
+    Result<void> ProductWriter::setAppendices(AppendixMenu menu) const
+    {
+        auto& product = *impl_->product;
+        if (auto state = product.output->check(); !state)
+            return state;
+
+        product.appendices = std::move(menu);
+        return {};
+    }
+
     Result<void> ProductWriter::setInformation(ProductInformation information) const
     {
         auto& product = *impl_->product;
@@ -155,7 +165,8 @@ namespace MKD
         }
         else
             for (auto scope : scopes)
-                product.metadata.searchScopeNames.emplace_back(detail::CreationMetadata::scopeDefinition(scope, product.profile)->name);
+                product.metadata.searchScopeNames.emplace_back(
+                    detail::CreationMetadata::scopeDefinition(scope, product.profile)->name);
 
         std::ranges::sort(product.metadata.fonts);
         if (auto result = detail::ProductInformationWriter::write(product); !result)

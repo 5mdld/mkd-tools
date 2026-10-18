@@ -5,6 +5,7 @@
 #pragma once
 
 #include "MKD/dictionary/metadata.hpp"
+#include "MKD/dictionary/appendix_menu.hpp"
 #include "MKD/dictionary/entry_writer.hpp"
 #include "MKD/dictionary/inline_text.hpp"
 #include "MKD/dictionary/dictionary_search.hpp"
@@ -50,8 +51,8 @@ namespace MKD
         [[nodiscard]] Result<void> addAudio(std::string_view name, std::span<const uint8_t> bytes) const;
         [[nodiscard]] Result<void> addAsset(std::string_view relativePath, std::span<const uint8_t> bytes) const;
         [[nodiscard]] Result<void> addFont(std::string_view filename, std::span<const uint8_t> bytes) const;
-        [[nodiscard]] Result<void> addAppendix(std::string_view relativePath, std::string_view title) const;
-        [[nodiscard]] Result<void> addAppendix(std::string_view name, std::string_view title,
+        [[nodiscard]] Result<AppendixDocument> addAppendix(std::string_view relativePath, std::string_view title) const;
+        [[nodiscard]] Result<AppendixList> addAppendix(std::string_view name, std::string_view title,
                                                std::span<const AppendixEntry> entries,
                                                AppendixListWriteOptions options = {}) const;
         [[nodiscard]] Result<void> setEntryOrder(std::span<const uint32_t> pageIds) const;

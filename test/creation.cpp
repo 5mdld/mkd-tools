@@ -138,4 +138,66 @@ namespace MKD::test
         EXPECT_FALSE(build.product.finish());
         EXPECT_FALSE(std::filesystem::exists(workspace.path / "Birbs"));
     }
+
+    TEST(Creation, AppendixMenusRoundTripAcrossDictionaries)
+    {
+        Workspace workspace;
+        const auto path = workspace.path / "Birbs";
+        BirbBuild build(path, true);
+        const auto birb = build.addBirb();
+        auto secondContent = birbContent();
+        secondContent.identifier = "test.saberlion";
+        secondContent.directory = "lion";
+        secondContent.dictionaryId = 1001;
+        auto lion = require(build.product.addDictionary(secondContent));
+        auto entry = require(lion.createEntry());
+        const auto target = require(entry.addTarget(EntryTargetKind::Sense));
+        require(entry.writeXml("<html><body><p id=\"" + target.toString() + "\">がおー</p></body></html>"));
+        require(lion.addHeadline({.headline = u"獅子", .entryId = entry.target()}));
+        require(lion.addSearchKey(SearchScope::Headword, "がおー", entry.target()));
+        const auto list = require(build.dictionary.addAppendix("birbs", "小鳥", std::array{
+                                                                   AppendixEntry{birb},
+                                                                   AppendixEntry{
+                                                                       target, std::nullopt, std::nullopt, 1001
+                                                                   }
+                                                               }));
+        require(build.product.setAppendices({
+            {
+                {
+                    "仲間", {
+                        {"小鳥", list}, {"獅子", AppendixEntryLink{target, 1001}},
+                    }
+                }
+            }
+        }));
+        require(lion.finish());
+        build.finish();
+        auto product = require(DictionaryProduct::openAtPath(path));
+        const auto& items = product.appendices().sections.front().items;
+        EXPECT_EQ(items.front().name, "小鳥");
+        EXPECT_EQ(require(product.openAppendixList(std::get<AppendixList>(items.front().target))).size(), 2);
+        const auto link = std::get<AppendixEntryLink>(items.back().target);
+        const auto* owner = product.findContent(link.dictionaryId);
+        ASSERT_NE(owner, nullptr);
+        EXPECT_EQ(link.entryId, target);
+        EXPECT_NE(require(owner->entryUtf8ById(target.pageId)).find("がおー"), std::string::npos);
+    }
+
+    TEST(Creation, MissingAppendixTargetsPreventPublication)
+    {
+        Workspace workspace;
+        for (const auto& [name, target] : std::array<std::pair<std::string, AppendixTarget>, 3>{
+                 std::pair{"document", AppendixDocument{"missing.html"}},
+                 {"dictionary", AppendixEntryLink{{1, 0}, 999}},
+                 {"anchor", AppendixEntryLink{{1, 0x8001}, 1000}},
+             })
+        {
+            BirbBuild build(workspace.path / name);
+            build.addBirb();
+            require(build.product.setAppendices({{{"", {{"Lost birb", target}}}}}));
+            require(build.dictionary.finish());
+            EXPECT_FALSE(build.product.finish());
+            EXPECT_FALSE(std::filesystem::exists(workspace.path / name));
+        }
+    }
 }

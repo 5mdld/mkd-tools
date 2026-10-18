@@ -6,6 +6,7 @@
 #include "creation_metadata.hpp"
 #include "native_format.hpp"
 #include "creation_page.hpp"
+#include "appendix_writer.hpp"
 #include "io/write_validation.hpp"
 #include "binary/binary_buffer.hpp"
 
@@ -33,6 +34,9 @@ namespace MKD::detail
             return output->fail("Asset path is reserved for generated product metadata");
 
         const auto path = WriteValidation::fromUtf8(relative);
+        if (*path.begin() == native::paths::appendixMenus)
+            return output->fail("Asset path is reserved for generated appendix menus");
+
         for (const auto& dictionary : dictionaries)
             if (*path.begin() == WriteValidation::fromUtf8(dictionary->metadata.directory))
                 return output->fail("Use the dictionary writer for content assets");
@@ -56,34 +60,20 @@ namespace MKD::detail
 
     Result<void> ProductBuild::writeAppendices() const
     {
-        pugi::xml_document document;
-        auto sections = CreationMetadata::plistRoot(document, "array");
-        bool any = false;
+        for (const auto& reference : appendixReferences)
+            if (auto valid = AppendixWriter::validateEntry(*this, reference); !valid) return valid;
+        if (appendices) return AppendixWriter::write(*this, *appendices);
+        AppendixMenu menu;
         for (const auto& dictionary : dictionaries)
         {
-            if (dictionary->appendices.empty())
-                continue;
-
-            any = true;
-            auto section = sections.append_child("dict");
-            CreationMetadata::string(section, metadata::appendix::name,
-                                     dictionary->metadata.title
-                                         ? dictionary->metadata.title->resolve()
-                                         : dictionary->metadata.directory);
-            section.append_child("key").text().set(metadata::appendix::children);
-            auto children = section.append_child("array");
-            for (const auto& appendix : dictionary->appendices)
-            {
-                const auto item = children.append_child("dict");
-                CreationMetadata::string(item, metadata::appendix::name, appendix.title);
-                CreationMetadata::string(item, metadata::appendix::contents,
-                                         dictionary->metadata.directory + "/" + appendix.path);
-            }
+            if (dictionary->appendices.empty()) continue;
+            AppendixSection section{
+                dictionary->metadata.title ? dictionary->metadata.title->resolve() : dictionary->metadata.directory, {}
+            };
+            section.items = dictionary->appendices;
+            menu.sections.push_back(std::move(section));
         }
-        return any
-                   ? CreationMetadata::writePlist(
-                       output->path() / native::paths::productContents / native::paths::appendixInfo, document)
-                   : Result<void>{};
+        return menu.sections.empty() ? Result<void>{} : AppendixWriter::write(*this, menu);
     }
 
     DictionaryBuild::DictionaryBuild(std::shared_ptr<ProductBuild> product, DictionaryContent metadata,
