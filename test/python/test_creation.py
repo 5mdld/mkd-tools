@@ -80,3 +80,16 @@ class CreationTests(DictionaryTest):
         self.assertEqual(text.plain_text(), '雀 & セイバーライオン')
         self.assertIn('&amp;', text.to_xml())
         self.assertEqual(mkd.InlineText.from_headline(text.to_headline()).to_xml(), text.to_xml())
+
+    def test_cyclic_and_escaping_appendix_menus_are_rejected(self):
+        import plistlib
+        import shutil
+        from support import DICTIONARIES
+
+        for name, contents in (('cycle', 'Appendix.plist'), ('escape', '../outside.html')):
+            path = self.workspace() / 'Birbs'
+            shutil.copytree(DICTIONARIES / 'Birbs', path)
+            menu = [{'children': [{'name': 'Lost birb', 'contents': contents}]}]
+            (path / 'Contents/Appendix.plist').write_bytes(plistlib.dumps(menu))
+            with self.assertRaises(mkd.Error):
+                mkd.DictionaryProduct.load_metadata(path)

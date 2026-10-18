@@ -13,10 +13,11 @@
 
 namespace MKD::Python
 {
-    void addAppendixEntries(const DictionaryWriter& dictionary, std::string_view name, std::string_view title,
-                            const std::vector<AppendixEntry>& entries, const uint32_t rows, const uint32_t columns)
+    AppendixList addAppendixEntries(const DictionaryWriter& dictionary, std::string_view name, std::string_view title,
+                                    const std::vector<AppendixEntry>& entries, const uint32_t rows,
+                                    const uint32_t columns)
     {
-        unwrap(dictionary.addAppendix(name, title, entries, {.rows = rows, .columns = columns}));
+        return unwrap(dictionary.addAppendix(name, title, entries, {.rows = rows, .columns = columns}));
     }
 
     void bindCreationMetadata(nb::module_& module)
@@ -65,6 +66,11 @@ namespace MKD::Python
             {
                 unwrap(product.addAsset(path, InputBytes(data).span()));
             }, "path"_a, "data"_a);
+
+        type.def("set_appendices", [](const ProductWriter& product, AppendixMenu menu)
+        {
+            unwrap(product.setAppendices(std::move(menu)));
+        }, "menu"_a);
 
         type.def("set_information", [](const ProductWriter& product, ProductInformation information)
         {
@@ -165,7 +171,7 @@ namespace MKD::Python
             "add_appendix",
             [](const DictionaryWriter& dictionary, std::string_view path, std::string_view title)
             {
-                unwrap(dictionary.addAppendix(path, title));
+                return unwrap(dictionary.addAppendix(path, title));
             }, "path"_a, "title"_a);
 
         type.def("add_appendix_entries", &addAppendixEntries, "name"_a, "title"_a, "entries"_a, nb::kw_only(),

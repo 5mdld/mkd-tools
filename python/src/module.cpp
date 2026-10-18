@@ -24,6 +24,9 @@ NB_MODULE(_mkd, module)
     py::bindHeadlineStore(module);
     py::bindKeystore(module);
     py::bindDiscovery(module);
+    py::bindAppendixTargets(module);
+    py::bindAppendixCustom(module);
+    py::bindAppendixMenu(module);
     py::bindProduct(module);
     py::bindAppendixList(module);
     py::bindEntryOrder(module);

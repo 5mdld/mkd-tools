@@ -18,6 +18,7 @@ nanobind_add_module(_mkd
         src/inline_text.cpp
         src/buffer.cpp
         src/appendix.cpp
+        src/appendix_menu.cpp
         src/dictionary.cpp
         src/entry_order.cpp
         src/resources.cpp

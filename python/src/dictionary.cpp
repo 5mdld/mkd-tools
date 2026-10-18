@@ -50,11 +50,14 @@ namespace MKD::Python
         type.def_prop_ro("metadata", [](const DictionaryProduct& product) { return product.metadata(); });
         type.def_prop_ro("display_title", &DictionaryProduct::displayTitle);
         type.def_prop_ro("path", [](const DictionaryProduct& product) { return product.paths().productRoot(); });
+        bindProductAppendices(type);
         type.def_prop_ro("icon_path", &DictionaryProduct::iconPath);
         type.def_prop_ro("dictionaries", &productDictionaries);
 
         type.def("find_content", nb::overload_cast<std::string_view>(&DictionaryProduct::findContent),
                  "identifier"_a, nb::rv_policy::reference_internal);
+        type.def("find_content", nb::overload_cast<uint16_t>(&DictionaryProduct::findContent),
+                 "dictionary_id"_a, nb::rv_policy::reference_internal);
     }
 
     void bindDictionaryResources(nb::class_<Dictionary>& type)

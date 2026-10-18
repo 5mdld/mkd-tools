@@ -1,6 +1,6 @@
 import mkd
 from assets import add_information, add_resources
-from common import add_headword, new_dictionary, new_product, write_article
+from common import ASSETS, add_headword, new_dictionary, new_product, write_article
 
 
 def build(destination):
@@ -39,11 +39,24 @@ def build(destination):
     dictionary.add_headline(mkd.HeadlineComponents('つぐみ', tsugumi.target), role=mkd.HeadlineRole.SECONDARY)
     dictionary.add_headline(mkd.HeadlineComponents('鶫', tsugumi.target), role=mkd.HeadlineRole.SHORT)
     dictionary.set_entry_order([saberlion.target.page_id, tsugumi.target.page_id, suzume.target.page_id])
-    dictionary.add_appendix_entries('friends', '小鳥と獅子', [
+    friends = dictionary.add_appendix_entries('friends', '小鳥と獅子', [
         mkd.AppendixEntry(tsugumi.target, label='鶫'),
         mkd.AppendixEntry(saberlion.target, label='セイバーライオン'),
     ])
-    dictionary.add_asset('guide.html', b'<html><body>A small flock, plus one hungry lion.</body></html>')
-    dictionary.add_appendix('guide.html', 'この辞典の見方')
+    dictionary.add_asset('guide.html', b'<html><body><h1>Small flock</h1><p id="lion">Plus one hungry lion.</p></body></html>')
+    about = dictionary.add_appendix('guide.html', 'この辞典の見方')
+    dictionary.add_asset('saberlion.png', (ASSETS / 'saberlion.png').read_bytes())
+    product.set_appendices(mkd.AppendixMenu([
+        mkd.AppendixSection('小鳥と獅子', [
+            mkd.AppendixItem('仲間たち', friends),
+            mkd.AppendixItem('もっと見る', mkd.AppendixMenu([
+                mkd.AppendixSection('', [
+                    mkd.AppendixItem('食いしん坊', mkd.AppendixEntryLink(sense, 1000)),
+                    mkd.AppendixItem('獅子の見方', mkd.AppendixDocument(about.path, fragment='lion')),
+                    mkd.AppendixItem('獅子のすがた', mkd.AppendixGallery(['birbs/saberlion.png'])),
+                ]),
+            ])),
+        ]),
+    ]))
     dictionary.finish()
     product.finish()

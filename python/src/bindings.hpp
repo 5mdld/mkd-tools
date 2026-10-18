@@ -39,6 +39,9 @@ namespace MKD::Python
     void bindHeadline(nb::module_ & module);
     void bindInlineElements(nb::module_ & module);
     void bindInlineText(nb::module_ & module);
+    void bindAppendixTargets(nb::module_& module);
+    void bindAppendixCustom(nb::module_& module);
+    void bindAppendixMenu(nb::module_& module);
     void bindAppendixEntry(nb::module_ & module);
     void bindBuffer(nb::module_ & module);
     void bindProduct(nb::module_ & module);

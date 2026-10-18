@@ -15,19 +15,20 @@ namespace MKD::Python
     {
         auto type = nb::class_<AppendixEntry>(module, "AppendixEntry");
         type.def("__init__", [](AppendixEntry* self, const EntryId id, std::optional<std::string> label,
-                                std::optional<std::string> firstCharacter)
-        {
-            std::optional<char16_t> first;
-            if (firstCharacter)
-            {
-                const auto text = detail::unicode::toUtf16(*firstCharacter);
-                if (text.size() != 1)
-                    throw nb::value_error("First character must be one UTF-16 code unit");
+                                std::optional<std::string> firstCharacter, const uint16_t dictionaryId)
+                 {
+                     std::optional<char16_t> first;
+                     if (firstCharacter)
+                     {
+                         const auto text = detail::unicode::toUtf16(*firstCharacter);
+                         if (text.size() != 1)
+                             throw nb::value_error("First character must be one UTF-16 code unit");
 
-                first = text.front();
-            }
-            new(self) AppendixEntry{id, std::move(label), first};
-        }, "entry_id"_a, "label"_a = nb::none(), "first_character"_a = nb::none());
+                         first = text.front();
+                     }
+                     new(self) AppendixEntry{id, std::move(label), first, dictionaryId};
+                 }, "entry_id"_a, "label"_a = nb::none(), "first_character"_a = nb::none(),
+                 nb::kw_only(), "dictionary_id"_a = 0);
 
         type.def_ro("entry_id", &AppendixEntry::entryId);
         type.def_ro("dictionary_id", &AppendixEntry::dictionaryId);

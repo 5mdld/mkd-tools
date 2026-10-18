@@ -37,7 +37,7 @@ namespace MKD::test
     {
         const auto& lists = birbs().appendixEntryLists();
         ASSERT_EQ(lists.size(), 1);
-        EXPECT_EQ(lists.front().title(), "小鳥と獅子");
+        EXPECT_EQ(lists.front().title(), "仲間たち");
         const auto entry = require(lists.front().entryAt(1));
         EXPECT_EQ(entry.entryId, (EntryId{3, 0}));
         EXPECT_EQ(entry.label, "セイバーライオン");

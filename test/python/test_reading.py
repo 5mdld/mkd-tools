@@ -102,3 +102,23 @@ class ReadingTests(DictionaryTest):
             with self.subTest(filename=filename):
                 data = (icons / filename).read_bytes()
                 self.assertEqual(struct.unpack('>II', data[16:24]), (size, size))
+
+    def test_appendix_menu_preserves_submenus_and_retains_resources(self):
+        menu = self.product.appendices
+        section = menu.sections[0]
+        self.assertEqual(section.name, '小鳥と獅子')
+        self.assertEqual([item.name for item in section.items], ['仲間たち', 'もっと見る'])
+        entries = self.product.open_appendix_list(section.items[0].target)
+        self.assertEqual(entries.entry_at(1).dictionary_id, 1000)
+        submenu = section.items[1].target
+        link, document, gallery = [item.target for item in submenu.sections[0].items]
+        owner = self.product.find_content(link.dictionary_id)
+        self.assertIn(str(link.entry_id), owner.entry_xml(link.entry_id.page_id))
+        self.assertEqual(document.fragment, 'lion')
+        data = mkd.DictionaryProduct.open(DICTIONARIES / 'Birbs').open_appendix_document(document)
+        image = self.product.resource(gallery.images[0])
+        del self.product, menu, section, submenu
+        gc.collect()
+        self.assertEqual(document.path, 'birbs/guide.html')
+        self.assertIn('hungry lion', data.utf8())
+        self.assertEqual(bytes(image), (ASSETS / 'saberlion.png').read_bytes())

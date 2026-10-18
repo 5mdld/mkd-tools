@@ -6,9 +6,16 @@
 
 #include "bindings.hpp"
 
+namespace MKD
+{
+    class DictionaryProduct;
+}
+
 namespace MKD::Python
 {
-    inline size_t sequenceIndex(Py_ssize_t index, size_t size)
+    void bindProductAppendices(nb::class_<DictionaryProduct>& type);
+
+    inline size_t sequenceIndex(Py_ssize_t index, const size_t size)
     {
         if (index < 0)
             index += static_cast<Py_ssize_t>(size);
