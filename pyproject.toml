@@ -63,8 +63,11 @@ test-command = '''python -c "import mkd, tempfile; from pathlib import Path; ent
 environment = { MACOSX_DEPLOYMENT_TARGET = "14.0" }
 
 [tool.cibuildwheel.linux]
-manylinux-x86_64-image = "manylinux_2_28"
-before-all = "dnf install -y openssl-devel"
+manylinux-x86_64-image = "manylinux_2_34"
+before-all = [
+    "dnf install -y openssl-devel",
+    '''install -Dm644 /usr/share/licenses/openssl-libs/LICENSE.txt "{package}/python/mkd/licenses/OpenSSL.txt"''',
+]
 environment = { LDFLAGS = "-static-libstdc++ -static-libgcc" }
 
 [tool.cibuildwheel.windows]
