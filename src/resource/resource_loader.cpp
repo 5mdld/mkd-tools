@@ -6,7 +6,7 @@
 #include "dictionary/native_format.hpp"
 #include "resource/detail/font_format.hpp"
 #include "resource/detail/resource_files.hpp"
-#include "resource/detail/appendix_metadata.hpp"
+#include "dictionary/appendix_reader.hpp"
 
 #include <algorithm>
 #include <format>
@@ -184,17 +184,24 @@ namespace MKD
         if (!files)
             return std::unexpected(files.error());
 
-        auto titles = detail::AppendixMetadata::open(paths_.productRoot());
-        if (!titles)
-            return std::unexpected(titles.error());
+        std::optional<AppendixMenu> menu;
+        if (!appendices_)
+        {
+            auto opened = detail::AppendixReader::open(paths_.productRoot() / detail::native::paths::productContents);
+            if (!opened)
+                return std::unexpected(opened.error());
+
+            menu = std::move(*opened);
+        }
+        auto titles = detail::AppendixReader::listTitles(appendices_ ? *appendices_ : *menu);
 
         std::vector<AppendixEntryList> lists;
         for (const auto& file : *files)
         {
             const auto relative = file.
                 lexically_relative(paths_.productRoot() / detail::native::paths::productContents);
-            const auto title = titles->find(relative.generic_string());
-            auto list = AppendixEntryList::open(file, title == titles->end() ? std::string{} : title->second);
+            const auto title = titles.find(relative.generic_string());
+            auto list = AppendixEntryList::open(file, title == titles.end() ? std::string{} : title->second);
             if (!list)
                 return std::unexpected(std::format("Appendix '{}': {}", file.string(), list.error()));
 

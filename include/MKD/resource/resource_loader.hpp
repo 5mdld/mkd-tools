@@ -5,6 +5,7 @@
 #pragma once
 
 #include "MKD/dictionary/paths.hpp"
+#include "MKD/dictionary/appendix_menu.hpp"
 #include "MKD/dictionary/entry_order.hpp"
 #include "MKD/resource/font.hpp"
 #include "MKD/resource/appendix_entry_list.hpp"
@@ -29,7 +30,8 @@ namespace MKD
             std::optional<Stylesheet> nightmode;
         };
 
-        explicit ResourceLoader(const DictionaryPaths& paths) : paths_(paths)
+        explicit ResourceLoader(const DictionaryPaths& paths, const AppendixMenu* appendices = nullptr)
+            : paths_(paths), appendices_(appendices)
         {
         }
 
@@ -50,5 +52,6 @@ namespace MKD
         Result<std::vector<T>> loadCollection(ResourceType type, std::string_view contentDir,
                                               std::string_view extension, bool directories = false) const;
         const DictionaryPaths& paths_;
+        const AppendixMenu* appendices_;
     };
 }

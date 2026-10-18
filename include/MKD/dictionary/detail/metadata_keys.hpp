@@ -65,4 +65,16 @@ namespace MKD::detail::metadata::appendix
     inline constexpr char name[] = "name";
     inline constexpr char children[] = "children";
     inline constexpr char contents[] = "contents";
+    inline constexpr char title[] = "title";
+    inline constexpr char number[] = "num";
+    inline constexpr char description[] = "description";
+    inline constexpr char image[] = "image";
+    inline constexpr char indentation[] = "level";
+    inline constexpr char entry[] = "entry";
+    inline constexpr char presenter[] = "presenter";
+    inline constexpr char file[] = "file";
+    inline constexpr char detail[] = "detail";
+    inline constexpr char singleSection[] = "single-section";
+    inline constexpr char usingAnchorId[] = "using-anchor-id";
+    inline constexpr char skipThe[] = "skipping-the";
 }

@@ -5,6 +5,7 @@ configure_file(resources/product_information_style.hpp.in product_information_st
 target_include_directories(mkd PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 
 target_sources(mkd PRIVATE
+        appendix_reader.cpp
         inline_text.cpp
         native_content.cpp
         content_resources.cpp

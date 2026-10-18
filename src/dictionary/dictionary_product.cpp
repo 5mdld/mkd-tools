@@ -5,11 +5,13 @@
 #include "MKD/dictionary/dictionary_product.hpp"
 #include "native_format.hpp"
 #include "content_info.hpp"
+#include "appendix_reader.hpp"
 #include "MKD/resource/resource_loader.hpp"
 
 #include <algorithm>
 #include <array>
 #include <format>
+#include <utility>
 
 namespace MKD
 {
@@ -28,10 +30,14 @@ namespace MKD
         {
             DictionaryMetadata metadata;
             DictionaryPaths paths;
+            AppendixMenu appendices;
         };
 
-        Result<ProductBase> loadProductBase(const fs::path& path)
+        Result<ProductBase> loadProductBase(fs::path path)
         {
+            std::error_code error;
+            path = fs::absolute(path, error);
+            if (error) return std::unexpected(error.message());
             auto metadata = DictionaryMetadata::loadFromPath(
                 path / detail::native::paths::productContents / (path.stem().string() + ".json")
             );
@@ -45,9 +51,13 @@ namespace MKD
             if (!paths)
                 return std::unexpected(std::format("Failed to resolve paths: '{}'", paths.error()));
 
+            auto appendices = detail::AppendixReader::open(path / detail::native::paths::productContents);
+            if (!appendices) return std::unexpected(appendices.error());
+
             return ProductBase{
                 .metadata = std::move(*metadata),
                 .paths = std::move(*paths),
+                .appendices = std::move(*appendices),
             };
         }
 
@@ -185,7 +195,8 @@ namespace MKD
             return std::unexpected(base.error());
 
         auto dictionaries = buildMetadataOnlyDictionaries(base->metadata);
-        return DictionaryProduct(std::move(base->metadata), std::move(base->paths), std::move(dictionaries));
+        return DictionaryProduct(std::move(base->metadata), std::move(base->paths), std::move(dictionaries),
+                                 std::move(base->appendices));
     }
 
 
@@ -195,11 +206,12 @@ namespace MKD
         if (!base)
             return std::unexpected(base.error());
 
-        ResourceLoader loader(base->paths);
+        ResourceLoader loader(base->paths, &base->appendices);
         auto dictionaries = buildDictionaries(base->metadata, loader, base->paths);
         if (!dictionaries)
             return std::unexpected(dictionaries.error());
-        return DictionaryProduct(std::move(base->metadata), std::move(base->paths), std::move(*dictionaries));
+        return DictionaryProduct(std::move(base->metadata), std::move(base->paths), std::move(*dictionaries),
+                                 std::move(base->appendices));
     }
 
 
@@ -216,6 +228,53 @@ namespace MKD
         return it != dictionaries_.end() ? &*it : nullptr;
     }
 
+
+    const Dictionary* DictionaryProduct::findContent(uint16_t dictionaryId) const
+    {
+        const auto found = std::ranges::find_if(dictionaries_, [dictionaryId](const auto& dictionary)
+        {
+            return dictionary.content().dictionaryId == dictionaryId;
+        });
+        return found == dictionaries_.end() ? nullptr : &*found;
+    }
+
+    Dictionary* DictionaryProduct::findContent(uint16_t dictionaryId)
+    {
+        return const_cast<Dictionary*>(std::as_const(*this).findContent(dictionaryId));
+    }
+
+    Result<RetainedSpan> DictionaryProduct::resource(std::string_view relativePath) const
+    {
+        auto path = detail::AppendixReader::resolve(paths_.productRoot() / detail::native::paths::productContents,
+                                                    relativePath);
+        if (!path)
+            return std::unexpected(path.error());
+
+        return RetainedSpan::map(*path);
+    }
+
+    Result<AppendixEntryList> DictionaryProduct::openAppendixList(const AppendixList& list) const
+    {
+        if (!list.path.ends_with(".entries"))
+            return std::unexpected("Expected an appendix entry list");
+
+        auto path = detail::AppendixReader::resolve(paths_.productRoot() / detail::native::paths::productContents,
+                                                    list.path);
+        if (!path)
+            return std::unexpected(path.error());
+
+        const auto titles = detail::AppendixReader::listTitles(appendices_);
+        const auto title = titles.find(list.path);
+        return AppendixEntryList::open(*path, title == titles.end() ? "" : title->second);
+    }
+
+    Result<RetainedSpan> DictionaryProduct::openAppendixDocument(const AppendixDocument& document) const
+    {
+        if (!document.path.ends_with(".html") && !document.path.ends_with(".pdf"))
+            return std::unexpected("Expected an HTML or PDF appendix document");
+
+        return resource(document.path);
+    }
 
     std::string DictionaryProduct::displayTitle() const
     {
@@ -273,8 +332,9 @@ namespace MKD
 
 
     DictionaryProduct::DictionaryProduct(DictionaryMetadata metadata, DictionaryPaths paths,
-                                         std::vector<Dictionary> dictionaries)
-        : metadata_(std::move(metadata)), paths_(std::move(paths)), dictionaries_(std::move(dictionaries))
+                                         std::vector<Dictionary> dictionaries, AppendixMenu appendices)
+        : appendices_(std::move(appendices)), metadata_(std::move(metadata)), paths_(std::move(paths)),
+          dictionaries_(std::move(dictionaries))
     {
     }
 }
