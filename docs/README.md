@@ -90,16 +90,20 @@ and `appendix-entries`.
 `--pretty` formats XML.
 Use `mkd-tools --help` or `mkd-tools export --help` for all options.
 
-## macOS receipt app
+## Install a custom dictionary on macOS
 
-Intended only for activating custom third-party dictionaries you are authorised
-to use. For store purchases, use the Dictionaries app's purchase restoration.
-
-The SwiftUI receipt app requires Xcode:
+Quit Dictionaries, then install a product built with the current mkd library:
 
 ```sh
-cmake -S . -B build-xcode -G Xcode -DMKD_BUILD_CLI=OFF -DMKD_BUILD_RECEIPT_APP=ON -DCMAKE_OSX_DEPLOYMENT_TARGET=13.3
-cmake --build build-xcode --target MKDReceiptApp --config Release
+mkd-tools install build/birbs/BirdWords
 ```
 
-App: `build-xcode/apps/monokakido-receipt-ui/Release/MKDReceiptApp.app`.
+To install a newer build of the same product:
+
+```sh
+mkd-tools install build/birbs-next/BirdWords --replace
+```
+
+Installation copies the package and adds local activation for that product only.
+An existing activation is preserved. This is only for custom dictionaries you are
+allowed to use.
