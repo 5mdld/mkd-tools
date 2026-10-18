@@ -44,7 +44,10 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.x'
+          python-version: '3.12'
+
+      - name: Install Python build dependencies
+        run: python -m pip install "nanobind>=3.1,<4"
 
       - name: Install dependencies (Linux)
         if: runner.os == 'Linux'
@@ -52,7 +55,9 @@ jobs:
 
       - name: Configure CMake (Windows)
         if: runner.os == 'Windows'
-        run: cmake --preset release
+        env:
+          CXXFLAGS: /utf-8
+        run: cmake --preset release -DBUILD_TESTING=ON
 
       - name: Configure CMake (Unix)
         if: runner.os != 'Windows'
@@ -60,27 +65,10 @@ jobs:
           CC: ${{ matrix.cc }}
           CXX: ${{ matrix.cxx }}
           CXXFLAGS: ${{ matrix.cxxflags }}
-        run: cmake --preset release -G "${{ matrix.generator }}"
+        run: cmake --preset release -G "${{ matrix.generator }}" -DBUILD_TESTING=ON
 
       - name: Build
-        run: cmake --build --preset release --target mkd-cli --parallel
+        run: cmake --build --preset release --parallel
 
-      - name: Run mkd-tools (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          mkdir output
-          .\build\release\cli\Release\mkd-tools.exe -d .\test\test-data export TESTDICT -o output --keystore-mode both --overwrite --pretty
-
-      - name: Run mkd-tools (Unix)
-        if: runner.os != 'Windows'
-        run: |
-          mkdir output
-          ./build/release/cli/mkd-tools -d ./test/test-data export TESTDICT -o output --keystore-mode both --overwrite --pretty
-
-      - name: Verify exported CI fixtures
-        run: python test/ci/verify_fixture_export.py output/Test.dict
-
-      - name: List output files
-        if: always()
-        shell: bash
-        run: find output -type f | sort
+      - name: Test
+        run: ctest --test-dir build/release -C Release --output-on-failure --parallel 4 --no-tests=error
