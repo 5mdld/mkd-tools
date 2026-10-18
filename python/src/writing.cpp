@@ -97,6 +97,10 @@ namespace MKD::Python
 
         auto type = nb::class_<DictionaryWriter>(module, "DictionaryWriter",
                                                  "Build one dictionary serially. Inputs are consumed during each call.");
+        type.def("create_entry", [](nb::handle self, std::optional<uint32_t> pageId)
+        {
+            return unwrap(nb::cast<const DictionaryWriter&>(self).createEntry(pageId));
+        }, nb::kw_only(), "page_id"_a = nb::none(), nb::keep_alive<0, 1>());
         type.def(
             "add_page", [](const DictionaryWriter& dictionary, uint32_t pageId, std::string_view xml)
             {

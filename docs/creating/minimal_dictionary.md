@@ -73,7 +73,9 @@ intend to use together. `1000` is an example, not a reserved custom ID.
     <body><h1>鶫（つぐみ）</h1><p>冬に日本で見られる鳥。</p></body>
     </html>)";
 
-    dictionary.addPage(1, articleXml).value();
+    auto entry = dictionary.createEntry().value();
+    const auto target = entry.target();
+    entry.writeXml(articleXml).value();
     ```
 
 === "Python"
@@ -84,12 +86,16 @@ intend to use together. `1000` is an example, not a reserved custom ID.
     <body><h1>鶫（つぐみ）</h1><p>冬に日本で見られる鳥。</p></body>
     </html>"""
 
-    dictionary.add_page(1, article_xml)
+    entry = dictionary.create_entry()
+    target = entry.target
+    entry.write_xml(article_xml)
     ```
 
 Supply a complete UTF-8 XML document using the native article markup shown above.
-The namespace is part of that markup. Page ID `1` is chosen by the caller and
-must be nonzero. `EntryId{1, 0}` refers to this whole article.
+The namespace is part of that markup. `createEntry()` / `create_entry()` allocates
+a page ID; `target` refers to the whole article. To preserve identity across
+reordered builds, supply an explicit page ID (`createEntry(10)` in C++,
+`create_entry(page_id=10)` in Python).
 
 ## Give the article a headline
 
@@ -99,7 +105,7 @@ must be nonzero. `EntryId{1, 0}` refers to this whole article.
     dictionary.addHeadline({
         .headline = u"鶫",
         .sortingHeadline = u"つぐみ",
-        .entryId = {1, 0},
+        .entryId = target,
     }).value();
     ```
 
@@ -108,7 +114,6 @@ must be nonzero. `EntryId{1, 0}` refers to this whole article.
 === "Python"
 
     ```python
-    target = mkd.EntryId(1, 0)
     dictionary.add_headline(mkd.HeadlineComponents(
         headline="鶫",
         sorting_headline="つぐみ",
@@ -126,8 +131,8 @@ independent of the article's `<h1>` element.
 === "C++"
 
     ```cpp
-    dictionary.addSearchKey(MKD::SearchScope::Headword, "鶫", {1, 0}).value();
-    dictionary.addSearchKey(MKD::SearchScope::Headword, "つぐみ", {1, 0}).value();
+    dictionary.addSearchKey(MKD::SearchScope::Headword, "鶫", target).value();
+    dictionary.addSearchKey(MKD::SearchScope::Headword, "つぐみ", target).value();
     ```
 
 === "Python"
@@ -146,17 +151,75 @@ these keys using its supported default native profile.
 === "C++"
 
     ```cpp
-    dictionary.addSearchKey(MKD::SearchScope::Headword, "とり", {1, 0}, {.exactOnly = true}).value();
+    dictionary.addSearchKey(MKD::SearchScope::Headword, "とり", target, {.exactOnly = true}).value();
     ```
 
 === "Python"
 
     ```python
-    dictionary.add_search_key(mkd.SearchScope.HEADWORD, "とり", mkd.EntryId(1), exact_only=True)
+    dictionary.add_search_key(mkd.SearchScope.HEADWORD, "とり", target, exact_only=True)
     ```
 
 This key participates in exact lookups and is excluded from prefix and suffix
 matching.
+
+## Target a compound, idiom or example
+
+Allocate targets before writing the article. Reuse each target for the XML ID,
+headline and search keys. This example belongs in a kanwa product.
+
+=== "C++"
+
+    ```cpp
+    auto entry = dictionary.createEntry().value();
+    const auto compound = entry.addTarget(MKD::EntryTargetKind::Compound).value();
+    const auto example = entry.addTarget(MKD::EntryTargetKind::Example).value();
+
+    dictionary.addHeadline({
+        .headline = u"鳴禽",
+        .sortingHeadline = u"めいきん",
+        .entryId = compound,
+    }).value();
+    dictionary.addSearchKey(MKD::SearchScope::Idiom, "めいきん", compound).value();
+
+    // Insert compound.toString() and example.toString() into the complete XML document.
+    entry.writeXml(xml).value();
+    ```
+
+=== "Python"
+
+    ```python
+    entry = dictionary.create_entry()
+    compound = entry.add_target(mkd.EntryTargetKind.COMPOUND)
+    example = entry.add_target(mkd.EntryTargetKind.EXAMPLE)
+
+    dictionary.add_headline(mkd.HeadlineComponents(
+        "鳴禽", compound, sorting_headline="めいきん",
+    ))
+    dictionary.add_search_key(mkd.SearchScope.IDIOM, "めいきん", compound)
+
+    xml = f'''<html xmlns="http://www.w3.org/1999/xhtml" hmhtml="5">
+    <head><title>鳴</title></head>
+    <body><div id="{compound}"><headword>鳴禽</headword>
+    <p>よくさえずる鳥。</p><p id="{example}">朝、鳥が鳴く。</p>
+    </div></body></html>'''
+    entry.write_xml(xml)
+    ```
+
+The page still needs its own primary headline and headword keys, as above.
+`Compound` is for kanwa compounds; `Idiom` is for general-dictionary idiom
+subentries. `Example`, `Sense` and `Section` allocate the other supported target
+kinds. These choices do not add search keys or generate XML structure.
+
+Each declared nonzero target must exist in the XML. `writeXml()` / `write_xml()`
+writes once and closes target allocation for that page. Reserve multiple entries
+first when they link forward to each other. Article bodies are consumed during
+the write call. C++ callers must keep the product alive; Python entry writers
+retain their dictionary and product.
+
+`addPage()` / `add_page()` remains available for explicit imports. A reserved page
+must be written through its entry writer. Native XML IDs must use the canonical
+spelling, such as `00001-8001`; ordinary named fragments remain available.
 
 ## Creation options and validation
 

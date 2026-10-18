@@ -26,6 +26,7 @@ nanobind_add_module(_mkd
         src/export.cpp
         src/search.cpp
         src/writing.cpp
+        src/entry_writer.cpp
 )
 target_link_libraries(_mkd PRIVATE MKD::mkd)
 target_include_directories(_mkd PRIVATE "${PROJECT_SOURCE_DIR}/src")

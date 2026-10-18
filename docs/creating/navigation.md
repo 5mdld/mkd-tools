@@ -9,7 +9,7 @@ before either `finish()` call.
 
     ```cpp
     const std::array<MKD::AppendixEntry, 1> entries{{
-        {.entryId = {1, 0}, .label = "鶫", .firstCharacter = u'つ'},
+        {.entryId = target, .label = "鶫", .firstCharacter = u'つ'},
     }};
     dictionary.addAppendix("birds", "鳥の一覧", entries).value();
     ```
@@ -17,7 +17,7 @@ before either `finish()` call.
 === "Python"
 
     ```python
-    entries = [mkd.AppendixEntry(mkd.EntryId(1), label="鶫", first_character="つ")]
+    entries = [mkd.AppendixEntry(target, label="鶫", first_character="つ")]
     dictionary.add_appendix_entries("birds", "鳥の一覧", entries)
     ```
 

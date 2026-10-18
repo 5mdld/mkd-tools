@@ -55,7 +55,8 @@ namespace MKD::Python
     void bindSearchMatch(nb::module_ & module);
     void bindSearchResult(nb::module_ & module);
     void bindSearch(nb::module_ & module);
-    void bindCreationMetadata(nb::module_& module);
+    void bindCreationMetadata(nb::module_ & module);
     void bindProductWriter(nb::module_ & module);
     void bindDictionaryWriter(nb::module_ & module);
+    void bindEntryWriter(nb::module_ & module);
 }

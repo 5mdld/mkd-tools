@@ -13,7 +13,6 @@ namespace MKD::detail
     struct NativeEntryReference
     {
         static std::optional<EntryId> parse(std::string_view text);
-        static std::string format(EntryId id);
     };
 
     struct NativeLabelToken

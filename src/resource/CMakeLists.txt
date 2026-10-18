@@ -1,4 +1,5 @@
 target_sources(mkd PRIVATE
+        entry_id.cpp
         appendix_entry_list.cpp
         appendix_entry_list_writer.cpp
         retained_span.cpp

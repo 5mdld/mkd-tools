@@ -24,24 +24,23 @@ namespace MKD
     DictionaryWriter::DictionaryWriter(DictionaryWriter&&) noexcept = default;
     DictionaryWriter& DictionaryWriter::operator=(DictionaryWriter&&) noexcept = default;
 
+    Result<EntryWriter> DictionaryWriter::createEntry(const std::optional<uint32_t> pageId) const
+    {
+        auto page = impl_->write([&](detail::DictionaryBuild& build) { return build.reserveEntry(pageId); });
+        if (!page)
+            return std::unexpected(page.error());
+
+        return EntryWriter(std::make_unique<EntryWriter::Impl>(
+            EntryWriter::Impl{Impl{impl_->dictionary}, *page}));
+    }
+
     Result<void> DictionaryWriter::addPage(const uint32_t pageId, std::string_view xhtml) const
     {
         return impl_->write([&](detail::DictionaryBuild& build) -> Result<void>
         {
-            if (auto scanned = build.scanPage(pageId, xhtml); !scanned)
-                return scanned;
-
-            if (!build.pages)
-            {
-                auto writer = ResourceStoreWriter::create(
-                    build.root / detail::native::paths::contents, build.metadata.identifier,
-                    {.encrypt = build.options.encryptContents});
-                if (!writer)
-                    return std::unexpected(writer.error());
-
-                build.pages = std::move(*writer);
-            }
-            return build.pages->add(pageId, std::span(reinterpret_cast<const uint8_t*>(xhtml.data()), xhtml.size()));
+            if (build.reservedEntries.contains(pageId))
+                return std::unexpected("Page is reserved. Write its XML through the entry writer");
+            return build.writePage(pageId, xhtml);
         });
     }
 

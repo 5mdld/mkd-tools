@@ -20,6 +20,7 @@ target_sources(mkd PRIVATE
         product_information.cpp
         product_icon.cpp
         dictionary_writer.cpp
+        entry_writer.cpp
         creation_metadata.cpp
         creation_page.cpp
         creation_session.cpp

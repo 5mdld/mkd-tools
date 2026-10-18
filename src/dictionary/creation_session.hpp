@@ -10,11 +10,13 @@
 #include "MKD/resource/headline_store_writer.hpp"
 #include "io/build_directory.hpp"
 #include "content_references.hpp"
+#include "native_format.hpp"
 #include "output/directory_output.hpp"
 
 #include <map>
 #include <set>
 #include <unordered_set>
+#include <type_traits>
 
 namespace MKD::detail
 {
@@ -45,6 +47,8 @@ namespace MKD::detail
         std::optional<NamedResourceStoreWriter> graphics;
         std::optional<NamedResourceStoreWriter> audio;
         std::unordered_set<uint32_t> pageIds;
+        std::map<uint32_t, std::array<uint32_t, native::entry::targetRanges.size()>> reservedEntries;
+        uint32_t nextPageId = 1;
         std::unordered_set<EntryId> anchors;
         std::unordered_set<EntryId> references;
         std::unordered_set<EntryId> primaryHeadlines;
@@ -74,6 +78,9 @@ namespace MKD::detail
         Result<void> scanHeadline(const HeadlineComponents& headline);
         Result<void> scanStylesheet(std::string_view path, std::span<const uint8_t> bytes);
         Result<void> scanPage(uint32_t pageId, std::string_view xhtml);
+        Result<uint32_t> reserveEntry(std::optional<uint32_t> pageId);
+        Result<EntryId> addTarget(uint32_t pageId, EntryTargetKind kind);
+        Result<void> writePage(uint32_t pageId, std::string_view xml);
         Result<void> validateReferences() const;
         Result<void> validateEntryReferences() const;
         Result<void> validateAssetReferences() const;
@@ -96,13 +103,24 @@ namespace MKD
         }
 
         template <typename Operation>
-        Result<void> write(Operation&& operation)
+        auto write(Operation&& operation) -> std::invoke_result_t<Operation, detail::DictionaryBuild&>
         {
+            using Return = std::invoke_result_t<Operation, detail::DictionaryBuild&>;
             auto product = dictionary->owner();
-            if (!product) return std::unexpected(product.error());
+            if (!product)
+                return Return(std::unexpected(product.error()));
+
             auto result = operation(*dictionary);
-            if (!result) return (*product)->output->fail(result.error());
+            if (!result)
+                (void)(*product)->output->fail(result.error());
+
             return result;
         }
+    };
+
+    struct EntryWriter::Impl
+    {
+        DictionaryWriter::Impl writer;
+        uint32_t pageId;
     };
 }

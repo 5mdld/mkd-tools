@@ -126,7 +126,7 @@ namespace MKD::detail
 
     Result<void> DictionaryBuild::scanHeadline(const HeadlineComponents& headline)
     {
-        const auto origin = "headline " + NativeEntryReference::format(headline.entryId);
+        const auto origin = "headline " + headline.entryId.toString();
         auto found = ContentReferences::headline(headline.full());
         if (!found)
             return std::unexpected(origin + ": " + found.error());
@@ -186,13 +186,17 @@ namespace MKD::detail
 
     Result<void> DictionaryBuild::validateEntryReferences() const
     {
+        for (const auto& page : reservedEntries | std::views::keys)
+            if (!pageIds.contains(page))
+                return std::unexpected("Reserved entry has no XML: page " + std::to_string(page));
+
         for (const auto target : references)
         {
             if (!anchors.contains(target))
             {
                 const auto origin = targetOrigins.find(target);
                 return std::unexpected(
-                    "Missing search, headline or link target " + NativeEntryReference::format(target) +
+                    "Missing entry target " + target.toString() +
                     (origin == targetOrigins.end() ? "" : " referenced by " + origin->second));
             }
         }
@@ -367,6 +371,7 @@ namespace MKD::detail
 
         finished = true;
         pageIds = decltype(pageIds){};
+        reservedEntries = decltype(reservedEntries){};
         anchors = decltype(anchors){};
         references = decltype(references){};
         primaryHeadlines = decltype(primaryHeadlines){};

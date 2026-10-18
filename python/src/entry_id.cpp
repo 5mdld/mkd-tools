@@ -19,6 +19,8 @@ namespace MKD::Python
 
         type.def(nb::self == nb::self);
 
+        type.def("__str__", &EntryId::toString);
+
         type.def("__hash__", [](EntryId id) { return std::hash<EntryId>{}(id); });
 
         type.def("__repr__", [](EntryId id)

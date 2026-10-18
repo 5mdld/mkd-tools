@@ -9,6 +9,22 @@
 #include <cstdint>
 #include <string_view>
 
+namespace MKD::detail::native::entry
+{
+    struct TargetRange
+    {
+        uint16_t first;
+        uint16_t last;
+    };
+
+    // In EntryTargetKind order. Leave headline reference and auxiliary identifier ranges unallocated.
+    inline constexpr std::array targetRanges{
+        TargetRange{0x4001, 0x4FFF}, TargetRange{0x8001, 0x8FFF},
+        TargetRange{0x5001, 0x5FFF}, TargetRange{0xF001, 0xFFFF},
+        TargetRange{0xC001, 0xCFFF}
+    };
+}
+
 namespace MKD::detail::native::paths
 {
     inline constexpr char productContents[] = "Contents";

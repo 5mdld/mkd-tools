@@ -34,5 +34,6 @@ NB_MODULE(_mkd, module)
     py::bindExport(module);
     py::bindCreationMetadata(module);
     py::bindProductWriter(module);
+    py::bindEntryWriter(module);
     py::bindDictionaryWriter(module);
 }

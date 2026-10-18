@@ -26,11 +26,6 @@ namespace MKD::detail
         return id;
     }
 
-    std::string NativeEntryReference::format(EntryId id)
-    {
-        return std::format("{}-{:04X}", id.pageId, id.itemId);
-    }
-
     Result<NativeLabelToken> NativeLabelToken::read(std::string_view source)
     {
         if (source.size() < 2 || source.front() != '{' || source.back() != '}')
@@ -189,7 +184,7 @@ namespace MKD::detail
         if (auto valid = NativeContent::labelText(link.text, true); !valid)
             return std::unexpected(valid.error());
 
-        return std::format("{{{}:{}:{}}}", native::label::reference, NativeEntryReference::format(link.target),
+        return std::format("{{{}:{}:{}}}", native::label::reference, link.target.toString(),
                            link.text);
     }
 
@@ -271,7 +266,7 @@ namespace MKD::detail
         if (auto valid = WriteValidation::xmlText(link.text, true); !valid)
             return std::unexpected(valid.error());
 
-        return std::format("<a href=\"{}\">{}</a>", NativeEntryReference::format(link.target),
+        return std::format("<a href=\"{}\">{}</a>", link.target.toString(),
                            NativeContent::escapeXml(link.text));
     }
 

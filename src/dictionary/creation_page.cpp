@@ -44,7 +44,11 @@ namespace MKD::detail
 
             if (const auto target = NativeEntryReference::parse(id.value()))
             {
-                if (target->pageId != page_) error_ = "Entry anchor belongs to another page";
+                if (target->pageId != page_)
+                    error_ = "Entry anchor belongs to another page";
+                else if (id.value() != target->toString())
+                    error_ = "Noncanonical entry anchor: " + std::string(id.value()) +
+                        ". Expected " + target->toString();
                 else anchors.insert(*target);
             }
         }
