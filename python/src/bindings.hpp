@@ -44,6 +44,7 @@ namespace MKD::Python
     void bindProduct(nb::module_ & module);
     void bindAppendixList(nb::module_ & module);
     void bindDictionary(nb::module_ & module);
+    void bindEntryOrder(nb::module_ & module);
     void bindResourceStores(nb::module_ & module);
     void bindFont(nb::module_ & module);
     void bindStylesheet(nb::module_ & module);

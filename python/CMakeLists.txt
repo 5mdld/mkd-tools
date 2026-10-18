@@ -20,6 +20,7 @@ nanobind_add_module(_mkd
         src/buffer.cpp
         src/appendix.cpp
         src/dictionary.cpp
+        src/entry_order.cpp
         src/resources.cpp
         src/indexes.cpp
         src/discovery.cpp

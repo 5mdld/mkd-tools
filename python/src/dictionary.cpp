@@ -103,6 +103,7 @@ namespace MKD::Python
         type.def_prop_ro("presentation",
                          [](const Dictionary& dictionary) { return dictionary.presentation(); });
         type.def_prop_ro("appendix_entry_lists", &dictionaryAppendices);
+        type.def_prop_ro("entry_order", &Dictionary::entryOrder, nb::rv_policy::reference_internal);
         bindDictionaryResources(type);
 
         type.def_prop_ro("entry_count", [](const Dictionary& dictionary)

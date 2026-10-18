@@ -26,6 +26,7 @@ NB_MODULE(_mkd, module)
     py::bindDiscovery(module);
     py::bindProduct(module);
     py::bindAppendixList(module);
+    py::bindEntryOrder(module);
     py::bindDictionary(module);
     py::bindSearchEnums(module);
     py::bindSearchMatch(module);
