@@ -88,8 +88,9 @@ Headlines use a separate native encoding.
     dictionary.setPresentation({.fullRubyStylesheet = "ruby.css"}).value();
     ```
 
-This records the stylesheet for the native full-ruby presentation. Supply valid CSS for your article markup. Finish the
-dictionary and product as in the minimal guide.
+This records the stylesheet for the native full-ruby presentation. It controls
+readings already in the article XML. See [Ruby presentation](styling.md#ruby-presentation)
+for the CSS. Finish the dictionary and product as in the minimal guide.
 
 ## Decode an existing headline
 

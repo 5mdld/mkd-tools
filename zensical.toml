@@ -15,6 +15,7 @@ nav = [
     { "Subentries and links" = "creating/subentries.md" },
     { "Gaiji and ruby" = "creating/inline_content.md" },
     { "Images, audio, fonts and CSS" = "creating/resources.md" },
+    { "Styling articles" = "creating/styling.md" },
     { "Appendices and entry order" = "creating/navigation.md" },
 ]
 

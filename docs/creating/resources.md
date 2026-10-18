@@ -72,13 +72,10 @@ The writer stores the font under `fonts/` and registers its filename in product
 metadata. Use `.ttf`, `.otf` or `.ttc` with a matching signature. Font filenames
 must be unique across the product.
 
-A stylesheet can reference the registered font:
+Select the registered font by its internal family or PostScript name, which may
+differ from the filename. For a font named `Birds`:
 
 ```css
-@font-face {
-    font-family: Birds;
-    src: url("fonts/Birds.otf");
-}
 body { font-family: Birds; }
 ```
 
@@ -140,4 +137,4 @@ one-dimensional byte `memoryview` inputs. `mkd.Buffer.map(path)` maps a file.
 Inputs are consumed during the call. Writer calls retain the GIL and should be
 used serially.
 
-Next: [Appendices and entry order](navigation.md).
+Next: [Styling articles](styling.md).
