@@ -1,9 +1,9 @@
-[Documentation](../README.md) · [Core concepts](../concepts.md)
+[Documentation](../README.md)
 
 # Creating a dictionary
 
 Create a product with one article about 鶫（つぐみ）, searchable by its spelling
-and reading.
+and reading. Use a new directory for `destination`.
 
 ## Create the product and its dictionary
 
@@ -93,9 +93,7 @@ intend to use together. `1000` is an example, not a reserved custom ID.
 
 Supply a complete UTF-8 XML document using the native article markup shown above.
 The namespace is part of that markup. `createEntry()` / `create_entry()` allocates
-a page ID; `target` refers to the whole article. To preserve identity across
-reordered builds, supply an explicit page ID (`createEntry(10)` in C++,
-`create_entry(page_id=10)` in Python).
+a page ID. `target` refers to the whole article.
 
 ## Give the article a headline
 
@@ -123,10 +121,10 @@ reordered builds, supply an explicit page ID (`createEntry(10)` in C++,
 
     Headline fields accept Python strings and convert them automatically.
 
-Every page needs a primary headline. The displayed label and sorting text are
-independent of the article's `<h1>` element.
+Every page needs a primary headline. `sortingHeadline` / `sorting_headline`
+controls headline ordering. Neither field comes from the XML heading.
 
-## Make both spellings searchable
+## Add spelling and reading keys
 
 === "C++"
 
@@ -145,129 +143,6 @@ independent of the article's `<h1>` element.
 Search keys use UTF-8. Both keys point to the same article. Neither the headline
 nor `sortingHeadline` automatically adds search keys. The writer normalises
 these keys using its supported default native profile.
-
-## Restrict a key to exact matching
-
-=== "C++"
-
-    ```cpp
-    dictionary.addSearchKey(MKD::SearchScope::Headword, "とり", target, {.exactOnly = true}).value();
-    ```
-
-=== "Python"
-
-    ```python
-    dictionary.add_search_key(mkd.SearchScope.HEADWORD, "とり", target, exact_only=True)
-    ```
-
-This key participates in exact lookups and is excluded from prefix and suffix
-matching.
-
-## Target a compound, idiom or example
-
-Allocate targets before writing the article. Reuse each target for the XML ID,
-headline and search keys. This example belongs in a kanwa product.
-
-=== "C++"
-
-    ```cpp
-    auto entry = dictionary.createEntry().value();
-    const auto compound = entry.addTarget(MKD::EntryTargetKind::Compound).value();
-    const auto example = entry.addTarget(MKD::EntryTargetKind::Example).value();
-
-    dictionary.addHeadline({
-        .headline = u"鳴禽",
-        .sortingHeadline = u"めいきん",
-        .entryId = compound,
-    }).value();
-    dictionary.addSearchKey(MKD::SearchScope::Idiom, "めいきん", compound).value();
-
-    // Insert compound.toString() and example.toString() into the complete XML document.
-    entry.writeXml(xml).value();
-    ```
-
-=== "Python"
-
-    ```python
-    entry = dictionary.create_entry()
-    compound = entry.add_target(mkd.EntryTargetKind.COMPOUND)
-    example = entry.add_target(mkd.EntryTargetKind.EXAMPLE)
-
-    dictionary.add_headline(mkd.HeadlineComponents(
-        "鳴禽", compound, sorting_headline="めいきん",
-    ))
-    dictionary.add_search_key(mkd.SearchScope.IDIOM, "めいきん", compound)
-
-    xml = f'''<html xmlns="http://www.w3.org/1999/xhtml" hmhtml="5">
-    <head><title>鳴</title></head>
-    <body><div id="{compound}"><headword>鳴禽</headword>
-    <p>よくさえずる鳥。</p><p id="{example}">朝、鳥が鳴く。</p>
-    </div></body></html>'''
-    entry.write_xml(xml)
-    ```
-
-The page still needs its own primary headline and headword keys, as above.
-`Compound` is for kanwa compounds; `Idiom` is for general-dictionary idiom
-subentries. `Example`, `Sense` and `Section` allocate the other supported target
-kinds. These choices do not add search keys or generate XML structure.
-
-Each declared nonzero target must exist in the XML. `writeXml()` / `write_xml()`
-writes once and closes target allocation for that page. Reserve multiple entries
-first when they link forward to each other. Article bodies are consumed during
-the write call. C++ callers must keep the product alive; Python entry writers
-retain their dictionary and product.
-
-`addPage()` / `add_page()` remains available for explicit imports. A reserved page
-must be written through its entry writer. Native XML IDs must use the canonical
-spelling, such as `00001-8001`; ordinary named fragments remain available.
-
-## Creation options and validation
-
-To encrypt article contents, pass `{.encryptContents = true}` as the second
-argument to `product.addDictionary(content, options)` in C++, or
-`encrypt_contents=True` to `product.add_dictionary(content, ...)` in Python.
-
-The default profile is general search with default key normalisation. Supported
-general creation scopes are headword, idiom, example, English,
-sense, kanji, collocation, full text, category, compound and numeral. Specialised
-modern, CJ and JC authoring profiles are not supported. Full-text keys, like other
-keys, must be supplied explicitly; article text is not indexed automatically.
-
-Completion checks that:
-
-- Every page has a primary headline and the dictionary has headword search keys.
-- Search, headline, link and appendix targets resolve to existing pages or anchors.
-- Referenced local assets and configured presentation stylesheets exist.
-- Any explicit browsing order contains every page exactly once.
-
-XML is parsed and supported references are validated. This is not a complete
-validator for every native presentation feature. Choose a creation profile instead of supplying native search-class strings.
-Product-specific delegates and headline-key identifier authoring remain unsupported.
-
-See [Gaiji, ruby and links](inline_content.md), [Resources](resources.md) and
-[Appendices and entry order](navigation.md) for richer content.
-
-## Create a kanwa product
-
-=== "C++"
-
-    ```cpp
-    auto product = MKD::ProductWriter::create(
-        destination, metadata, MKD::CreationProfile::Kanwa).value();
-    ```
-
-=== "Python"
-
-    ```python
-    product = mkd.ProductWriter.create(
-        destination, metadata, profile=mkd.CreationProfile.KANWA,
-    )
-    ```
-
-Kanwa uses the generic native search class without a product-specific delegate.
-Its scopes are parent characters (`Headword` or `Kanji` keys), compounds
-(`Idiom`), meanings (`Sense`) and examples (`Example`). The writer generates the
-native scope names and index mappings. The general profile remains the default.
 
 ## Publish the files
 
@@ -294,7 +169,7 @@ Destruction does not publish. Abandoning a build removes its staging files. Afte
 a mutating operation or completion fails, start a fresh build. Writers are used
 serially, and input strings and byte spans are borrowed only for the call.
 
-## Search what you created
+## Search the finished dictionary
 
 === "C++"
 
@@ -309,7 +184,7 @@ serially, and input strings and byte spans are borrowed only for the call.
     }).value();
     ```
 
-    `result.entries` contains `EntryId{1, 0}`.
+    `result.entries` contains the allocated `target`.
 
 === "Python"
 
@@ -323,8 +198,58 @@ serially, and input strings and byte spans are borrowed only for the call.
     )
     ```
 
-    `result[0]` is `mkd.EntryId(1, 0)`.
+    `result[0]` equals the allocated `target`.
 
 Searching for `鶫` returns the same target.
 See [Searching](../reading/searching.md) for scope selection, match modes, and
 native dictionary rules.
+
+## Optional build settings
+
+Apply these changes to the earlier steps before finishing the writers.
+
+### Restrict a key to exact matching
+
+=== "C++"
+
+    ```cpp
+    dictionary.addSearchKey(MKD::SearchScope::Headword, "とり", target, {.exactOnly = true}).value();
+    ```
+
+=== "Python"
+
+    ```python
+    dictionary.add_search_key(mkd.SearchScope.HEADWORD, "とり", target, exact_only=True)
+    ```
+
+This key participates in exact lookups and is excluded from prefix and suffix
+matching.
+
+### Encryption and validation
+
+To encrypt article contents, pass `{.encryptContents = true}` as the second
+argument to `product.addDictionary(content, options)` in C++, or
+`encrypt_contents=True` to `product.add_dictionary(content, ...)` in Python.
+
+The default creation profile is general search. The next guide shows the kanwa
+profile. Full-text keys must also be supplied explicitly.
+
+Completion checks that:
+
+- Every page has a primary headline and the dictionary has headword search keys.
+- Search, headline, link and appendix targets resolve to existing pages or anchors.
+- Referenced local assets and configured presentation stylesheets exist.
+- Any explicit browsing order contains every page exactly once.
+
+Validation covers supported references and resources, rather than every native
+presentation feature. Product-specific delegates and headline-key identifier
+authoring are not supported.
+
+### Import explicit IDs
+
+Automatic allocation is enough for ordinary authoring. When importing existing
+content or preserving IDs across reordered builds, pass a page ID to
+`createEntry(10)` / `create_entry(page_id=10)`. `addPage()` / `add_page()` also
+accepts complete XML pages with explicit IDs.
+
+Next: [Subentries and links](subentries.md).

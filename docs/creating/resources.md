@@ -1,8 +1,7 @@
 # Images, audio, fonts and CSS
 
 Use these operations before finishing the dictionary writer from
-[Creating a dictionary](minimal_dictionary.md). Files below are your own assets;
-media is stored as supplied, without transcoding.
+[Creating a dictionary](minimal_dictionary.md). Files below are your own assets. Media is stored as supplied, without transcoding.
 
 ## Add packed media
 
@@ -25,11 +24,8 @@ media is stored as supplied, without transcoding.
 Names must be single filenames. Reference these assets with the content-relative
 paths `graphics/bird.svg` and `audio/bird.aac` in article XML. For example, an image
 uses `<img src="graphics/bird.svg" alt="鶫"/>`. The writer packs graphics and audio
-into named stores; `add_asset` cannot write into those generated directories.
+into named stores. `add_asset` cannot write into those generated directories.
 Native playback still depends on a supported media format.
-
-Python also accepts `bytes`, `bytearray` and contiguous byte `memoryview` inputs.
-Inputs are consumed during the call; later mutations do not alter stored data.
 
 ## Add stylesheets and loose assets
 
@@ -134,5 +130,14 @@ Custom pages must exist before `finish()`.
     ```
 
 Supply one square PNG or JPEG, up to 4096 pixels wide. The writer generates all
-13 native filename/scale variants. Supply the icon once per product; the input
+13 native filename/scale variants. Supply the icon once per product. The input
 bytes are consumed during the call.
+
+## Resource inputs
+
+Python writer methods accept `mkd.Buffer`, `bytes`, `bytearray` and contiguous
+one-dimensional byte `memoryview` inputs. `mkd.Buffer.map(path)` maps a file.
+Inputs are consumed during the call. Writer calls retain the GIL and should be
+used serially.
+
+Next: [Appendices and entry order](navigation.md).

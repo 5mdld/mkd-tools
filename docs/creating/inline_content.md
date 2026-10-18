@@ -1,7 +1,7 @@
-# Gaiji, ruby and links
+# Gaiji and ruby
 
-These snippets use a dictionary writer created as in
-[Creating a dictionary](minimal_dictionary.md), before adding its first page.
+Use `InlineText` to build XML fragments and headline text with ruby and gaiji.
+These examples use an unfinished dictionary writer from the preceding guides.
 
 ## Add ruby
 
@@ -10,8 +10,6 @@ These snippets use a dictionary writer created as in
     ```cpp
     MKD::InlineText label;
     label.append(MKD::Ruby{"鶫", "つぐみ"});
-    auto fragment = label.toXhtml().value();
-    auto headline = label.toHeadline().value();
     ```
 
 === "Python"
@@ -19,13 +17,9 @@ These snippets use a dictionary writer created as in
     ```python
     label = mkd.InlineText()
     label.append(mkd.Ruby("鶫", "つぐみ"))
-    fragment = label.to_xml()
-    headline = label.to_headline()
     ```
 
-The XML fragment contains `<ruby><rb>鶫</rb><rt>つぐみ</rt></ruby>`.
-The headline encoder produces the native headline syntax. Use the appropriate
-encoder for each destination.
+The ruby pairs the written form 鶫 with its reading つぐみ.
 
 ## Register a gaiji image
 
@@ -52,40 +46,30 @@ no registration. `rare.svg` below is your own glyph artwork.
 
 Registration writes PNG or SVG bytes under `gaiji/` and returns a reusable
 content-relative reference. Replacement text is used by `plainText()`. The default rendering
-styles the image as text; choose `GaijiRendering::Original` /
+styles the image as text. Choose `GaijiRendering::Original` /
 `GaijiRendering.ORIGINAL` to preserve the original image presentation.
 
-## Link to an entry
+## Use the formatted text
+
+After assembling the label, encode it for the intended destination:
 
 === "C++"
 
     ```cpp
-    label.append(" → ");
-    label.append(MKD::EntryLink{{1, 0}, "鶫"});
-    dictionary.addPage(1, "<html><head/><body>" + label.toXhtml().value() + "</body></html>").value();
-    dictionary.addHeadline({
-        .headline = label.toHeadline().value(),
-        .sortingHeadline = u"つぐみ",
-        .entryId = {1, 0},
-    }).value();
-    dictionary.addSearchKey(MKD::SearchScope::Headword, "つぐみ", {1, 0}).value();
+    auto fragment = label.toXhtml().value();
+    auto headline = label.toHeadline().value();
     ```
 
 === "Python"
 
     ```python
-    label.append(" → ")
-    label.append(mkd.EntryLink(mkd.EntryId(1), "鶫"))
-    dictionary.add_page(1, "<html><head/><body>" + label.to_xml() + "</body></html>")
-    dictionary.add_headline(mkd.HeadlineComponents(
-        label.to_headline(), mkd.EntryId(1), sorting_headline="つぐみ",
-    ))
-    dictionary.add_search_key(mkd.SearchScope.HEADWORD, "つぐみ", mkd.EntryId(1))
+    fragment = label.to_xml()
+    headline = label.to_headline()
     ```
 
-The target may be a page or an anchor on that page. Links can point to pages
-added later, but must resolve when the dictionary is finished. `InlineText`
-escapes text for XML and owns its elements.
+Insert `fragment` into article XML before writing it. Use `headline` as a
+`HeadlineComponents` headline. XML ruby uses `<ruby><rb>鶫</rb><rt>つぐみ</rt></ruby>`.
+Headlines use a separate native encoding.
 
 ## Configure full-ruby presentation
 
@@ -126,3 +110,5 @@ dictionary and product as in the minimal guide.
 Unknown native tokens are preserved as `NativeMarkup` for headline round trips.
 Converting them to XML or plain text returns an error instead of guessing a
 representation. `elements()` / `elements` lets you inspect recognised elements.
+
+Next: [Images, audio, fonts and CSS](resources.md).

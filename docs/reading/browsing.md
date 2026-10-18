@@ -1,60 +1,58 @@
+[Documentation](../README.md)
+
 # Reading dictionaries
 
-## Find and open a product
+## Open a product and select a dictionary
 
-A source scans a directory containing product folders. Discovery checks for the
-expected product files; opening a product loads its metadata and resource indexes,
-with payloads read on demand.
+Use the path to a product folder. Here `dictionariesDirectory` /
+`dictionaries_directory` is the directory containing installed products.
+C++ snippets use `.value()` for readability. Error handling is covered below.
 
 === "C++"
 
     ```cpp
-    auto source = MKD::DirectoryDictionarySource(dictionariesPath);
-    for (const auto& info : source.findAllAvailable().value()) {
-        std::cout << info.id << ": " << info.path << '\n';
-    }
-
-    auto info = source.findById("DAIJISEN2").value();
-    auto product = MKD::DictionaryProduct::openAtPath(info.path).value();
+    auto product = MKD::DictionaryProduct::openAtPath(
+        dictionariesDirectory / "DAIJISEN2").value();
     const auto* dictionary = product.findContent("DAIJISEN.J");
+    if (!dictionary)
+        return std::unexpected("DAIJISEN.J is not present in this product.");
     ```
 
 === "Python"
 
     ```python
-    source = mkd.DirectoryDictionarySource(dictionaries_path)
-    for info in source.find_all_available():
-        print(info.id, info.path)
+    import mkd
 
-    info = source.find_by_id("DAIJISEN2")
-    product = mkd.DictionaryProduct.open(info.path)
+    product = mkd.DictionaryProduct.open(dictionaries_directory / "DAIJISEN2")
     dictionary = product.find_content("DAIJISEN.J")
+    if dictionary is None:
+        raise LookupError("DAIJISEN.J is not present in this product")
     ```
 
-Product IDs identify folders; content identifiers select a dictionary within a
-product. A missing product in `findById` / `find_by_id` is an error. A missing
-content identifier returns a null pointer / `None`.
+For another product, inspect `product.dictionaries()` / `product.dictionaries`
+and each dictionary's `id()` / `id`. Opening loads metadata and resource indexes.
+Article and media payloads are read on demand.
 
-On macOS, obtain the expected installed location with:
+## Read an article
+
+Read the first stored article, or use a page ID obtained from a search result:
 
 === "C++"
 
     ```cpp
-    auto dataPath = MKD::macOS::monokakidoDataDirectory().value();
-    auto dictionariesPath = MKD::macOS::dictionariesDirectory(dataPath);
+    auto firstId = dictionary->entries()->idAt(0).value();
+    auto text = dictionary->entryUtf8ById(firstId).value();
     ```
 
 === "Python"
 
     ```python
-    data_path = mkd.monokakido_data_directory()
-    dictionaries_path = mkd.dictionaries_directory(data_path)
+    first_id = dictionary.entries.id_at(0)  # No payload read.
+    text = dictionary.entry_xml(first_id)
     ```
 
-These helpers return expected paths; they do not check existence or grant access.
-For dictionaries elsewhere, supply your own path on any platform.
-`loadMetadata` / `load_metadata` opens metadata only, so use the full open operation
-when you need articles or resources.
+The returned text is an owning string. This example assumes the selected
+dictionary contains articles.
 
 ## Walk through articles
 
@@ -78,31 +76,9 @@ when you need articles or resources.
             xml = page.data.utf8()
     ```
 
-Each step reads or decompresses one requested page. Page IDs may have gaps;
-`entry_count` is a count, not the largest ID. Storage order is not necessarily
-native browsing order or search-result order.
-
-=== "C++"
-
-    ```cpp
-    auto firstId = dictionary->entries()->idAt(0).value();
-    auto page = dictionary->entryById(firstId).value();
-    auto text = dictionary->entryUtf8ById(firstId).value();
-    ```
-
-=== "Python"
-
-    ```python
-    first_id = dictionary.entries.id_at(0)  # No payload read.
-    page = dictionary.entries[0]           # Position, not page ID.
-    data = dictionary.entries.get(first_id)
-    text = dictionary.entry_xml(first_id)
-    ```
-
-Python stores support `len()`, negative positional indexes and lazy iteration.
-`get(id)` reads by ID. Returned data is a retained `Buffer`; `memoryview(data)`
-adds no payload copy. Iteration does not retain previously visited pages unless
-you keep them yourself. Decoding to text allocates an owning Python string.
+Each step reads or decompresses one page. Earlier pages are not kept unless you
+retain them. Page IDs may have gaps. Storage order can differ from browsing
+order in the app.
 
 ## Read graphics and audio
 
@@ -186,6 +162,87 @@ The C++ stream overload and `fragments()` remain available. Both approaches avoi
 assembling a contiguous font buffer. Night-mode CSS is available through
 `nightmodeStylesheet()` / `nightmode_stylesheet`.
 
+## Find installed products
+
+On macOS, the library provides the expected installed location:
+
+=== "C++"
+
+    ```cpp
+    auto dataPath = MKD::macOS::monokakidoDataDirectory().value();
+    dictionariesDirectory = MKD::macOS::dictionariesDirectory(dataPath);
+    ```
+
+=== "Python"
+
+    ```python
+    data_path = mkd.monokakido_data_directory()
+    dictionaries_directory = mkd.dictionaries_directory(data_path)
+    ```
+
+Set this directory before opening a product. These helpers return paths without
+checking existence or granting access.
+On any platform, you can supply a directory of your own.
+
+=== "C++"
+
+    ```cpp
+    MKD::DirectoryDictionarySource source(dictionariesDirectory);
+    for (const auto& info : source.findAllAvailable().value())
+        std::cout << info.id << ": " << info.path << '\n';
+
+    auto info = source.findById("DAIJISEN2").value();
+    ```
+
+=== "Python"
+
+    ```python
+    source = mkd.DirectoryDictionarySource(dictionaries_directory)
+    for info in source.find_all_available():
+        print(info.id, info.path)
+
+    info = source.find_by_id("DAIJISEN2")
+    ```
+
+Discovery checks for product files. A missing product in `findById()` /
+`find_by_id()` is an error. Use `loadMetadata()` / `load_metadata()` instead of
+opening the full product when you only need metadata.
+
+## Retain article bytes
+
+Use retained buffers when you need bytes without an extra payload copy.
+
+=== "C++"
+
+    ```cpp
+    auto page = dictionary->entryById(firstId).value();
+    auto bytes = page.data.span();
+    auto xml = page.data.utf8().value();
+    ```
+
+    The byte span and text view borrow `page.data`. Keep the owning data alive
+    while using them.
+
+=== "Python"
+
+    ```python
+    page = dictionary.entries[0]
+    data = dictionary.entries.get(first_id)
+    view = memoryview(data)
+    owned = bytes(data)
+    ```
+
+    `entries[0]` reads by position. `get(first_id)` reads by page ID.
+    Python stores support `len()`, negative positional indexes and lazy iteration.
+    `entry_data(first_id)` is another way to obtain the article's buffer.
+
+    `view` is read-only and keeps its storage alive. `bytes(data)` explicitly
+    copies. `data.utf8()` returns an owning string, while
+    `data.slice(offset, length)` retains a byte slice.
+
+Compressed resources require decompression. Retained buffers can keep an entire
+decompressed chunk alive. Python releases the GIL during reading and searching.
+
 ## Inspect headlines and search keys
 
 === "C++"
@@ -221,11 +278,53 @@ assembling a contiguous font buffer. Night-mode CSS is available through
     ```
 
 Headline records own their component strings. Python keys are owning strings.
-C++ key views borrow their store. Targets default to resolved entry IDs; request
+C++ key views borrow their store. Targets default to resolved entry IDs. Request
 `KeystoreIdMapping::Stored` / `KeystoreIdMapping.STORED` only when inspecting the
 underlying conversion scheme. `keysForEntry()` / `keys_for_entry()` builds an
 inverse index on first use and therefore uses additional memory.
 
 Use [Searching](searching.md) for query normalisation and native search rules.
 Reading an index directly does not apply those rules. Stored keys have already
-been normalised; for example, an authored `すずめ` key may be stored as `スズメ`.
+been normalised. For example, an authored `すずめ` key may be stored as `スズメ`.
+
+## Errors and return values
+
+Fallible C++ operations return `MKD::Result<T>`, an alias for
+`std::expected<T, std::string>`. Python operations raise `mkd.Error`.
+
+=== "C++"
+
+    Snippets use `.value()` to keep API calls visible. In application code,
+    handle errors before accessing the value:
+
+    ```cpp
+    auto opened = MKD::DictionaryProduct::openAtPath(productPath);
+    if (!opened)
+        return std::unexpected(opened.error());
+
+    auto product = std::move(*opened);
+    ```
+
+    Return errors from a function returning `MKD::Result<T>`. Keep the product
+    alive while using its dictionaries, and the dictionary alive at the same
+    address while using its search object.
+
+=== "Python"
+
+    ```python
+    try:
+        product = mkd.DictionaryProduct.open(product_path)
+    except mkd.Error as error:
+        print(error)
+    ```
+
+    Missing content identifiers return `None`. Searches with no matches return
+    an empty result. Paths accept strings and `pathlib.Path`. Metadata read from
+    products and dictionaries is an editable copy, so editing it does not change
+    the open dictionary or files.
+
+    Dictionaries retain their product, search objects retain their dictionary,
+    and dictionary writers retain their product writer. Readers need no explicit
+    `close()`.
+
+Next: [Searching](searching.md).

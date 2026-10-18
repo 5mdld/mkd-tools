@@ -1,7 +1,7 @@
 # Exporting dictionaries
 
-Export writes articles, media, fonts and index tables to ordinary files. Start
-with an open dictionary as in [Reading dictionaries](browsing.md).
+Export writes articles, media, fonts and index tables to ordinary files. Continue
+with the open `dictionary` from the reading and searching guides.
 
 ## Export selected resources
 
@@ -35,12 +35,12 @@ with an open dictionary as in [Reading dictionaries](browsing.md).
 An empty resource selection exports all supported categories. Output uses
 category subdirectories by default: `Contents`, `Graphics`, `Audio`, `Fonts`,
 `Headline`, `Keystore` and `AppendixEntries`. Articles are XML files named by page
-ID; headline, key and appendix-entry tables are TSV. Fonts are written by streaming
+ID. Headline, key and appendix-entry tables are TSV. Fonts are written by streaming
 their fragments, using filenames resolved when the dictionary was opened. Both named and legacy audio are selected with `Audio` / `AUDIO`.
 
 Existing files are skipped unless overwrite is enabled. Inspect `exported`,
 `skipped`, `failed` and `totalBytes` / `total_bytes` in the result. Setup failures
-return a C++ error / raise `mkd.Error`; individual output failures are collected
+return a C++ error / raise `mkd.Error`. Individual output failures are collected
 in the result, so a returned result still needs checking.
 
 ## Report progress
@@ -48,7 +48,7 @@ in the result, so a returned result still needs checking.
 === "C++"
 
     ```cpp
-    auto result = MKD::exportToDirectory(*dictionary, outputPath, options,
+    result = MKD::exportToDirectory(*dictionary, outputPath, options,
         [](const MKD::ExportEvent& event) {
             if (const auto* progress = std::get_if<MKD::ProgressEvent>(&event))
                 std::cout << progress->completedItems << '/' << progress->totalItems << '\n';
@@ -68,13 +68,13 @@ in the result, so a returned result still needs checking.
     ```
 
 Events are `ExportBeginEvent`, `PhaseBeginEvent`, `ProgressEvent` and
-`PhaseEndEvent`. Progress counts belong to the current resource category;
+`PhaseEndEvent`. Progress counts belong to the current resource category.
 `PhaseEndEvent` contains that category's result. Python events are owned snapshots
 and can be kept after the callback returns.
 
 Callbacks are serialised but may run on worker threads. Python releases the GIL
 while exporting and reacquires it for each callback. Keep callbacks short. A Python
-callback exception suppresses later callbacks; export finishes before the original
+callback exception suppresses later callbacks. Export finishes before the original
 exception is raised on the calling thread. It does not roll back written files.
 
 ## Adjust output
@@ -95,8 +95,8 @@ exception is raised on the calling thread. It does not roll back written files.
     options.concurrency = 1
     ```
 
-Concurrency defaults to automatic worker selection; one runs sequentially.
-Key tables default to inverse mappings (entry → keys); `Forward` / `FORWARD`
+Concurrency defaults to automatic worker selection. One runs sequentially.
+Key tables default to inverse mappings (entry → keys). `Forward` / `FORWARD`
 exports key → entries and `Both` / `BOTH` exports both. Disabling
 `createSubdirectories` / `create_subdirectories` puts outputs into a single
 folder, where naming collisions become errors.
@@ -104,3 +104,5 @@ folder, where naming collisions become errors.
 Export is an extraction operation, not a lossless product clone. Metadata, loose
 assets and stylesheets are not automatically copied. Use resource access for
 specific loose files and the creation API to build a new product.
+
+Next: [Creating a dictionary](../creating/minimal_dictionary.md).

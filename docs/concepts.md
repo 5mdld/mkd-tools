@@ -2,18 +2,15 @@
 
 # Core concepts
 
-## A product contains dictionaries
+## Products and dictionaries
 
-A **product** is an installed package, such as 大辞泉. A **dictionary** is one
-searchable collection within that package, with its own articles, headlines,
-indexes, and resources. A product can contain more than one dictionary.
-
-These are the relevant parts of an installed 大辞泉 product:
+A product is an installed package, such as 大辞泉. It can contain one or more
+dictionaries, each with its own articles, search indexes and resources.
 
 ```text
 DAIJISEN2/                      # Product root passed to DictionaryProduct::openAtPath()
 ├── ContentInfo.plist           # Identifies the installed product
-└── Contents/                   # Contains product metadata and dictionary directories
+└── Contents/
     ├── DAIJISEN2.json          # Product metadata, including its dictionaries
     └── Shogakukan-DJS/         # One dictionary's content directory
         ├── DSContentInfo.plist # Metadata for this dictionary
@@ -24,103 +21,52 @@ DAIJISEN2/                      # Product root passed to DictionaryProduct::open
         └── gaiji/              # Character images
 ```
 
-`Contents/` is a container inside the product. It is not itself a dictionary.
-`Shogakukan-DJS` is a directory name, while `DAIJISEN.J` is the dictionary's
-content identifier used by the API:
+`DAIJISEN2` is the product folder. `DAIJISEN.J` is the content identifier used
+to select its dictionary through the API. `Shogakukan-DJS` is that dictionary's
+content directory. The writer creates this layout for you.
 
-=== "C++"
+## Articles, headlines and search keys
 
-    ```cpp
-    auto product = MKD::DictionaryProduct::openAtPath(
-        dictionariesDirectory / "DAIJISEN2").value();
+Searching for ”つぐみ” in 大辞泉 finds an article about 鶫. The app shows a
+headline in the result list and the article beside it.
 
-    const auto* dictionary = product.findContent("DAIJISEN.J");
-    ```
+![The Dictionaries app showing the つぐみ search results and the selected 大辞泉 article.](assets/daijisen-tsugumi.png)
 
-=== "Python"
+These are stored separately:
 
-    ```python
-    product = mkd.DictionaryProduct.open(dictionaries_directory / "DAIJISEN2")
-    dictionary = product.find_content("DAIJISEN.J")
-    ```
+- The article is an XML document containing the displayed text and markup.
+- The headline is the label shown in a result list.
+- Search keys are spellings or readings that lead to the article.
 
-`findContent()` returns `nullptr` if the identifier is absent. For other products,
-inspect `product.dictionaries()` and each dictionary's `id()` and `content()`.
-The writer generates the on-disk layout for you.
+Here is a shortened excerpt from that article's XML:
 
-## An entry connects search keys, a headline, and an article
+```xml
+<見出G>
+  <headword class="見出">つぐみ</headword>
+  <headword class="表記">…鶫…</headword>
+  …
+</見出G>
+<解説G>
+  <MG id="244295-C001" class="L3">
+    <meaning>…ヒタキ科ツグミ属に分類される鳥。…</meaning>
+  </MG>
+  …
+</解説G>
+```
 
-For a small dictionary we create ourselves:
+The tag names and CSS belong to 大辞泉. Your own dictionary can use simpler XML.
+An XML heading does not create a result-list headline or searchable keys.
+Authors supply all three.
 
-| Search key | Target | Headline | Article |
-| --- | --- | --- | --- |
-| `つぐみ` | `EntryId{1, 0}` | 鶫 | A definition of the bird |
-| `鶫` | `EntryId{1, 0}` | 鶫 | The same article |
+Each article has a page ID. A search result carries a target identifying the
+article and, when needed, a passage within it. Several keys can lead to the same
+target. One key can also find several articles, such as the bird and the book
+called つぐみ.
 
-The **article** is the XML document to read. The **headline** is its label in a
-result list. A **search key** is an indexed spelling or reading that locates it.
-Multiple keys can point to the same entry, and one key can find multiple entries.
-For example, 大辞泉's `つぐみ` also finds a book title.
+## Resources
 
-When writing a dictionary, supply each part explicitly:
+Articles can refer to images, audio, fonts and stylesheets stored with the
+dictionary. Gaiji are character images used where ordinary text is insufficient.
+The reading and creation guides show how to access or add these resources.
 
-=== "C++"
-
-    ```cpp
-    dictionary.addPage(1, articleXml).value();
-    dictionary.addHeadline({
-        .headline = u"鶫",
-        .sortingHeadline = u"つぐみ",
-        .entryId = {1, 0},
-    }).value();
-    dictionary.addSearchKey(MKD::SearchScope::Headword, "つぐみ", {1, 0}).value();
-    ```
-
-=== "Python"
-
-    ```python
-    target = mkd.EntryId(1, 0)
-    dictionary.add_page(1, article_xml)
-    dictionary.add_headline(mkd.HeadlineComponents(
-        headline="鶫", sorting_headline="つぐみ", entry_id=target,
-    ))
-    dictionary.add_search_key(mkd.SearchScope.HEADWORD, "つぐみ", target)
-    ```
-
-`sortingHeadline` is separate sorting text. It does not add a searchable reading.
-C++ article XML and search keys use UTF-8, and headline fields use UTF-16.
-Python accepts Unicode strings for all text fields.
-
-## A target can be a page or an anchor
-
-=== "C++"
-
-    ```cpp
-    MKD::EntryId article{1, 0};
-    MKD::EntryId exampleInsideArticle{1, 10};
-    ```
-
-=== "Python"
-
-    ```python
-    article = mkd.EntryId(1, 0)
-    example_inside_article = mkd.EntryId(1, 10)
-    ```
-
-`pageId` identifies the XML document. `itemId == 0` selects the whole page.
-A nonzero `itemId` selects an anchor in that page, such as an individual example
-or sense. The XML anchor for `{1, 10}` is `id="1-000A"`: decimal page ID,
-hexadecimal anchor ID.
-
-Reading by `pageId` retrieves the complete XML document, even when the search
-result points to an anchor. Keep `itemId` if your application needs to locate
-that passage.
-
-## Resources accompany the text
-
-Articles and headlines can reference images, audio, CSS, fonts, and **gaiji**
-(character images used in place of ordinary text glyphs). These resources belong
-to the dictionary, alongside its articles and indexes.
-
-Continue with [searching](reading/searching.md) or
-[creating a dictionary](creating/minimal_dictionary.md).
+Next: [Reading dictionaries](reading/browsing.md).

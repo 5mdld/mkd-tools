@@ -1,133 +1,110 @@
-[Documentation](../README.md) · [Core concepts](../concepts.md)
+[Documentation](../README.md)
 
 # Searching
 
-Choose three things: **policy** (dictionary-specific rules or direct lookup),
-**scope** (which kind of index), and **match** (prefix, exact, or suffix).
-
-## Open a dictionary
+Continue with 大辞泉 example opened in the previous guide.
+Create a search object and reuse it for subsequent queries:
 
 === "C++"
 
     ```cpp
-    auto product = MKD::DictionaryProduct::openAtPath(
-        dictionariesDirectory / "DAIJISEN2").value();
-
-    const auto* dictionary = product.findContent("DAIJISEN.J");
-    if (!dictionary)
-        return std::unexpected("DAIJISEN.J is not present in this product.");
-
     MKD::DictionarySearch search(*dictionary);
-    ```
-
-    Keep the dictionary alive at the same address while `search` exists.
-
-=== "Python"
-
-    ```python
-    product = mkd.DictionaryProduct.open(dictionaries_directory / "DAIJISEN2")
-    dictionary = product.find_content("DAIJISEN.J")
-    if dictionary is None:
-        raise LookupError("DAIJISEN.J is not present in this product")
-
-    search = mkd.DictionarySearch(dictionary)
-    ```
-
-    The search object retains its dictionary, which retains the product.
-
-This example selects 大辞泉 by content identifier. Reuse the search object for
-subsequent queries.
-
-## Search using the dictionary's rules
-
-=== "C++"
-
-    ```cpp
     auto result = search.search("つぐみ").value();
     ```
 
 === "Python"
 
     ```python
+    search = mkd.DictionarySearch(dictionary)
     result = search.search("つぐみ")
     ```
 
-The defaults are `Headword`, `Prefix`, `Native`, with no result limit. For the
-installed 大辞泉 edition, this finds both the bird 鶫 and a book titled つぐみ.
-Search operates on stored keys, not the displayed headline text.
+This searches headwords by prefix, using the dictionary's native rules.
+In 大辞泉 it finds the bird 鶫 and a book titled つぐみ, among other entries
+beginning with that reading. Search uses indexed keys, not the displayed XML text.
 
-`Native` selects the supported search rules described by the product's metadata.
-You do not select an algorithm class yourself. Depending on the dictionary and
-scope, those rules can change which indexes are consulted, split a query into
-terms and intersect their results, try inflections, or retry another scope.
+## Read the results
 
-| Dictionary / search | Behaviour under `Native` |
+=== "C++"
+
+    ```cpp
+    for (const auto& entry : result.entries)
+    {
+        auto headline = dictionary->headlineForEntryId(entry).value();
+        auto xml = dictionary->entryUtf8ById(entry.pageId).value();
+    }
+    ```
+
+    `result.entries` contains ordered page/anchor targets. `entryUtf8ById()`
+    returns the complete article XML as an owning UTF-8 string.
+
+=== "Python"
+
+    ```python
+    for entry in result:
+        headline = dictionary.headline_for_entry_id(entry)
+        xml = dictionary.entry_xml(entry.page_id)
+    ```
+
+    The result is an iterable sequence of `EntryId` values. Use `len(result)`
+    and `result[index]` to inspect it. `entry_xml()` returns the complete article
+    XML as a Python string.
+
+A headline can contain native formatting tokens. Article lookup returns the entire
+page even when the target refers to an anchor within it.
+
+## Choose a search scope
+
+A scope selects what kind of material to search. These are the common choices:
+
+| Scope | Use it for |
 | --- | --- |
-| 大辞泉 headwords | Includes supplementary headword indexes when present, as well as the main headword index. |
-| 角川新字源 headwords | Searches both headword and idiom indexes. `Kanji` selects its headword index, while `Idiom` selects its idiom index. |
-| 古語 dictionaries such as 全訳古語辞典 | Use their configured kana and numeral normalisation. Some scopes use character-component matching and sorting-headline filtering. |
-| 詩語集 example and sense searches | Intersect character-component matches, with sorting-headline filtering for multi-character terms. |
+| `Headword` | Entry spellings and readings. Kanwa dictionaries use it for parent kanji entries. |
+| `Idiom` | Phrases and idioms, or jukugo in kanwa dictionaries |
+| `Example` | Example sentences and quotations |
+| `Sense` | Keys associated with meanings or definitions |
+| `Kanji` | Kanji lookup in dictionaries that provide it |
 
-The algorithm is not identical across these dictionaries. A scope's name alone
-does not determine the lookup steps. Native rules are implemented for recognised
-profiles, rather than by calling the native app. Linguistic support can vary by platform.
+Names here use C++ spelling. Python uses uppercase names such as `HEADWORD`.
+Ask the dictionary which scopes are available:
 
 === "C++"
 
     ```cpp
-    bool recognised = search.supportsNativeSearch();
     auto availableScopes = search.scopes(MKD::SearchFallback::Native);
+    auto examples = search.search("鳥", {.scope = MKD::SearchScope::Example}).value();
     ```
 
 === "Python"
 
     ```python
-    recognised = search.supports_native_search
     available_scopes = search.scopes(fallback=mkd.SearchFallback.NATIVE)
+    examples = search.search("鳥", scope=mkd.SearchScope.EXAMPLE)
     ```
 
-An unrecognised native profile returns an error on native search. The support
-check covers the class, delegate, and normalisation profile, not availability of
-every scope or platform linguistic feature.
+Other scopes are available for dictionaries that supply those indexes:
 
-## Request an exact lookup without broadening
+| Scope | Indexed material |
+| --- | --- |
+| `English` | English keys |
+| `Collocation` | Collocations |
+| `Fulltext` | Full-text search keys |
+| `Category` | Categories or groups |
+| `CompoundNoun` | Compound nouns. Python calls this `COMPOUND`. |
+| `Numeral` | Counters and numeral expressions |
+| `Modern` | Specialised modern-language lookup |
+| `CJ`, `JC` | Chinese–Japanese and Japanese–Chinese lookup |
 
-=== "C++"
-
-    ```cpp
-    auto exact = search.search("つぐみ", {
-        .scope = MKD::SearchScope::Headword,
-        .match = MKD::SearchMode::Exact,
-        .fallback = MKD::SearchFallback::None,
-    }).value();
-    ```
-
-=== "Python"
-
-    ```python
-    exact = search.search(
-        "つぐみ",
-        scope=mkd.SearchScope.HEADWORD,
-        match=mkd.SearchMode.EXACT,
-        fallback=mkd.SearchFallback.NONE,
-    )
-    ```
-
-`None` treats the query as one normalised key and searches the selected scope's
-indexes. It skips native term splitting, inflection retries, supplementary-index
-selection, and scope fallbacks. Query normalisation still follows the dictionary's
-known profile, so exact matching is not byte-for-byte equality.
-
-**Use `None` when the requested match and scope must stay fixed.** Under `Native`,
-an unsuccessful exact lookup can retry as a prefix lookup. An unsuccessful
-headword search can also try idioms and, for applicable Japanese queries, examples.
-These retries depend on the dictionary and query.
-
-Direct lookup can still work when the native class or delegate is unrecognised,
-provided the normalisation profile is known. It is not a bypass for unknown
-normalisation.
+Selecting a scope does not scan article text. The dictionary must contain its
+index. When authoring, the general profile supports all scopes above except
+`Modern`, `CJ` and `JC`. The kanwa profile supports `Headword`, `Idiom`, `Sense`
+and `Example`.
 
 ## Prefix and suffix matching
+
+Use `match` to choose prefix, suffix or exact lookup. Set `fallback` to `None`
+when you want the match and scope to stay fixed. The default, `Native`, can try
+variations according to the dictionary's rules.
 
 === "C++"
 
@@ -158,16 +135,14 @@ Both queries can find `つぐみ` when that key is present. Prefix matching comp
 the start of a key, suffix matching its end. Records marked exact-only are
 excluded from prefix and suffix results. An absent required index yields no matches.
 
-## Select a scope
+## Request an exact lookup without broadening
 
 === "C++"
 
     ```cpp
-    auto directScopes = search.scopes(MKD::SearchFallback::None);
-
-    auto examples = search.search("鳥", {
-        .scope = MKD::SearchScope::Example,
-        .match = MKD::SearchMode::Prefix,
+    auto exact = search.search("つぐみ", {
+        .scope = MKD::SearchScope::Headword,
+        .match = MKD::SearchMode::Exact,
         .fallback = MKD::SearchFallback::None,
     }).value();
     ```
@@ -175,38 +150,59 @@ excluded from prefix and suffix results. An absent required index yields no matc
 === "Python"
 
     ```python
-    direct_scopes = search.scopes(fallback=mkd.SearchFallback.NONE)
-    examples = search.search(
-        "鳥", scope=mkd.SearchScope.EXAMPLE,
-        match=mkd.SearchMode.PREFIX, fallback=mkd.SearchFallback.NONE,
+    exact = search.search(
+        "つぐみ",
+        scope=mkd.SearchScope.HEADWORD,
+        match=mkd.SearchMode.EXACT,
+        fallback=mkd.SearchFallback.NONE,
     )
     ```
 
-| Scope | Indexed material |
+Exact lookup still normalises the query using the dictionary's rules. It does
+not require byte-for-byte equality with the stored key.
+
+With `Native`, an unsuccessful exact lookup may retry as a prefix lookup.
+A headword query may also try idioms or examples. Use `None` to skip these retries
+and native query expansion.
+
+## Dictionary-specific search rules
+
+`Native` selects the supported search rules described by the product's metadata.
+You do not select an algorithm class yourself. Depending on the dictionary and
+scope, those rules can change which indexes are consulted, split a query into
+terms and intersect their results, try inflections, or retry another scope.
+
+| Dictionary / search | Behaviour under `Native` |
 | --- | --- |
-| `Headword` | Entry spellings and readings |
-| `Idiom` | Idioms and phrases |
-| `Example` | Examples |
-| `Sense` | Sense / definition keys |
-| `Kanji` | Kanji lookup |
-| `Fulltext` | The dictionary's full-text index, if supplied |
+| 大辞泉 headwords | Includes supplementary headword indexes when present, as well as the main headword index. |
+| 角川新字源 headwords | Searches both headword and idiom indexes. `Kanji` selects its headword index, while `Idiom` selects its idiom index. |
+| 古語 dictionaries such as 全訳古語辞典 | Use their configured kana and numeral normalisation. Some scopes use character-component matching and sorting-headline filtering. |
+| 詩語集 example and sense searches | Intersect character-component matches, with sorting-headline filtering for multi-character terms. |
 
-This is not a scan of article XML. A dictionary must supply the corresponding
-index. `scopes(policy)` reports available scopes for that policy. Native and
-direct scope lists can differ. A valid scope without an index produces no matches,
-subject to native retries when enabled.
-
-## Read results and understand fallbacks
+The algorithm is not identical across these dictionaries. A scope's name alone
+does not determine the lookup steps. Native rules are implemented for recognised
+profiles, rather than by calling the native app. Linguistic support can vary by platform.
 
 === "C++"
 
     ```cpp
-    for (const auto& entry : result.entries)
-    {
-        auto headline = dictionary->headlineForEntryId(entry).value();
-        auto xml = dictionary->entryUtf8ById(entry.pageId).value();
-    }
+    bool recognised = search.supportsNativeSearch();
+    ```
 
+=== "Python"
+
+    ```python
+    recognised = search.supports_native_search
+    ```
+
+An unrecognised native profile returns an error on native search. Direct lookup
+with `None` can still work if the dictionary's normalisation is supported.
+
+## Inspect how a query matched
+
+=== "C++"
+
+    ```cpp
     auto effectiveScope = result.scope;
     for (const auto& match : result.matches)
     {
@@ -216,27 +212,13 @@ subject to native retries when enabled.
     }
     ```
 
-    `result.entries` contains ordered page/anchor targets. `entryUtf8ById()`
-    returns the complete article XML as an owning UTF-8 string.
-
 === "Python"
 
     ```python
-    for entry in result:
-        headline = dictionary.headline_for_entry_id(entry)
-        xml = dictionary.entry_xml(entry.page_id)
-
     effective_scope = result.scope
     for match in result.matches:
         key, mode, origin = match.key, match.match, match.origin
     ```
-
-    The result is an iterable sequence of `EntryId` values. Use `len(result)`
-    and `result[index]` to inspect it. `entry_xml()` returns the complete article
-    XML as a Python string.
-
-A headline can contain native formatting tokens. Article lookup returns the entire
-page even when the target refers to an anchor within it.
 
 `scope` is the scope that produced the results. `matches` describes the normalised
 query terms or variations that contributed to the search, including their actual
@@ -278,13 +260,21 @@ postings of one particular index, use the lower-level keystore API:
 === "C++"
 
     ```cpp
-    const auto& store = dictionary->keystores().front();
-    auto hits = MKD::keystoreSearchResults(store, "つぐみ", MKD::SearchMode::Exact).value();
+    for (const auto& store : dictionary->keystores())
+    {
+        if (store.scope() != MKD::SearchScope::Headword
+            || store.indexSize(MKD::KeystoreIndex::Prefix) == 0)
+            continue;
+
+        auto key = store.keyAt(MKD::KeystoreIndex::Prefix, 0).value();
+        auto hits = MKD::keystoreSearchResults(store, key, MKD::SearchMode::Exact).value();
+    }
     ```
 
-Select the intended store by its `scope()` or `filename()` rather than assuming
-the first one is the headword index. This API compares keys in that store without
-`DictionarySearch`'s query normalisation or native rules. Supply a key already
-normalised for that index. Returned key views borrow the keystore.
+This looks up a key taken directly from a headword index. The lower-level API
+expects a stored, normalised key and does not apply native search rules. Returned
+key views borrow the keystore.
 
 The low-level keystore inspection API above is currently C++ only.
+
+Next: [Exporting dictionaries](exporting.md).

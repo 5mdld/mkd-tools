@@ -24,9 +24,10 @@ before either `finish()` call.
 This writes `appendix/birds.entries` and registers the list. Each item has an
 entry target and optional display label and first-character grouping value.
 The first character must fit in one UTF-16 code unit. Supply `rows` and `columns`
-when you need a grid; the default is one column with the row count inferred.
+when you need a grid. The default is one column with the row count inferred.
 
-After reopening, lists are available through `appendixEntryLists()` /
+After finishing and reopening the product, select its dictionary as
+`openedDictionary` / `opened_dictionary`. Lists are available through `appendixEntryLists()` /
 `appendix_entry_lists`. Read individual items with `entryAt(i)` / `entry_at(i)`.
 C++ returns an `AppendixEntryView` whose label borrows the list. Call `copy()`
 to obtain an owning `AppendixEntry` that can outlive it. Python returns the
@@ -35,6 +36,7 @@ owning value automatically.
 === "C++"
 
     ```cpp
+    const auto& list = openedDictionary.appendixEntryLists().front();
     const auto view = list.entryAt(0).value();
     auto owned = view.copy();
     ```
@@ -42,6 +44,7 @@ owning value automatically.
 === "Python"
 
     ```python
+    appendix = opened_dictionary.appendix_entry_lists[0]
     owned = appendix.entry_at(0)
     ```
 
@@ -64,7 +67,7 @@ owning value automatically.
 
 Registration points to an existing or subsequently added asset. Supported document
 extensions are `.html`, `.xhtml` and `.pdf`. Document appendices are registered in
-the product's generated appendix listing; `appendix_entry_lists` exposes binary
+the product's generated appendix listing. `appendix_entry_lists` exposes binary
 entry lists, not document appendices.
 
 ## Add an alternative headline
@@ -72,14 +75,14 @@ entry lists, not document appendices.
 === "C++"
 
     ```cpp
-    dictionary.addHeadline({.headline = u"つぐみ", .entryId = {1, 0}}, MKD::HeadlineRole::Short).value();
+    dictionary.addHeadline({.headline = u"つぐみ", .entryId = target}, MKD::HeadlineRole::Short).value();
     ```
 
 === "Python"
 
     ```python
     dictionary.add_headline(
-        mkd.HeadlineComponents("つぐみ", mkd.EntryId(1)), role=mkd.HeadlineRole.SHORT,
+        mkd.HeadlineComponents("つぐみ", target), role=mkd.HeadlineRole.SHORT,
     )
     ```
 
@@ -90,25 +93,39 @@ secondary store.
 
 ## Choose browsing order
 
+In the two-article dictionary below, show 雀 before 鶫.
+
 === "C++"
 
     ```cpp
-    dictionary.addPage(2, "<html><head/><body><h1>雀</h1></body></html>").value();
-    dictionary.addHeadline({.headline = u"雀", .entryId = {2, 0}}).value();
-    dictionary.addSearchKey(MKD::SearchScope::Headword, "すずめ", {2, 0}).value();
-    const std::array<uint32_t, 2> order{2, 1};
+    auto sparrow = dictionary.createEntry().value();
+    const auto sparrowTarget = sparrow.target();
+    sparrow.writeXml(R"(<html xmlns="http://www.w3.org/1999/xhtml" hmhtml="5">
+      <head><title>雀</title></head>
+      <body><h1>雀</h1></body>
+    </html>)").value();
+    dictionary.addHeadline({.headline = u"雀", .entryId = sparrowTarget}).value();
+    dictionary.addSearchKey(MKD::SearchScope::Headword, "すずめ", sparrowTarget).value();
+    const std::array order{sparrowTarget.pageId, target.pageId};
     dictionary.setEntryOrder(order).value();
     ```
 
 === "Python"
 
     ```python
-    dictionary.add_page(2, "<html><head/><body><h1>雀</h1></body></html>")
-    dictionary.add_headline(mkd.HeadlineComponents("雀", mkd.EntryId(2)))
-    dictionary.add_search_key(mkd.SearchScope.HEADWORD, "すずめ", mkd.EntryId(2))
-    dictionary.set_entry_order([2, 1])
+    sparrow = dictionary.create_entry()
+    sparrow_target = sparrow.target
+    sparrow.write_xml("""<html xmlns="http://www.w3.org/1999/xhtml" hmhtml="5">
+      <head><title>雀</title></head>
+      <body><h1>雀</h1></body>
+    </html>""")
+    dictionary.add_headline(mkd.HeadlineComponents("雀", sparrow_target))
+    dictionary.add_search_key(mkd.SearchScope.HEADWORD, "すずめ", sparrow_target)
+    dictionary.set_entry_order([sparrow_target.page_id, target.page_id])
     ```
 
 An explicit order must contain every page ID exactly once. The default is
-ascending page ID. This writes native browsing order; it does not reorder search
+ascending page ID. This writes native browsing order. It does not reorder search
 results or the resource-store iteration sequence.
+
+Finish the dictionary and product after adding the desired content.

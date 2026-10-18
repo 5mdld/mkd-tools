@@ -12,7 +12,8 @@ nav = [
     { "Searching" = "reading/searching.md" },
     { "Exporting dictionaries" = "reading/exporting.md" },
     { "Creating a dictionary" = "creating/minimal_dictionary.md" },
-    { "Gaiji, ruby and links" = "creating/inline_content.md" },
+    { "Subentries and links" = "creating/subentries.md" },
+    { "Gaiji and ruby" = "creating/inline_content.md" },
     { "Images, audio, fonts and CSS" = "creating/resources.md" },
     { "Appendices and entry order" = "creating/navigation.md" },
 ]
