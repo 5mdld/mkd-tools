@@ -5,6 +5,7 @@
 #pragma once
 
 #include "MKD/dictionary/paths.hpp"
+#include "MKD/dictionary/entry_order.hpp"
 #include "MKD/resource/font.hpp"
 #include "MKD/resource/appendix_entry_list.hpp"
 #include "MKD/resource/named_resource_store.hpp"
@@ -34,6 +35,7 @@ namespace MKD
 
         [[nodiscard]] Result<std::optional<ResourceStore>> loadEntries(std::string_view contentDir,
                                                                        std::string_view dictId) const;
+        [[nodiscard]] Result<EntryOrder> loadEntryOrder(std::string_view contentDir, const ResourceStore& entries) const;
         [[nodiscard]] Result<std::optional<NamedResourceStore>> loadGraphics(std::string_view contentDir) const;
         [[nodiscard]] Result<std::optional<Audio>>
         loadAudio(std::string_view contentDir, std::string_view dictId) const;

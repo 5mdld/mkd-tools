@@ -9,6 +9,7 @@ target_sources(mkd PRIVATE
         native_content.cpp
         content_resources.cpp
         content_references.cpp
+        entry_order.cpp
         dictionary.cpp
         dictionary_product.cpp
         dictionary_search.cpp

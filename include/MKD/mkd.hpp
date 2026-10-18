@@ -8,6 +8,7 @@
 
 #include "MKD/dictionary/dictionary_product.hpp"
 #include "MKD/dictionary/dictionary.hpp"
+#include "MKD/dictionary/entry_order.hpp"
 #include "MKD/dictionary/dictionary_search.hpp"
 #include "MKD/dictionary/metadata.hpp"
 #include "MKD/dictionary/inline_text.hpp"

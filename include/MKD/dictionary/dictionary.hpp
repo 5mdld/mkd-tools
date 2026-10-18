@@ -5,6 +5,7 @@
 #pragma once
 
 #include "MKD/result.hpp"
+#include "MKD/dictionary/entry_order.hpp"
 #include "MKD/dictionary/metadata.hpp"
 #include "MKD/dictionary/paths.hpp"
 #include "MKD/platform/dictionary_source.hpp"
@@ -26,6 +27,7 @@ namespace MKD
     struct DictionaryResources
     {
         std::optional<ResourceStore> entries;
+        std::optional<EntryOrder> entryOrder;
         std::vector<AppendixEntryList> appendixEntryLists;
         std::optional<NamedResourceStore> graphics;
         std::optional<std::variant<ResourceStore, NamedResourceStore>> audio;
@@ -42,11 +44,13 @@ namespace MKD
     {
         std::optional<std::string> productSearchClass;
         std::optional<std::string> productDelegateClass;
+
         struct EntryRange
         {
             uint32_t minimum;
             uint32_t maximum;
         };
+
         std::optional<EntryRange> modernEntryRange;
         bool allowsScopeFallback = true;
     };
@@ -69,6 +73,7 @@ namespace MKD
         [[nodiscard]] ResourceStore* entries() noexcept;
         [[nodiscard]] const ResourceStore* entries() const noexcept;
         [[nodiscard]] bool hasEntries() const noexcept;
+        [[nodiscard]] const EntryOrder& entryOrder() const noexcept;
 
         [[nodiscard]] Result<ResourceStoreItem> entryByIndex(size_t index) const;
         [[nodiscard]] Result<ResourceStoreItem> entryById(uint32_t itemId) const;
@@ -108,6 +113,7 @@ namespace MKD
         DictionaryContent content_;
         DictionarySearchConfiguration searchConfiguration_;
         std::optional<ResourceStore> entries_;
+        EntryOrder entryOrder_;
         std::vector<AppendixEntryList> appendixEntryLists_;
         std::optional<NamedResourceStore> graphics_;
         std::optional<std::variant<ResourceStore, NamedResourceStore>> audio_;

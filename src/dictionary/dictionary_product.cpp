@@ -61,6 +61,14 @@ namespace MKD
             if (!entries)
                 return std::unexpected(entries.error());
 
+            if (*entries)
+            {
+                auto order = loader.loadEntryOrder(directory, **entries);
+                if (!order)
+                    return std::unexpected(order.error());
+                resources.entryOrder = std::move(*order);
+            }
+
             auto appendices = loader.loadAppendixEntryLists(directory);
             if (!appendices)
                 return std::unexpected(appendices.error());

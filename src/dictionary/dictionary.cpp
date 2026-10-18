@@ -17,6 +17,7 @@ namespace MKD
           content_(std::move(content)),
           searchConfiguration_(std::move(searchConfiguration)),
           entries_(std::move(resources.entries)),
+          entryOrder_(resources.entryOrder.value_or(EntryOrder(entries_ ? static_cast<uint32_t>(entries_->size()) : 0))),
           appendixEntryLists_(std::move(resources.appendixEntryLists)),
           graphics_(std::move(resources.graphics)),
           audio_(std::move(resources.audio)),
@@ -65,6 +66,12 @@ namespace MKD
     const ResourceStore* Dictionary::entries() const noexcept
     {
         return entries_ ? &*entries_ : nullptr;
+    }
+
+
+    const EntryOrder& Dictionary::entryOrder() const noexcept
+    {
+        return entryOrder_;
     }
 
 

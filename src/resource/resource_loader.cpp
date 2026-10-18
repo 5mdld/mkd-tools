@@ -30,6 +30,16 @@ namespace MKD
         return std::optional(std::move(*store));
     }
 
+    Result<EntryOrder> ResourceLoader::loadEntryOrder(std::string_view contentDir, const ResourceStore& entries) const
+    {
+        auto directory = paths_.resolve(ResourceType::Contents, contentDir);
+        if (!directory)
+            return std::unexpected(directory.error());
+        if (!*directory)
+            return std::unexpected("Missing contents directory for entry order");
+        return EntryOrder::open(**directory / detail::native::paths::entryOrder, entries);
+    }
+
     Result<std::optional<NamedResourceStore>> ResourceLoader::loadGraphics(std::string_view contentDir) const
     {
         auto path = paths_.resolve(ResourceType::Graphics, contentDir);
