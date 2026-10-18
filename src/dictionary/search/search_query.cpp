@@ -44,7 +44,7 @@ namespace MKD::detail::search
             {
                 const auto position = offset;
                 const auto cp = unicode::nextCodepoint(text, offset);
-                if (cp == U'\t' || cp == U' ' || cp == U'/' || cp == U'　' || cp == U'／')
+                if (cp == U'\t' || cp == U' ' || cp == U'/' || cp == U'\u3000' /* 全角スペース */ || cp == U'\uFF0F' /* ／ */)
                 {
                     append(std::string_view(text).substr(begin, position - begin));
                     begin = offset;
