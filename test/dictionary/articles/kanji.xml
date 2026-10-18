@@ -1,0 +1,7 @@
+<html xmlns="http://www.w3.org/1999/xhtml" hmhtml="5" lang="ja">
+  <head><title>{character}</title></head>
+  <body>
+    <h1>{character}</h1>
+    <section id="{target}"><h2><headword class="熟語">{compound}</headword></h2></section>
+  </body>
+</html>

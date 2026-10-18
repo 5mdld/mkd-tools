@@ -37,11 +37,12 @@ if (MKD_BUILD_RECEIPT_APP)
     add_subdirectory(apps)
 endif ()
 
+if (MKD_BUILD_PYTHON OR BUILD_TESTING)
+    find_package(Python 3.10 REQUIRED COMPONENTS Interpreter Development.Module)
+    add_subdirectory(python)
+endif ()
+
 if (BUILD_TESTING)
     enable_testing()
     add_subdirectory(test)
-endif ()
-
-if (MKD_BUILD_PYTHON)
-    add_subdirectory(python)
 endif ()

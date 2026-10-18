@@ -1,0 +1,11 @@
+<html xmlns="http://www.w3.org/1999/xhtml" hmhtml="5" lang="ja">
+  <head><title>鶫</title><link rel="stylesheet" href="birbs.css"/></head>
+  <body>
+    <h1>{title}</h1>
+    <p>冬に日本で見られる、胸に斑点のある小鳥。</p>
+    <section id="{idiom}"><h2>一石二鳥</h2><p>一つのことで二つの成果を得ること。</p></section>
+    <p id="{example}">鶫がさえずる。</p>
+    <audio src="audio/chirp.wav"/>
+    <a href="{saberlion}">おなかをすかせた友だち</a>
+  </body>
+</html>

@@ -1,0 +1,9 @@
+<html xmlns="http://www.w3.org/1999/xhtml" hmhtml="5" lang="ja">
+  <head><title>セイバーライオン</title></head>
+  <body>
+    <h1>セイバーライオン</h1>
+    <p id="{sense}">がおー。ごはんを待つ。</p>
+    <img src="graphics/saberlion.png" alt="セイバーライオン"/>
+    <a href="{tsugumi}">小鳥の友だち</a>
+  </body>
+</html>
