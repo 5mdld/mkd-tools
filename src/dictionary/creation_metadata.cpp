@@ -222,6 +222,7 @@ namespace MKD::detail
         string(dictionary, metadata::package::platform, native::defaults::platform);
         string(dictionary, metadata::package::releaseType, native::defaults::releaseType);
         string(dictionary, metadata::package::buildVersion, native::defaults::buildVersion);
+        integer(dictionary, metadata::package::mkdPackageVersion, native::defaults::mkdPackageVersion);
         return writePlist(root / native::paths::productInfo, document);
     }
 

@@ -58,6 +58,7 @@ namespace MKD::detail::metadata::package
     inline constexpr char platform[] = "PlatformID";
     inline constexpr char releaseType[] = "ReleaseType";
     inline constexpr char buildVersion[] = "BuildVersion";
+    inline constexpr char mkdPackageVersion[] = "MKDPackageVersion";
 }
 
 namespace MKD::detail::metadata::appendix

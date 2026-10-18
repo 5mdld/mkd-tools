@@ -56,6 +56,7 @@ namespace MKD::detail::native::defaults
     inline constexpr char platform[] = "macOS";
     inline constexpr char releaseType[] = "local";
     inline constexpr char buildVersion[] = "1";
+    inline constexpr uint32_t mkdPackageVersion = 1;
 }
 
 namespace MKD::detail::native::paths
