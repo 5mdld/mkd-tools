@@ -5,6 +5,7 @@
 #pragma once
 
 #include "unicode/normalization.hpp"
+#include "resource/keystore/scope_definitions.hpp"
 #include "MKD/dictionary/dictionary_search.hpp"
 
 #include <array>
@@ -38,18 +39,11 @@ namespace MKD::detail::native::search
         ClassDefinition{.name = "KLDicComplexSearchLogic"}
     };
 
-    struct CreationScope
-    {
-        SearchScope scope;
-        std::string_view name;
-        std::string_view filename;
-    };
-
     inline constexpr std::array kanwaScopes{
-        CreationScope{SearchScope::Headword, "Oyaji", "headword"},
-        CreationScope{SearchScope::Idiom, "Jyukugo", "idiom"},
-        CreationScope{SearchScope::Gogi, "Gogi", "sense"},
-        CreationScope{SearchScope::Example, "Example", "example"},
+        ScopeDefinition{SearchScope::Headword, "Oyaji", "headword"},
+        ScopeDefinition{SearchScope::Idiom, "Jyukugo", "idiom"},
+        ScopeDefinition{SearchScope::Sense, "Gogi", "sense"},
+        ScopeDefinition{SearchScope::Example, "Example", "example"},
     };
 
     struct DelegateDefinition

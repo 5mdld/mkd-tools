@@ -7,7 +7,7 @@
 #include "MKD/result.hpp"
 #include "MKD/resource/entry_id.hpp"
 #include "MKD/resource/search_mode.hpp"
-#include "MKD/resource/keystore_scope.hpp"
+#include "MKD/search_scope.hpp"
 
 #include <memory>
 #include <optional>
@@ -20,44 +20,6 @@
 namespace MKD
 {
     class Dictionary;
-
-    enum class SearchScope : uint8_t
-    {
-        Headword = 0,
-        Idiom = 1,
-        Example = 2,
-        English = 3,
-        Gogi = 4,
-        Modern = 5,
-        Kanji = 6,
-        Collocation = 7,
-        CJ = 8,
-        JC = 9,
-        Fulltext = 10,
-        Group = 11,
-        CompoundNoun = 100,
-        Numeral = 101,
-
-        Sense = Gogi,
-        Gendai = Modern,
-        Metadata = Modern,
-        Category = Group,
-        Compound = CompoundNoun
-    };
-
-    [[nodiscard]] constexpr std::optional<SearchScope> searchScopeFromName(const std::string_view name) noexcept
-    {
-        for (const auto& names : detail::keystoreScopes)
-            if (name == names.name) return static_cast<SearchScope>(names.scope);
-        if (name == "Index" || name == "Vocabulary") return SearchScope::Headword;
-        if (name == "Idiom/Phrasal verb" || name == "Jyukugo" || name == "Kanyoku" || name == "Phrase")
-            return SearchScope::Idiom;
-        if (name == "Yakugo") return SearchScope::Gogi;
-        if (name == "Gendai" || name == "Metadata" || name == "MetaData") return SearchScope::Modern;
-        if (name == "Oyaji") return SearchScope::Kanji;
-        return std::nullopt;
-    }
-
 
     // None performs one normalised index lookup.
     // Native adds dictionary search rules and fallbacks.

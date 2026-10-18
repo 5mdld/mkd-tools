@@ -41,7 +41,7 @@ namespace MKD::Python
             .value("JC", SearchScope::JC)
             .value("FULLTEXT", SearchScope::Fulltext)
             .value("CATEGORY", SearchScope::Category)
-            .value("COMPOUND", SearchScope::Compound)
+            .value("COMPOUND", SearchScope::CompoundNoun)
             .value("NUMERAL", SearchScope::Numeral);
         nb::enum_<SearchMode>(module, "SearchMode")
             .value("PREFIX", SearchMode::Prefix)

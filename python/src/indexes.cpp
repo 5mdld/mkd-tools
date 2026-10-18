@@ -49,13 +49,7 @@ namespace MKD::Python
         auto type = nb::class_<Keystore>(module, "Keystore",
                                          "Inspect stored keys and targets. Use DictionarySearch for dictionary search rules.");
         type.def_prop_ro("filename", &Keystore::filename);
-        type.def_prop_ro("scope", [](const Keystore& store) -> std::optional<SearchScope>
-        {
-            return store.scope().transform([](KeystoreScope scope)
-            {
-                return static_cast<SearchScope>(scope);
-            });
-        });
+        type.def_prop_ro("scope", &Keystore::scope);
         type.def("index_size", &Keystore::indexSize, "index_type"_a);
         type.def("key_at", [](const Keystore& store, KeystoreIndex type, size_t index)
                  {

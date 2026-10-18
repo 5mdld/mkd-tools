@@ -142,7 +142,7 @@ TEST_F(DictionarySearchTest, SHINJIGEN_GogiSearch)
 
     SearchOptions options;
     options.match = SearchMode::Prefix;
-    options.scope = SearchScope::Gogi;
+    options.scope = SearchScope::Sense;
 
     const auto result = measureSearchTime("Shinjigen Gogi search", [&]() {
         return search.search("ひよどり", options);

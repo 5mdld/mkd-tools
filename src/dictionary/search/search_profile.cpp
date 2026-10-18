@@ -15,7 +15,7 @@ namespace MKD::detail::search
         selectNormalization();
         for (const auto& store : dictionary.keystores())
             if (auto scope = store.scope())
-                directStores_[static_cast<SearchScope>(*scope)].push_back(&store);
+                directStores_[*scope].push_back(&store);
 
         mapNativeStores();
         for (const auto& [scope, stores] : nativeStores_)
@@ -81,12 +81,12 @@ namespace MKD::detail::search
             addStores(SearchScope::Idiom, SearchScope::Idiom);
             addStores(SearchScope::Kanji, SearchScope::Headword);
             addStores(SearchScope::Example, SearchScope::Example);
-            addStores(SearchScope::Gogi, SearchScope::Gogi);
+            addStores(SearchScope::Sense, SearchScope::Sense);
         }
         else if (class_.family == native::search::Family::Kogo)
         {
             for (const auto scope : {
-                     SearchScope::Headword, SearchScope::Example, SearchScope::Gogi, SearchScope::Modern
+                     SearchScope::Headword, SearchScope::Example, SearchScope::Sense, SearchScope::Modern
                  })
                 addStores(scope, scope);
         }
@@ -131,7 +131,7 @@ namespace MKD::detail::search
         {
         case SearchScope::Idiom:
         case SearchScope::Example:
-        case SearchScope::Gogi:
+        case SearchScope::Sense:
         case SearchScope::Collocation:
         case SearchScope::CJ:
         case SearchScope::Fulltext: return true;
@@ -149,13 +149,13 @@ namespace MKD::detail::search
     bool SearchProfile::complexSearch(SearchScope scope) const noexcept
     {
         if (class_.family == native::search::Family::Kanwa || class_.family == native::search::Family::Complex)
-            return scope == SearchScope::Example || scope == SearchScope::Gogi;
+            return scope == SearchScope::Example || scope == SearchScope::Sense;
 
         const auto id = dictionary_.content().dictionaryId;
         return class_.family == native::search::Family::Kogo && id
             && std::ranges::find(native::search::classicalComplexDictionaries, *id) !=
             native::search::classicalComplexDictionaries.end()
-            && (scope == SearchScope::Example || scope == SearchScope::Gogi || scope == SearchScope::Modern);
+            && (scope == SearchScope::Example || scope == SearchScope::Sense || scope == SearchScope::Modern);
     }
 
     std::span<const Keystore* const> SearchProfile::stores(SearchScope scope, SearchFallback fallback) const

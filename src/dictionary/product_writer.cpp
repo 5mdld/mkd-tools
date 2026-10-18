@@ -155,7 +155,7 @@ namespace MKD
         }
         else
             for (auto scope : scopes)
-                product.metadata.searchScopeNames.emplace_back(detail::NativeSearchScope::forScope(scope)->name);
+                product.metadata.searchScopeNames.emplace_back(detail::CreationMetadata::scopeDefinition(scope, product.profile)->name);
 
         std::ranges::sort(product.metadata.fonts);
         if (auto result = detail::ProductInformationWriter::write(product); !result)

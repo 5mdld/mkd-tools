@@ -91,8 +91,8 @@ namespace MKD::detail::search
         if (options_.fallback != SearchFallback::Native && options_.fallback != SearchFallback::None)
             return std::unexpected("Invalid search fallback policy");
 
-        const auto scope = static_cast<KeystoreScope>(options_.scope);
-        if (std::ranges::none_of(keystoreScopes, [scope](const auto& names) { return names.scope == scope; }))
+        const auto scope = options_.scope;
+        if (std::ranges::none_of(searchScopes, [scope](const auto& names) { return names.scope == scope; }))
             return std::unexpected("Invalid search scope");
 
         if ((options_.fallback == SearchFallback::Native || !profile_.normalizationKnown()) && profile_.

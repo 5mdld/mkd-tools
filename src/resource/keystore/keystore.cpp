@@ -42,7 +42,7 @@ namespace MKD
 
         MappedFile file;
         std::string filename;
-        std::optional<KeystoreScope> scope;
+        std::optional<SearchScope> scope;
         detail::BinaryView words;
         std::array<detail::BinaryView, 4> indices;
         detail::BinaryView conversions;
@@ -52,7 +52,7 @@ namespace MKD
 
         Impl(MappedFile file, std::string filename, detail::BinaryView words)
             : file(std::move(file)), filename(std::move(filename)),
-              scope(parseKeystoreScopeFilename(this->filename)), words(words)
+              scope(searchScopeFromFilename(this->filename)), words(words)
         {
         }
 
@@ -366,7 +366,7 @@ namespace MKD
     }
 
     std::string_view Keystore::filename() const noexcept { return impl_->filename; }
-    std::optional<KeystoreScope> Keystore::scope() const noexcept { return impl_->scope; }
+    std::optional<SearchScope> Keystore::scope() const noexcept { return impl_->scope; }
 
     Result<std::vector<EntryId>> Keystore::indexedEntryIds() const
     {

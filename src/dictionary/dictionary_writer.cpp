@@ -93,14 +93,14 @@ namespace MKD
                 scope = SearchScope::Headword;
 
             const auto normalized = detail::unicode::normalizeDictionaryKey(key);
-            auto info = detail::NativeSearchScope::forScope(scope, profile);
+            auto info = detail::CreationMetadata::scopeDefinition(scope, profile);
             if (!info)
                 return std::unexpected(info.error());
 
             auto it = build.keys.find(scope);
             if (it == build.keys.end())
             {
-                const auto filename = std::string(info->filename).append(KEYSTORE_SCOPE_FILENAME_EXTENSION);
+                const auto filename = std::string(info->filename).append(".keystore");
                 auto writer = KeystoreWriter::create(build.root / detail::native::paths::keys / filename);
                 if (!writer)
                     return std::unexpected(writer.error());

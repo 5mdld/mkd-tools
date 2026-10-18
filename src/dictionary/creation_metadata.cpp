@@ -10,19 +10,19 @@
 
 namespace MKD::detail
 {
-    Result<NativeSearchScope> NativeSearchScope::forScope(SearchScope scope, const CreationProfile profile)
+    Result<ScopeDefinition> CreationMetadata::scopeDefinition(SearchScope scope, const CreationProfile profile)
     {
         if (profile == CreationProfile::Kanwa)
         {
             for (const auto& names : native::search::kanwaScopes)
                 if (names.scope == scope)
-                    return NativeSearchScope{names.name, names.filename};
+                    return names;
 
             return std::unexpected("Search scope is unavailable in the kanwa creation profile");
         }
-        for (const auto& names : keystoreScopes)
-            if (names.generic && names.scope == static_cast<KeystoreScope>(scope))
-                return NativeSearchScope{names.name, names.filename};
+        for (const auto& names : searchScopes)
+            if (names.generic && names.scope == scope)
+                return names;
 
         return std::unexpected("Search scope requires a specialised native search profile");
     }

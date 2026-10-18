@@ -7,20 +7,14 @@
 #include "MKD/dictionary/product_writer.hpp"
 #include "MKD/dictionary/dictionary_search.hpp"
 #include <pugixml.hpp>
+#include "resource/keystore/scope_definitions.hpp"
 
 namespace MKD::detail
 {
-    struct NativeSearchScope
-    {
-        std::string_view name;
-        std::string_view filename;
-        static Result<NativeSearchScope> forScope(SearchScope scope,
-                                                  CreationProfile profile = CreationProfile::General);
-    };
-
     class CreationMetadata
     {
     public:
+        static Result<ScopeDefinition> scopeDefinition(SearchScope scope, CreationProfile profile);
         static Result<void> validateProduct(DictionaryMetadata& metadata, const std::filesystem::path& destination,
                                             CreationProfile profile);
         static Result<void> validatePresentation(const DictionaryPresentation& presentation);
