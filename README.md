@@ -4,9 +4,17 @@ A C++23 library for reading, searching and creating 物書堂 dictionaries, with
 
 [Library documentation](https://kiwakiwaa.github.io/mkd-tools/) · C++ and Python guides
 
-## Install the CLI
+## Installation
 
-With [Homebrew](https://brew.sh/):
+Python library:
+
+```sh
+python -m pip install mkd-tools
+```
+
+Import the library as `mkd`.
+
+CLI on macOS, with [Homebrew](https://brew.sh/):
 
 ```sh
 brew install kiwakiwaa/tap/mkd-tools

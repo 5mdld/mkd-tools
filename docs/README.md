@@ -2,7 +2,36 @@
 
 Read, search and create Monokakido dictionaries with C++ or Python.
 
-## Building
+## Installation
+
+### Python library
+
+Install mkd-tools from PyPI into your Python
+environment:
+
+```sh
+python -m pip install mkd-tools
+```
+
+Import the library as `mkd`:
+
+```python
+import mkd
+```
+
+For a complete creation example, see [Birb dictionaries](https://github.com/kiwakiwaa/mkd-tools/tree/main/examples/birbs).
+It includes a general dictionary, a kanwa dictionary and a field guide, with
+article XML, stylesheets and media.
+
+### CLI
+
+On macOS, install the CLI with [Homebrew](https://brew.sh/):
+
+```sh
+brew install kiwakiwaa/tap/mkd-tools
+```
+
+## Building from source
 
 Requires cmake 3.31 or newer and a C++23 compiler.
 
@@ -50,7 +79,7 @@ cd mkd-tools
 
     CLI: `build/release/cli/Release/mkd-tools.exe`.
 
-## Python bindings
+### Python bindings
 
 Requires Python 3.10 or newer. From the repository root:
 
@@ -59,10 +88,6 @@ python -m pip install .
 ```
 
 This builds the bindings and installs the `mkd` module.
-
-For a more complete creation example, see [Birb dictionaries](https://github.com/kiwakiwaa/mkd-tools/tree/main/examples/birbs).
-It includes a general dictionary, a kanwa dictionary and a field guide, with
-article XML, stylesheets and media.
 
 ## CLI usage
 
