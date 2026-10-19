@@ -5,6 +5,7 @@ repo_url = "https://github.com/kiwakiwaa/mkd-tools"
 site_description = "Read, search, and create Monokakido dictionaries"
 docs_dir = "docs"
 site_dir = "build/docs"
+extra_css = ["assets/stylesheets/reference.css"]
 nav = [
     { "Overview" = "README.md" },
     { "Core concepts" = "concepts.md" },
@@ -17,6 +18,10 @@ nav = [
     { "Images, audio, fonts and CSS" = "creating/resources.md" },
     { "Styling articles" = "creating/styling.md" },
     { "Appendices and entry order" = "creating/navigation.md" },
+    { "Reference" = [
+        { "Article CSS" = "reference/article_css.md" },
+        { "Mathematical notation" = "reference/mathematics.md" },
+    ] },
 ]
 
 [project.theme]

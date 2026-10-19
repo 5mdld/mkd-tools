@@ -3,6 +3,8 @@
 After [adding a stylesheet](resources.md#add-stylesheets-and-loose-assets), use it
 to style your article XML. Dictionaries renders articles with its own
 layout engine. A browser preview will not reproduce all of these features.
+For lookup, see the [CSS reference](../reference/article_css.md) and
+[mathematical notation](../reference/mathematics.md), with rendered results.
 
 ## Start with the article layout
 
@@ -141,7 +143,7 @@ M_mark.組成 {
 ```
 
 `border-shape: arrow-box` turns the label's border into an arrow-shaped outline.
-The outline follows the writing direction.
+Use `arrow-box-rl` for the opposite arrow direction.
 
 ![Arrow-shaped 組成 label in 旺文社古語辞典「あ【案】」](../assets/css/okg-arrow.png)
 

@@ -1,0 +1,15 @@
+.md-typeset table:has(img) img {
+    width: auto;
+    height: auto;
+    max-width: 170px;
+    max-height: 110px;
+    vertical-align: middle;
+}
+
+.md-typeset table:has(img) td:first-child {
+    min-width: 9rem;
+}
+
+.md-typeset table:has(img) td:last-child {
+    min-width: 170px;
+}
