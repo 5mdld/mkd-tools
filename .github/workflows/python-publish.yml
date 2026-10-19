@@ -1,0 +1,148 @@
+name: Publish Python release
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Successful Python release artifacts run ID to publish
+        required: true
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: python-publish
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      artifact_ids: ${{ steps.source.outputs.artifact_ids }}
+    steps:
+      - name: Validate source run and select artifacts
+        id: source
+        uses: actions/github-script@v8
+        env:
+          RUN_ID: ${{ inputs.run_id }}
+        with:
+          script: |
+            const runId = process.env.RUN_ID;
+            if (!/^[1-9][0-9]*$/.test(runId)) {
+              throw new Error('Enter a numeric workflow run ID.');
+            }
+            const repo = context.repo;
+            const { data: workflow } = await github.rest.actions.getWorkflow({
+              ...repo, workflow_id: 'python-release.yml'
+            });
+            const { data: run } = await github.rest.actions.getWorkflowRun({
+              ...repo, run_id: runId
+            });
+            if (run.workflow_id !== workflow.id || run.status !== 'completed' ||
+                run.conclusion !== 'success' || run.head_branch !== 'main' ||
+                run.head_repository?.full_name !== `${repo.owner}/${repo.repo}` ||
+                run.event !== 'workflow_dispatch') {
+              throw new Error('Choose a successful manual python-release.yml run from main in this repository.');
+            }
+            const expected = [
+              'python-sdist',
+              'python-wheels-macos-15-arm64',
+              'python-wheels-macos-15-intel-x86_64',
+              'python-wheels-windows-latest-AMD64',
+              'python-wheels-ubuntu-latest-x86_64'
+            ];
+            const artifacts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, {
+              ...repo, run_id: runId, per_page: 100
+            });
+            const selected = expected.map(name => {
+              const matches = artifacts.filter(artifact => artifact.name === name);
+              if (matches.length !== 1 || matches[0].expired) {
+                throw new Error(`Missing, duplicate, or expired artifact: ${name}`);
+              }
+              return matches[0].id;
+            });
+            core.setOutput('artifact_ids', selected.join(','));
+            await core.summary
+              .addHeading('Python release to publish')
+              .addLink(`Build run ${run.id}`, run.html_url)
+              .addRaw(`\n\nCommit: ${run.head_sha}\n\n`)
+              .write();
+
+      - uses: actions/download-artifact@v7
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.run_id }}
+          artifact-ids: ${{ steps.source.outputs.artifact_ids }}
+          merge-multiple: true
+          path: dist
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+
+      - name: Install validation tools
+        run: python -m pip install twine packaging
+
+      - name: Check distribution set and record hashes
+        shell: python
+        run: |
+          import hashlib
+          import os
+          from pathlib import Path
+
+          from packaging.utils import canonicalize_name, parse_sdist_filename, parse_wheel_filename
+
+          files = sorted(Path("dist").iterdir())
+          wheels = [path for path in files if path.suffix == ".whl"]
+          sources = [path for path in files if path.name.endswith(".tar.gz")]
+          assert len(files) == 21 and len(wheels) == 20 and len(sources) == 1, "Expected 20 wheels and one source archive"
+          name, version = parse_sdist_filename(sources[0].name)
+          assert canonicalize_name(name) == "mkd-tools", "Unexpected package name"
+          expected = {
+              (f"cp3{minor}", platform)
+              for minor in range(10, 15)
+              for platform in ("macosx_14_0_arm64", "macosx_14_0_x86_64", "win_amd64", "manylinux_2_34_x86_64")
+          }
+          actual = []
+          for wheel in wheels:
+              wheel_name, wheel_version, build, tags = parse_wheel_filename(wheel.name)
+              assert canonicalize_name(wheel_name) == name and wheel_version == version and not build, wheel.name
+              tag, = tags
+              assert tag.abi == tag.interpreter, wheel.name
+              actual.append((tag.interpreter, tag.platform))
+          assert len(set(actual)) == 20 and set(actual) == expected, "Unexpected wheel matrix"
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
+              summary.write(f"Version: **{version}**\n\n| File | SHA-256 |\n| --- | --- |\n")
+              for path in files:
+                  with path.open("rb") as file:
+                      digest = hashlib.file_digest(file, "sha256").hexdigest()
+                  summary.write(f"| {path.name} | `{digest}` |\n")
+
+      - run: python -m twine check --strict dist/*
+
+  publish:
+    needs: verify
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/mkd-tools
+    permissions:
+      actions: read
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.run_id }}
+          artifact-ids: ${{ needs.verify.outputs.artifact_ids }}
+          merge-multiple: true
+          path: dist
+
+      - name: Publish reviewed distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          print-hash: true
