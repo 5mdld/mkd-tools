@@ -54,6 +54,16 @@ def build(destination, *, encrypt_contents=False):
     sections.append(mkd.AppendixSection("鳥を見る手帖", guide_items))
     sections.append(add_field_notes(product))
     product.set_appendices(mkd.AppendixMenu(sections))
+    birbs = mkd.NavigationIndex(sections=[mkd.NavigationSection(items=[
+        mkd.NavigationItem(label=entry["word"], target=targets[entry["word"]]["main"])
+        for entry in entries
+    ])])
+    product.set_navigation(mkd.NavigationIndex(rows=2, columns=2, sections=[
+        mkd.NavigationSection(items=[
+            mkd.NavigationItem(label="鳥のことば", target=birbs),
+            mkd.NavigationItem(label="鳥なき里の蝙蝠", target=targets["鳥"]["idiom"]),
+        ]),
+    ]))
     product.finish()
 
 

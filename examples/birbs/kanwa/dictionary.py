@@ -7,6 +7,8 @@ import mkd
 
 from article import ROOT, article, inline, search_keys
 
+from kanwa.navigation import build_navigation
+
 SOURCE = Path(__file__).resolve().parent
 
 
@@ -73,6 +75,7 @@ def build(destination, *, encrypt_contents=False):
     targets = add_entries(dictionary, entries, glyph_label, glyph_picture)
     menu = add_appendices(dictionary, entries, targets, content.dictionary_id)
     product.set_appendices(menu)
+    product.set_navigation(build_navigation(entries, targets))
 
     dictionary.finish()
     product.finish()
@@ -140,10 +143,9 @@ def add_entries(dictionary, entries, glyph_label, glyph_picture):
         )
 
         for index, compound in enumerate(entry["compounds"], start=1):
-            compound_label = inline(mkd.Ruby(compound["word"], compound["reading"]))
             dictionary.add_headline(
                 mkd.HeadlineComponents(
-                    compound_label.to_headline(),
+                    compound["word"],
                     entry_targets[f"compound_{index}"],
                     sorting_headline=compound["reading"],
                 ),
@@ -163,34 +165,8 @@ def add_entries(dictionary, entries, glyph_label, glyph_picture):
 
 
 def add_appendices(dictionary, entries, targets, dictionary_id):
-    radicals = []
-    # These lists need no product-specific kanwa delegate.
-    for radical in ("鳥", "羽", "隹"):
-        members = sorted(
-            (entry for entry in entries if entry["radical"] == radical),
-            key=lambda entry: (entry["residual_strokes"], entry["character"]),
-        )
-        items = [
-            mkd.AppendixEntry(
-                targets[entry["character"]]["main"],
-                label=f"{entry['character']}　部首外{entry['residual_strokes']}画",
-                first_character=radical,
-            )
-            for entry in members
-        ]
-        target = dictionary.add_appendix_entries("radical-" + str(ord(radical)), radical + "部", items)
-        radicals.append(mkd.AppendixItem(radical + "部", target))
-
-    strokes = sorted(entries, key=lambda entry: (entry["strokes"], entry["character"]))
-    dictionary.set_entry_order([targets[entry["character"]]["main"].page_id for entry in strokes])
-    items = [
-        mkd.AppendixEntry(
-            targets[entry["character"]]["main"],
-            label=f"{entry['character']}　{entry['strokes']}画",
-        )
-        for entry in strokes
-    ]
-    by_strokes = dictionary.add_appendix_entries("strokes", "総画順", items, rows=5, columns=2)
+    ordered = sorted(entries, key=lambda entry: (entry["strokes"], entry["character"]))
+    dictionary.set_entry_order([targets[entry["character"]]["main"].page_id for entry in ordered])
 
     dictionary.add_asset("appendix/about.html", mkd.Buffer.map(SOURCE / "assets/about.html"))
     about = dictionary.add_appendix("appendix/about.html", "この辞典の見方")
@@ -203,14 +179,8 @@ def add_appendices(dictionary, entries, targets, dictionary_id):
     compounds = mkd.AppendixList(compound_list.path, single_section=True, using_anchor_id=True)
     compound = mkd.AppendixEntryLink(targets["鳥"]["compound_1"], dictionary_id)
     return mkd.AppendixMenu([
-        mkd.AppendixSection("漢字を引く", [
-            mkd.AppendixItem("部首から引く", mkd.AppendixMenu([
-                mkd.AppendixSection("", radicals),
-            ])),
-            mkd.AppendixItem("総画順", by_strokes),
-            mkd.AppendixItem("熟語一覧", compounds),
-        ]),
         mkd.AppendixSection("この辞典について", [
+            mkd.AppendixItem("熟語一覧", compounds),
             mkd.AppendixItem("この辞典の見方", about),
             mkd.AppendixItem("外字について", mkd.AppendixDocument(about.path, fragment="gaiji")),
             mkd.AppendixItem("熟語の例：鳥類", compound),
