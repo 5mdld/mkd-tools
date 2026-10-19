@@ -19,6 +19,7 @@ add_custom_target(mkd-test-dictionaries ALL DEPENDS "${test_dictionaries}/.built
 
 add_executable(mkd-tests
         support/test_dictionary.cpp
+        navigation.cpp
         dictionary.cpp
         search.cpp
         resources.cpp

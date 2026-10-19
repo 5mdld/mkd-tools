@@ -4,6 +4,7 @@
 
 #include "MKD/dictionary/dictionary_product.hpp"
 #include "native_format.hpp"
+#include "native_navigation.hpp"
 #include "content_info.hpp"
 #include "appendix_reader.hpp"
 #include "MKD/resource/resource_loader.hpp"
@@ -274,6 +275,29 @@ namespace MKD
             return std::unexpected("Expected an HTML or PDF appendix document");
 
         return resource(document.path);
+    }
+
+    Result<std::optional<NavigationView>> DictionaryProduct::navigation() const
+    {
+        namespace nav = detail::native::navigation;
+
+        std::string relative;
+        if (metadata_.appendixViewController == nav::generalController)
+            relative = nav::rootPlist;
+        else if (metadata_.appendixViewController == nav::kanwaController ||
+            metadata_.appendixViewController == "KankenKJ2_IndexRootViewController" ||
+            metadata_.appendixViewController == "Kanjikai_IndexRootViewController")
+            relative = metadata_.contents.front().directory + "/" + nav::directory + "/" + nav::rootIndex;
+        else if (metadata_.appendixViewController)
+            return std::unexpected("Specialised navigation controller: " + *metadata_.appendixViewController);
+        else
+            return std::optional<NavigationView>{};
+
+        auto root = NavigationView::open(paths_.productRoot() / detail::native::paths::productContents, {relative, {}});
+        if (!root)
+            return std::unexpected(root.error());
+
+        return std::optional(std::move(*root));
     }
 
     std::string DictionaryProduct::displayTitle() const

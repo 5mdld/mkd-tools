@@ -76,6 +76,10 @@ namespace MKD
         std::vector<std::string> fonts;
         std::optional<bool> verticalLayout;
         std::optional<std::string> requiredDicKitVersion;
+        std::optional<std::string> appendixViewController;
+        std::optional<std::string> contentsViewController;
+        std::optional<std::string> labelFormatter;
+        std::optional<bool> appendixFirst;
 
     private:
         static std::expected<std::string, std::error_code> readTextFile(const fs::path& path);
@@ -127,7 +131,8 @@ struct glz::meta<MKD::DictionaryContent>
         return content.presentation.fullRubyStylesheet;
     };
     static constexpr auto value = object(
-        MKD::detail::metadata::content::fullRubyStylesheet, glz::custom<readFullRubyStylesheet, writeFullRubyStylesheet>,
+        MKD::detail::metadata::content::fullRubyStylesheet,
+        glz::custom<readFullRubyStylesheet, writeFullRubyStylesheet>,
         MKD::detail::metadata::content::identifier, &T::identifier,
         MKD::detail::metadata::content::directory, &T::directory,
         MKD::detail::metadata::content::dictionaryId, glz::custom<readDictionaryId, &T::dictionaryId>,
@@ -159,6 +164,10 @@ struct glz::meta<MKD::DictionaryMetadata>
         MKD::detail::metadata::product::searchScopeNames, &T::searchScopeNames,
         MKD::detail::metadata::product::fonts, &T::fonts,
         MKD::detail::metadata::product::verticalLayout, &T::verticalLayout,
+        MKD::detail::metadata::product::appendixViewController, &T::appendixViewController,
+        MKD::detail::metadata::product::contentsViewController, &T::contentsViewController,
+        MKD::detail::metadata::product::labelFormatter, &T::labelFormatter,
+        MKD::detail::metadata::product::appendixFirst, &T::appendixFirst,
         MKD::detail::metadata::product::requiredDicKitVersion, &T::requiredDicKitVersion
     );
 };

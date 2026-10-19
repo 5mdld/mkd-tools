@@ -48,6 +48,10 @@ namespace MKD::detail::metadata::product
     inline constexpr char searchScopeNames[] = "DSProductSearchScopeNames";
     inline constexpr char fonts[] = "DSProductFonts";
     inline constexpr char verticalLayout[] = "DSProductVerticalLayout";
+    inline constexpr char appendixViewController[] = "DSProductAppendixViewController";
+    inline constexpr char contentsViewController[] = "DSProductContentsViewController";
+    inline constexpr char labelFormatter[] = "DSProductLabelFormatter";
+    inline constexpr char appendixFirst[] = "DSProductAppendixFirst";
     inline constexpr char requiredDicKitVersion[] = "DSProductRequiredDicKitVersion";
 }
 
