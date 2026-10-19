@@ -1,6 +1,6 @@
 # mkd documentation
 
-Read, search and create Monokakido dictionaries with C++ or Python.
+Read, search and create Monokakido dictionaries with Python or C++.
 
 ## Installation
 
@@ -31,65 +31,11 @@ On macOS, install the CLI with [Homebrew](https://brew.sh/):
 brew install kiwakiwaa/tap/mkd-tools
 ```
 
-## Building from source
-
-Requires cmake 3.31 or newer and a C++23 compiler.
-
-```sh
-git clone --recurse-submodules https://github.com/kiwakiwaa/mkd-tools.git
-cd mkd-tools
-```
-
-=== "macOS"
-
-    Use Xcode's command line tools and install cmake and ninja.
-
-    ```sh
-    cmake --preset release -G Ninja
-    cmake --build --preset release --parallel
-    ```
-
-    CLI: `build/release/cli/mkd-tools`.
-
-=== "Linux"
-
-    Install cmake, ninja, openssl and a C++23 compiler.
-
-    ```sh
-    CC=gcc-14 CXX=g++-14 cmake --preset release -G Ninja
-    cmake --build --preset release --parallel
-    ```
-
-    ```sh
-    CC=clang-20 CXX=clang++-20 CXXFLAGS=-stdlib=libc++ cmake --preset release -G Ninja
-    cmake --build --preset release --parallel
-    ```
-
-    CLI: `build/release/cli/mkd-tools`.
-
-=== "Windows"
-
-    Install Visual Studio with the Desktop development with C++ and
-    cmake. Run from a Developer PowerShell:
-
-    ```powershell
-    cmake --preset release
-    cmake --build --preset release --parallel
-    ```
-
-    CLI: `build/release/cli/Release/mkd-tools.exe`.
-
-### Python bindings
-
-Requires Python 3.10 or newer. From the repository root:
-
-```sh
-python -m pip install .
-```
-
-This builds the bindings and installs the `mkd` module.
+For the C++ library or a local build, see [Build from source](setup/building.md).
 
 ## CLI usage
+
+List products, inspect metadata and export resources from the terminal.
 
 ```sh
 mkd-tools list
@@ -119,20 +65,10 @@ and `appendix-entries`.
 `--pretty` formats XML.
 Use `mkd-tools --help` or `mkd-tools export --help` for all options.
 
-## Install a custom dictionary on macOS
+For custom products, see [installation and replacement](authoring/publishing.md#install-and-replace).
 
-Quit Dictionaries, then install a product built with the current mkd library:
+## Library guides
 
-```sh
-mkd-tools install build/birbs/BirdWords
-```
-
-To install a newer build of the same product:
-
-```sh
-mkd-tools install build/birbs-next/BirdWords --replace
-```
-
-Installation copies the package and adds local activation for that product only.
-An existing activation is preserved. This is only for custom dictionaries you are
-allowed to use.
+Start with [products, dictionaries and articles](concepts.md), then
+[read a dictionary](reading/products.md), [search](searching/queries.md) or
+[create your first dictionary](authoring/first_dictionary.md).

@@ -1,6 +1,6 @@
-[Documentation](README.md)
+# Products, dictionaries and articles
 
-# Core concepts
+[![Official dictionary icons in the collection.](assets/guide/collection.png)](assets/guide/collection.png)
 
 ## Products and dictionaries
 
@@ -30,7 +30,7 @@ content directory. The writer creates this layout for you.
 Searching for ”つぐみ” in 大辞泉 finds an article about 鶫. The app shows a
 headline in the result list and the article beside it.
 
-![The Dictionaries app showing the つぐみ search results and the selected 大辞泉 article.](assets/daijisen-tsugumi.png)
+[![The Dictionaries app showing the つぐみ search results and the selected 大辞泉 article.](assets/guide/daijisen-search.png)](assets/guide/daijisen-search.png)
 
 These are stored separately:
 
@@ -69,4 +69,4 @@ Articles can refer to images, audio, fonts and stylesheets stored with the
 dictionary. Gaiji are character images used where ordinary text is insufficient.
 The reading and creation guides show how to access or add these resources.
 
-Next: [Reading dictionaries](reading/browsing.md).
+Next: [Reading dictionaries](reading/products.md).

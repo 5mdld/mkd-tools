@@ -1,7 +1,11 @@
 # Exporting dictionaries
 
-Export writes articles, media, fonts and index tables to ordinary files. Continue
-with the open `dictionary` from the reading and searching guides.
+[![大辞泉 shows a headline in the result list and the selected article beside it.](../assets/guide/daijisen-search.png)](../assets/guide/daijisen-search.png)
+
+大辞泉 shows a headline in the result list and the selected article beside it.
+
+Export the XML and resources behind these articles to ordinary files.
+Use the open `dictionary` from [Open a dictionary](products.md).
 
 ## Export selected resources
 
@@ -105,4 +109,4 @@ Export is an extraction operation, not a lossless product clone. Metadata, loose
 assets and stylesheets are not automatically copied. Use resource access for
 specific loose files and the creation API to build a new product.
 
-Next: [Creating a dictionary](../creating/minimal_dictionary.md).
+Next: [Search and open results](../searching/queries.md).

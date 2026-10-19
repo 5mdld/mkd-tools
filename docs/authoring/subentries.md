@@ -1,9 +1,7 @@
-[Documentation](../README.md)
-
 # Subentries and links
 
 An article can contain independently searchable compounds, idioms and examples.
-In KJT, a 熟語 search for `ちょうご` opens 鳥語 within the 鳥 article:
+In 旺文社漢字典, a 熟語 search for ”ちょうご” opens 鳥語 within the 鳥 article:
 
 ![The Dictionaries app with 鳥語 selected in KJT's 熟語 results and the compound visible within the 鳥 article.](../assets/kjt-chougo.png)
 
@@ -28,7 +26,7 @@ the writer allocate the IDs.
 ## Start a kanwa product
 
 Create a separate product using the kanwa profile. The steps follow the same
-pattern as the preceding guide, now with a compound inside the article. Use a
+pattern as [the first dictionary](first_dictionary.md), now with a compound inside the article. Use a
 new directory for `destination`.
 
 === "Python"
@@ -165,7 +163,7 @@ native ID spelling, such as `00001-8001`.
 
 Every allocated passage target must appear in the XML. Writing consumes the XML
 and closes target allocation for that article. Finish the dictionary and product
-as in the preceding guide.
+as in [the first dictionary](first_dictionary.md).
 
 Reading a compound result still retrieves the whole article XML. Keep the full
 result target to locate its subsection.
@@ -228,5 +226,3 @@ the `compound` above:
 Insert the fragment into another article before writing it. Reserve entries and
 targets first when linking to articles you have not written yet. Links are checked
 when the dictionary is finished.
-
-Next: [Gaiji and ruby](inline_content.md).

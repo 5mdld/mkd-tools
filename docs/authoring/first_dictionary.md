@@ -1,13 +1,15 @@
-[Documentation](../README.md)
+# Create your first dictionary
 
-# Creating a dictionary
+[![大辞泉 shows a headline in the result list and the selected article beside it.](../assets/guide/daijisen-search.png)](../assets/guide/daijisen-search.png)
 
-Create a product with one article about 鶫（つぐみ）, searchable by its spelling
-and reading. Use a new directory for `destination`.
+大辞泉 shows a headline in the result list and the selected article beside it.
 
-For a more complete reference, see [Birb dictionaries](https://github.com/kiwakiwaa/mkd-tools/tree/main/examples/birbs).
-It has two dictionary products (general and kanwa profiles) with subentries, search
-keys, ruby, gaiji, media, styling and appendix menus.
+Build a small dictionary with one article about 鶫（つぐみ）. The screenshot
+shows the official 大辞泉 article. Our example uses simpler original XML.
+Start with a new directory such as `Birds` for `destination`.
+
+Python snippets assume `import mkd`. C++ snippets use `.value()` to keep the API
+visible. See [error handling](../reference/errors.md) for application code.
 
 ## Create the product and its dictionary
 
@@ -148,6 +150,27 @@ Search keys use UTF-8. Both keys point to the same article. Neither the headline
 nor `sortingHeadline` automatically adds search keys. The writer normalises
 these keys using its supported default native profile.
 
+## Add copyright information
+
+=== "Python"
+
+    ```python
+    product.set_information(mkd.ProductInformation(
+        copyright=mkd.LocalizedString(ja="© 2026 鳥の辞典編集室"),
+    ))
+    ```
+
+=== "C++"
+
+    ```cpp
+    product.setInformation({
+        .copyright = MKD::LocalizedString{.ja = "© 2026 鳥の辞典編集室"},
+    }).value();
+    ```
+
+The writer generates the product information page. You can add
+[licenses and custom pages](information.md) later.
+
 ## Publish the files
 
 === "Python"
@@ -164,96 +187,17 @@ these keys using its supported default native profile.
     product.finish().value();
     ```
 
-Finish each dictionary before finishing the product. Dictionary completion checks
-required content and references. Product completion publishes the staged files
-at `destination`. The generated product can then be opened with
-`DictionaryProduct::openAtPath(destination)`.
+Finish each dictionary before the product. `product.finish()` validates the
+build and publishes its folder at `destination`. Abandoning a writer does not
+publish anything. See [finishing and validation](publishing.md) for details.
 
-Destruction does not publish. Abandoning a build removes its staging files. After
-a mutating operation or completion fails, start a fresh build. Writers are used
-serially, and input strings and byte spans are borrowed only for the call.
+## Try the dictionary
 
-## Search the finished dictionary
+[Install the finished product](publishing.md#install-and-replace) in Dictionaries
+on macOS, then search for `つぐみ` or `鶫`. You can also [open and search it with
+the library](../searching/queries.md).
 
-=== "Python"
+The [birb example project](https://github.com/kiwakiwaa/mkd-tools/tree/main/examples/birbs)
+shows a larger general dictionary, a kanwa dictionary and a field guide.
 
-    ```python
-    opened = mkd.DictionaryProduct.open(destination)
-    birds = opened.find_content("example.birds.ja")
-    search = mkd.DictionarySearch(birds)
-
-    result = search.search(
-        "つぐみ", match=mkd.SearchMode.EXACT, fallback=mkd.SearchFallback.NONE,
-    )
-    ```
-
-    `result[0]` equals the allocated `target`.
-
-=== "C++"
-
-    ```cpp
-    auto opened = MKD::DictionaryProduct::openAtPath(destination).value();
-    const auto* birds = opened.findContent("example.birds.ja");
-    MKD::DictionarySearch search(*birds);
-
-    auto result = search.search("つぐみ", {
-        .match = MKD::SearchMode::Exact,
-        .fallback = MKD::SearchFallback::None,
-    }).value();
-    ```
-
-    `result.entries` contains the allocated `target`.
-
-Searching for `鶫` returns the same target.
-See [Searching](../reading/searching.md) for scope selection, match modes, and
-native dictionary rules.
-
-## Optional build settings
-
-Apply these changes to the earlier steps before finishing the writers.
-
-### Restrict a key to exact matching
-
-=== "Python"
-
-    ```python
-    dictionary.add_search_key(mkd.SearchScope.HEADWORD, "とり", target, exact_only=True)
-    ```
-
-=== "C++"
-
-    ```cpp
-    dictionary.addSearchKey(MKD::SearchScope::Headword, "とり", target, {.exactOnly = true}).value();
-    ```
-
-This key participates in exact lookups and is excluded from prefix and suffix
-matching.
-
-### Encryption and validation
-
-To encrypt article contents, pass `{.encryptContents = true}` as the second
-argument to `product.addDictionary(content, options)` in C++, or
-`encrypt_contents=True` to `product.add_dictionary(content, ...)` in Python.
-
-The default creation profile is general search. The next guide shows the kanwa
-profile. Full-text keys must also be supplied explicitly.
-
-Completion checks that:
-
-- Every page has a primary headline and the dictionary has headword search keys.
-- Search, headline, link and appendix targets resolve to existing pages or anchors.
-- Referenced local assets and configured presentation stylesheets exist.
-- Any explicit browsing order contains every page exactly once.
-
-Validation covers supported references and resources, rather than every native
-presentation feature. Product-specific delegates and headline-key identifier
-authoring are not supported.
-
-### Import explicit IDs
-
-Automatic allocation is enough for ordinary authoring. When importing existing
-content or preserving IDs across reordered builds, pass a page ID to
-`createEntry(10)` / `create_entry(page_id=10)`. `addPage()` / `add_page()` also
-accepts complete XML pages with explicit IDs.
-
-Next: [Subentries and links](subentries.md).
+Next: [Set product information and licenses](information.md).
