@@ -27,6 +27,9 @@ NB_MODULE(_mkd, module)
     py::bindAppendixTargets(module);
     py::bindAppendixCustom(module);
     py::bindAppendixMenu(module);
+    py::bindNavigationLabels(module);
+    py::bindNavigationIndex(module);
+    py::bindNavigationView(module);
     py::bindProduct(module);
     py::bindAppendixList(module);
     py::bindEntryOrder(module);

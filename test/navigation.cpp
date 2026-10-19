@@ -82,6 +82,40 @@ namespace MKD::test
         EXPECT_FALSE(NavigationView::open(workspace.path, {"birb.idx", {1}}));
     }
 
+    TEST(Navigation, GeneralGridsAndAppendicesRemainReachable)
+    {
+        auto product = require(DictionaryProduct::openAtPath(dictionaries() / "Birbs"));
+        auto root = require(product.navigation());
+        ASSERT_TRUE(root);
+        const auto birbs = require(root->itemAt(0, 0));
+        EXPECT_EQ(std::get<std::string>(birbs.label), "小鳥");
+        auto children = std::get<NavigationView>(birbs.target);
+        EXPECT_EQ(require(children.itemCount(0)), 2);
+        const auto target = std::get<AppendixEntryLink>(require(children.itemAt(0, 0)).target);
+        EXPECT_EQ(target.entryId, (EntryId{1, 0}));
+        EXPECT_EQ(target.dictionaryId, 1000);
+        EXPECT_EQ(std::get<std::string>(require(root->itemAt(0, 2)).label), "付録");
+    }
+
+    TEST(Navigation, KanwaChildrenRetainTheirMapping)
+    {
+        auto root = []
+        {
+            auto product = require(DictionaryProduct::openAtPath(dictionaries() / "BirbKanji"));
+            return *require(product.navigation());
+        }();
+
+        EXPECT_EQ(root.nativeKind(), 1);
+        auto radicals = std::get<NavigationView>(require(root.itemAt(0, 0)).target);
+        EXPECT_EQ(radicals.nativeKind(), 2);
+        auto radical = require(radicals.itemAt(0, 0));
+        EXPECT_EQ(std::get<RadicalLabel>(radical.label).reading, "とり");
+        auto members = std::get<NavigationView>(radical.target);
+        EXPECT_EQ(require(members.sectionTitle(0)), "部首 ＋ 0画");
+        EXPECT_EQ(std::get<AppendixEntryLink>(require(members.itemAt(0, 0)).target).entryId, (EntryId{1, 0}));
+        EXPECT_FALSE(members.itemAt(0, 1));
+    }
+
     TEST(Navigation, MalformedRecordsAndEscapingReferencesAreRejected)
     {
         Workspace workspace;

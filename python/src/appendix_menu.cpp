@@ -15,6 +15,10 @@ namespace MKD::Python
 {
     void bindProductAppendices(nb::class_<DictionaryProduct>& type)
     {
+        type.def_prop_ro("navigation", [](const DictionaryProduct& product)
+        {
+            return unwrap(product.navigation());
+        }, nb::call_guard<nb::gil_scoped_release>());
         type.def_prop_ro("appendices", &DictionaryProduct::appendices, nb::rv_policy::reference_internal);
         type.def(
             "resource",

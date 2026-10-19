@@ -13,6 +13,7 @@ endif ()
 
 nanobind_add_module(_mkd
         src/module.cpp
+        src/navigation.cpp
         src/entry_id.cpp
         src/metadata.cpp
         src/inline_text.cpp

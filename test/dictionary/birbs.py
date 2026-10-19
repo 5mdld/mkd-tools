@@ -58,5 +58,13 @@ def build(destination):
             ])),
         ]),
     ]))
+    product.set_navigation(mkd.NavigationIndex(sections=[
+        mkd.NavigationSection(items=[
+            mkd.NavigationItem(label='小鳥', target=mkd.NavigationIndex(sections=[
+                mkd.NavigationSection(items=[mkd.NavigationItem(target=tsugumi.target), mkd.NavigationItem(target=suzume.target)]),
+            ])),
+            mkd.NavigationItem(label='食いしん坊', target=sense),
+        ]),
+    ]))
     dictionary.finish()
     product.finish()

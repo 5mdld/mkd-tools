@@ -20,6 +20,29 @@ class CreationTests(DictionaryTest):
         self.assertEqual(list(reopened.entry_order), [target.page_id])
         self.assertIsNone(reopened.entry_order.next(target.page_id))
 
+    def test_navigation_round_trip_keeps_subentry_targets(self):
+        path = self.workspace() / 'Birbs'
+        product = new_product(path)
+        dictionary = new_dictionary(product)
+        entry = dictionary.create_entry()
+        compound = entry.add_target(mkd.EntryTargetKind.COMPOUND)
+        entry.write_xml(f'<html><body><p id="{compound}">雀躍</p></body></html>')
+        dictionary.add_headline(mkd.HeadlineComponents('雀', entry.target))
+        dictionary.add_headline(mkd.HeadlineComponents('雀躍', compound))
+        dictionary.add_search_key(mkd.SearchScope.HEADWORD, 'すずめ', entry.target)
+        product.set_navigation(mkd.NavigationIndex(sections=[
+            mkd.NavigationSection(items=[mkd.NavigationItem(label='雀躍', target=compound)]),
+        ]))
+        dictionary.finish()
+        product.finish()
+        reopened = mkd.DictionaryProduct.open(path)
+        navigation = reopened.navigation
+        del reopened
+        gc.collect()
+        item = navigation.item_at(0, 0)
+        self.assertEqual(item.label, '雀躍')
+        self.assertEqual(item.target.entry_id, compound)
+
     def test_entry_handles_keep_the_writer_alive(self):
         path = self.workspace() / 'Birbs'
         product = new_product(path)

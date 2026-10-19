@@ -91,6 +91,10 @@ namespace MKD::Python
         type.def_rw("search_scope_names", &DictionaryMetadata::searchScopeNames);
         type.def_rw("fonts", &DictionaryMetadata::fonts);
         type.def_rw("vertical_layout", &DictionaryMetadata::verticalLayout);
+        type.def_ro("appendix_view_controller", &DictionaryMetadata::appendixViewController);
+        type.def_ro("contents_view_controller", &DictionaryMetadata::contentsViewController);
+        type.def_ro("label_formatter", &DictionaryMetadata::labelFormatter);
+        type.def_ro("appendix_first", &DictionaryMetadata::appendixFirst);
         type.def_rw("required_dic_kit_version", &DictionaryMetadata::requiredDicKitVersion);
     }
 }

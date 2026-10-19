@@ -44,6 +44,9 @@ namespace MKD::Python
     void bindAppendixMenu(nb::module_& module);
     void bindAppendixEntry(nb::module_ & module);
     void bindBuffer(nb::module_ & module);
+    void bindNavigationLabels(nb::module_& module);
+    void bindNavigationIndex(nb::module_& module);
+    void bindNavigationView(nb::module_& module);
     void bindProduct(nb::module_ & module);
     void bindAppendixList(nb::module_ & module);
     void bindDictionary(nb::module_ & module);

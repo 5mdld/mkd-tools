@@ -72,6 +72,11 @@ namespace MKD::Python
             unwrap(product.setAppendices(std::move(menu)));
         }, "menu"_a);
 
+        type.def("set_navigation", [](const ProductWriter& product, NavigationIndex index)
+        {
+            unwrap(product.setNavigation(std::move(index)));
+        }, "index"_a);
+
         type.def("set_information", [](const ProductWriter& product, ProductInformation information)
         {
             unwrap(product.setInformation(std::move(information)));

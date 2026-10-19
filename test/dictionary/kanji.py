@@ -18,5 +18,16 @@ def build(destination):
         dictionary.add_search_key(mkd.SearchScope.IDIOM, compound_reading, target)
         targets.append(entry.target)
     dictionary.set_entry_order([target.page_id for target in reversed(targets)])
+    members = mkd.NavigationIndex(sections=[
+        mkd.NavigationSection('部首 ＋ 0画', [mkd.NavigationItem(target=targets[0])]),
+    ])
+    radicals = mkd.NavigationIndex(kind=mkd.NavigationKind.RADICALS, sections=[
+        mkd.NavigationSection('11画', [mkd.NavigationItem(
+            label=mkd.RadicalLabel('鳥', reading='とり'), target=members,
+        )]),
+    ])
+    product.set_navigation(mkd.NavigationIndex(sections=[
+        mkd.NavigationSection('親字', [mkd.NavigationItem(label='部首', target=radicals)]),
+    ]))
     dictionary.finish()
     product.finish()
