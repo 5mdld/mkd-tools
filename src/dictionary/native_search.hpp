@@ -41,7 +41,7 @@ namespace MKD::detail::native::search
 
     inline constexpr std::array kanwaScopes{
         ScopeDefinition{SearchScope::Headword, "Oyaji", "headword"},
-        ScopeDefinition{SearchScope::Idiom, "Jyukugo", "idiom"},
+        ScopeDefinition{SearchScope::Idiom, "Jyukugo", "jyukugo", "idiom"},
         ScopeDefinition{SearchScope::Sense, "Gogi", "sense"},
         ScopeDefinition{SearchScope::Example, "Example", "example"},
     };
