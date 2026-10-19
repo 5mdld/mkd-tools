@@ -30,6 +30,7 @@ namespace MKD::detail
         CreationProfile profile = CreationProfile::General;
         ProductInformation information;
         std::optional<AppendixMenu> appendices;
+        std::optional<NavigationIndex> navigation;
         std::vector<AppendixEntryLink> appendixReferences;
         std::vector<std::shared_ptr<DictionaryBuild>> dictionaries;
         explicit ProductBuild(std::unique_ptr<BuildDirectory> output, DictionaryMetadata metadata, std::string name);

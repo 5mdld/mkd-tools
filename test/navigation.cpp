@@ -98,5 +98,16 @@ namespace MKD::test
         EXPECT_FALSE(NavigationView::open(workspace.path, {"../outside.idx", {}}));
     }
 
-
+    TEST(Navigation, MissingTargetsPreventPublication)
+    {
+        Workspace workspace;
+        BirbBuild build(workspace.path / "Birbs");
+        build.addBirb();
+        require(build.product.setNavigation({
+            .sections = {{"", {{std::string("Lost birb"), AppendixEntryLink{{99, 0}, 0}}}}}
+        }));
+        require(build.dictionary.finish());
+        EXPECT_FALSE(build.product.finish());
+        EXPECT_FALSE(std::filesystem::exists(workspace.path / "Birbs"));
+    }
 }

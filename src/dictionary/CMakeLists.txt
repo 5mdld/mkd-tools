@@ -7,6 +7,7 @@ target_include_directories(mkd PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 target_sources(mkd PRIVATE
         navigation.cpp
         native_navigation.cpp
+        navigation_writer.cpp
         appendix_reader.cpp
         appendix_writer.cpp
         inline_text.cpp

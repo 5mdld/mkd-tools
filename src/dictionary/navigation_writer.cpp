@@ -1,0 +1,638 @@
+//
+// kiwakiwaaにより 2026/10/19 に作成されました。
+//
+
+#include "navigation_writer.hpp"
+#include "native_navigation.hpp"
+#include "native_content.hpp"
+#include "creation_session.hpp"
+#include "creation_metadata.hpp"
+#include "appendix_reader.hpp"
+#include "appendix_writer.hpp"
+#include "MKD/resource/appendix_entry_list.hpp"
+#include "io/write_validation.hpp"
+#include <algorithm>
+#include <limits>
+
+namespace MKD::detail
+{
+    namespace nav = native::navigation;
+
+    NavigationWriter::NavigationWriter(ProductBuild& product)
+        : product_(product), contents_(product.output->path() / native::paths::productContents),
+          directory_(product.profile == CreationProfile::Kanwa
+                         ? product.dictionaries.front()->metadata.directory + "/" + nav::directory
+                         : "navigation-menus"),
+          kanwa_(product.profile == CreationProfile::Kanwa)
+    {
+    }
+
+    NavigationWriter::Encoder::Encoder(const uint32_t kind)
+    {
+        BinaryBuffer header(20);
+        header.writeLittle(kind);
+        header.writePadding(nav::headerSize);
+        bytes_ = header.take();
+    }
+
+    void NavigationWriter::Encoder::patch(const size_t offset, const BinaryBuffer& record)
+    {
+        std::ranges::copy(record.data(), bytes_.begin() + static_cast<ptrdiff_t>(offset));
+    }
+
+    uint32_t NavigationWriter::Encoder::append(const BinaryBuffer& record, const size_t base)
+    {
+        const auto offset = static_cast<uint32_t>(bytes_.size() - base);
+        bytes_.insert(bytes_.end(), record.data().begin(), record.data().end());
+        return offset;
+    }
+
+    uint32_t NavigationWriter::Encoder::text(std::string_view value, const size_t base)
+    {
+        if (value.empty())
+            return 0;
+
+        const auto utf16 = unicode::toUtf16(value);
+        BinaryBuffer record(4 + utf16.size() * 2);
+        record.writeLittle(static_cast<uint32_t>(utf16.size() * 2));
+        for (const auto unit : utf16)
+            record.writeLittle(static_cast<uint16_t>(unit));
+
+        return append(record, base);
+    }
+
+    Result<void> NavigationWriter::Encoder::node(const Node& value, const size_t base)
+    {
+        uint32_t title = 0;
+        const auto* titleEntry = std::get_if<AppendixEntryLink>(&value.title);
+        if (titleEntry)
+        {
+            BinaryBuffer record(8);
+            record.writeLittle(titleEntry->entryId.pageId);
+            record.writeLittle(titleEntry->entryId.itemId);
+            record.writeLittle(titleEntry->dictionaryId);
+            title = append(record, base);
+        }
+        else
+            title = text(nav::encodeLabel(value.title), base);
+
+        const auto data = bytes_.size();
+        const auto kind = static_cast<nav::ItemKind>(value.kind);
+        size_t count = 0;
+        if (kind == nav::ItemKind::Section)
+        {
+            count = value.children.size();
+            bytes_.resize(data + count * nav::headerSize);
+            for (size_t i = 0; i < count; ++i)
+                if (auto result = node(value.children[i], data + i * nav::headerSize); !result)
+                    return result;
+        }
+        else if (kind == nav::ItemKind::Entry || kind == nav::ItemKind::LabelledEntry)
+        {
+            count = value.entries.size();
+            const auto stride = nav::strides[value.kind];
+            bytes_.resize(data + count * stride);
+            for (size_t i = 0; i < count; ++i)
+            {
+                const auto& item = value.entries[i];
+                const auto& target = std::get<AppendixEntryLink>(item.target);
+                BinaryBuffer record(stride);
+                record.writeLittle(target.entryId.pageId);
+                record.writeLittle(target.entryId.itemId);
+                record.writeLittle(target.dictionaryId);
+                if (kind == nav::ItemKind::LabelledEntry)
+                    record.writeLittle(text(nav::encodeLabel(item.label), base));
+
+                patch(data + i * stride, record);
+            }
+        }
+        else if (kind == nav::ItemKind::File)
+        {
+            count = value.files.size();
+            bytes_.resize(data + count * 8);
+            for (size_t i = 0; i < count; ++i)
+            {
+                BinaryBuffer record(8);
+                record.writeLittle(text(value.files[i].first, base));
+                record.writeLittle(text(value.files[i].second, base));
+                patch(data + i * 8, record);
+            }
+        }
+        else
+        {
+            count = 1;
+            bytes_.resize(data + 8);
+            const auto file = text(value.files.front().second, base);
+            BinaryBuffer path(4 + value.sectionPath.size() * 4);
+            path.writeLittle(static_cast<uint32_t>(value.sectionPath.size()));
+            for (auto part : value.sectionPath)
+                path.writeLittle(part);
+
+            const auto offset = append(path, base);
+            BinaryBuffer record(8);
+            record.writeLittle(file);
+            record.writeLittle(offset);
+            patch(data, record);
+        }
+
+        if (bytes_.size() > UINT32_MAX || count > UINT32_MAX)
+            return std::unexpected("Navigation index exceeds the native size limit");
+
+        BinaryBuffer header(nav::headerSize);
+        header.writeByte(titleEntry ? 1 : 0);
+        header.writeByte(value.kind);
+        header.writeLittle(value.flags);
+        header.writeLittle(title);
+        header.writeLittle(static_cast<uint32_t>(count));
+        header.writeLittle(static_cast<uint32_t>(data - base));
+        patch(base, header);
+        return {};
+    }
+
+    Result<void> NavigationWriter::label(const NavigationLabel& value)
+    {
+        if (const auto* link = std::get_if<AppendixEntryLink>(&value))
+        {
+            auto target = entry(*link);
+            return target ? Result<void>{} : std::unexpected(target.error());
+        }
+
+        if (const auto* radical = std::get_if<RadicalLabel>(&value))
+        {
+            if (!kanwa_)
+                return std::unexpected("Radical labels require kanwa navigation");
+
+            if (radical->character.empty())
+                return std::unexpected("A radical label needs a character");
+
+            for (const auto* text : {&radical->character, &radical->variants, &radical->reading})
+                if (text->contains("／"))
+                    return std::unexpected("Radical fields must not contain the native separator");
+        }
+
+        return WriteValidation::xmlText(nav::encodeLabel(value), true);
+    }
+
+    Result<AppendixEntryLink> NavigationWriter::entry(AppendixEntryLink target)
+    {
+        if (!target.dictionaryId)
+            target.dictionaryId = *product_.dictionaries.front()->metadata.dictionaryId;
+
+        const auto identity = std::pair{target.dictionaryId, target.entryId};
+        if (checked_.contains(identity))
+            return target;
+
+        if (!stores_.contains(target.dictionaryId))
+        {
+            const auto dictionary = std::ranges::find_if(product_.dictionaries, [&](const auto& dictionary)
+            {
+                return dictionary->metadata.dictionaryId == target.dictionaryId;
+            });
+
+            if (dictionary == product_.dictionaries.end())
+                return std::unexpected("Unknown navigation dictionary");
+
+            auto store = ResourceStore::open((*dictionary)->root / native::paths::contents,
+                                             (*dictionary)->metadata.identifier);
+            if (!store)
+                return std::unexpected(store.error());
+
+            stores_.emplace(target.dictionaryId, std::move(*store));
+        }
+
+        if (auto valid = AppendixWriter::validateEntry(stores_.at(target.dictionaryId), target.entryId); !valid)
+            return std::unexpected(valid.error());
+
+        checked_.insert(identity);
+        return target;
+    }
+
+    Result<void> NavigationWriter::save(std::string_view path, std::span<const uint8_t> data) const
+    {
+        const auto target = contents_ / WriteValidation::fromUtf8(path);
+        std::error_code error;
+        if (std::filesystem::exists(target, error))
+            return std::unexpected("Duplicate navigation path: " + std::string(path));
+
+        if (error)
+            return std::unexpected(error.message());
+
+        std::filesystem::create_directories(target.parent_path(), error);
+        if (error)
+            return std::unexpected(error.message());
+
+        return OutputFile::writeAll(target, data);
+    }
+
+    std::string NavigationWriter::nextPath(std::string_view extension)
+    {
+        return directory_ + "/mkd-navigation-" + std::to_string(++next_) + std::string(extension);
+    }
+
+    std::string NavigationWriter::indexRelative(std::string_view path) const
+    {
+        return WriteValidation::fromUtf8(path).lexically_relative(WriteValidation::fromUtf8(directory_)).
+                                               generic_string();
+    }
+
+    Result<NavigationIndex> NavigationWriter::entryList(const AppendixList& list) const
+    {
+        auto path = AppendixReader::resolve(contents_, list.path);
+        if (!path)
+            return std::unexpected(path.error());
+
+        auto source = AppendixEntryList::open(*path);
+        if (!source)
+            return std::unexpected(source.error());
+
+        NavigationIndex result;
+        result.sections.emplace_back();
+        result.rows = source->rows();
+        result.columns = source->columns();
+        for (size_t i = 0; i < source->size(); ++i)
+        {
+            auto item = source->entryAt(i);
+            if (!item)
+                return std::unexpected(item.error());
+
+            auto target = item->entryId;
+            if (!list.usingAnchorId)
+                target.itemId = 0;
+
+            result.sections.front().items.push_back({
+                std::string(item->label.value_or("")),
+                AppendixEntryLink{target, item->dictionaryId}
+            });
+        }
+        return result;
+    }
+
+    Result<std::string> NavigationWriter::targetFile(const NavigationItem& item, size_t depth, std::string title)
+    {
+        if (const auto* child = std::get_if<NavigationIndex>(&item.target))
+            return index(*child, title.empty() ? nav::plainLabel(item.label) : std::move(title), depth + 1);
+
+        if (const auto* list = std::get_if<AppendixList>(&item.target))
+        {
+            if (!kanwa_)
+                return list->path;
+
+            auto converted = entryList(*list);
+            if (!converted)
+                return std::unexpected(converted.error());
+
+            return index(*converted, nav::plainLabel(item.label), depth + 1);
+        }
+        if (const auto* document = std::get_if<AppendixDocument>(&item.target))
+        {
+            auto path = AppendixReader::resolve(contents_, document->path);
+            if (!path)
+                return std::unexpected(path.error());
+
+            std::error_code error;
+            if (!std::filesystem::is_regular_file(*path, error))
+                return std::unexpected("Missing navigation document");
+
+            const auto extension = path->extension();
+            if (extension != ".html" && extension != ".xml" && extension != ".pdf")
+                return std::unexpected("Navigation documents must be HTML, XML or PDF");
+
+            return document->path + (document->fragment ? "#" + *document->fragment : "");
+        }
+        if (const auto* reference = std::get_if<NavigationReference>(&item.target))
+        {
+            if (auto view = NavigationView::open(contents_, *reference); !view)
+                return std::unexpected(view.error());
+
+            if (reference->sectionPath.empty())
+                return reference->path;
+
+            if (!kanwa_)
+                return std::unexpected("Subtree references require kanwa navigation");
+
+            Node node;
+            node.title = nav::plainLabel(item.label);
+            node.kind = static_cast<uint8_t>(nav::ItemKind::Reference);
+            node.files.emplace_back("", indexRelative(reference->path));
+            node.sectionPath = reference->sectionPath;
+            Encoder encoder(0);
+            if (auto encoded = encoder.node(node, 4); !encoded)
+                return std::unexpected(encoded.error());
+
+            const auto path = nextPath(".idx");
+            if (auto written = save(path, encoder.bytes()); !written)
+                return std::unexpected(written.error());
+
+            return path;
+        }
+        if (std::holds_alternative<std::monostate>(item.target)) return std::string{};
+        return std::unexpected("An article target cannot be used as a navigation file");
+    }
+
+    Result<NavigationWriter::Node> NavigationWriter::section(const NavigationSection& value, size_t depth,
+                                                             NavigationKind kind)
+    {
+        Node result;
+        result.title = value.title;
+        const bool entries = !value.items.empty() && std::holds_alternative<AppendixEntryLink>(
+            value.items.front().target);
+        result.kind = static_cast<uint8_t>(entries ? nav::ItemKind::Entry : nav::ItemKind::File);
+        for (const auto& item : value.items)
+        {
+            if (auto valid = label(item.label); !valid)
+                return std::unexpected(valid.error());
+
+            if (entries)
+            {
+                auto target = entry(std::get<AppendixEntryLink>(item.target));
+                if (!target)
+                    return std::unexpected(target.error());
+
+                auto copy = item;
+                copy.target = *target;
+                result.entries.push_back(std::move(copy));
+                if (!nav::encodeLabel(item.label).empty())
+                    result.kind = static_cast<uint8_t>(
+                        nav::ItemKind::LabelledEntry);
+            }
+            else
+            {
+                const auto title = kind == NavigationKind::TotalStrokes ? nav::plainLabel(item.label) + "画" : "";
+                auto path = targetFile(item, depth, title);
+                if (!path)
+                    return std::unexpected(path.error());
+
+                result.files.emplace_back(nav::encodeLabel(item.label), path->empty() ? "" : indexRelative(*path));
+            }
+        }
+        return result;
+    }
+
+    Result<NavigationWriter::Node> NavigationWriter::binary(const NavigationIndex& value, std::string title,
+                                                            size_t depth)
+    {
+        Node root;
+        root.title = std::move(title);
+        // Native record tables are homogeneous. Split mixed menus into adjacent display sections.
+        for (const auto& original : value.sections)
+        {
+            if (auto valid = WriteValidation::xmlText(original.title, true); !valid)
+                return std::unexpected(valid.error());
+
+            NavigationSection run{original.title, {}};
+            for (const auto& item : original.items)
+            {
+                if (!run.items.empty() && std::holds_alternative<AppendixEntryLink>(run.items.back().target) !=
+                    std::holds_alternative<AppendixEntryLink>(item.target))
+                {
+                    auto node = section(run, depth, value.kind);
+                    if (!node)
+                        return std::unexpected(node.error());
+
+                    root.children.push_back(std::move(*node));
+                    run = {};
+                }
+                run.items.push_back(item);
+            }
+
+            auto node = section(run, depth, value.kind);
+            if (!node)
+                return std::unexpected(node.error());
+
+            root.children.push_back(std::move(*node));
+        }
+        if (root.children.size() == 1 && std::get<std::string>(root.children.front().title).empty())
+        {
+            auto node = std::move(root.children.front());
+            node.title = std::move(root.title);
+            root = std::move(node);
+        }
+        else
+            root.flags = nav::sections | nav::gridHeaders | nav::listHeaders | nav::columnBreaks;
+
+        if (value.compact)
+            root.flags |= nav::compact;
+        if (!value.sectionIndex)
+            root.flags |= nav::hideSectionIndex;
+        if (value.parentHeadlines)
+            root.flags |= nav::parentHeadlines;
+
+        return root;
+    }
+
+    Result<void> NavigationWriter::plistItem(pugi::xml_node parent, const NavigationItem& value, size_t depth)
+    {
+        if (auto valid = label(value.label); !valid)
+            return valid;
+
+        auto node = parent.append_child("dict");
+        CreationMetadata::string(node, "title", nav::plainLabel(value.label));
+        if (const auto* target = std::get_if<AppendixEntryLink>(&value.target))
+        {
+            auto link = entry(*target);
+            if (!link)
+                return std::unexpected(link.error());
+
+            CreationMetadata::string(node, "entry",
+                                     link->entryId.toString() + "-" + std::to_string(link->dictionaryId));
+        }
+        else if (!std::holds_alternative<std::monostate>(value.target))
+        {
+            auto path = targetFile(value, depth);
+            if (!path)
+                return std::unexpected(path.error());
+
+            CreationMetadata::string(node, "file", *path);
+            if (const auto* child = std::get_if<NavigationIndex>(&value.target))
+            {
+                CreationMetadata::string(node, "orientation", child->vertical ? "vertical" : "horizontal");
+                CreationMetadata::boolean(node, "shorten", child->shortenHeadlines);
+            }
+        }
+        return {};
+    }
+
+    Result<void> NavigationWriter::plist(const NavigationIndex& value, std::string_view title, std::string_view path,
+                                         size_t depth)
+    {
+        pugi::xml_document document;
+        auto node = CreationMetadata::plistRoot(document, "dict");
+        CreationMetadata::string(node, "title", title);
+        if (value.rows)
+            CreationMetadata::integer(node, "row", value.rows);
+
+        if (value.columns)
+            CreationMetadata::integer(node, "col", value.columns);
+
+        node.append_child("key").text().set("children");
+        auto array = node.append_child("array");
+        for (const auto& section : value.sections)
+        {
+            if (section.title.empty())
+            {
+                for (const auto& item : section.items)
+                    if (auto result = plistItem(array, item, depth); !result)
+                        return result;
+            }
+            else
+            {
+                NavigationIndex child;
+                child.sections.push_back({"", section.items});
+                if (auto result = plistItem(array, {section.title, child}, depth); !result)
+                    return result;
+            }
+        }
+
+        std::error_code error;
+        const auto target = contents_ / WriteValidation::fromUtf8(path);
+        if (std::filesystem::exists(target, error))
+            return std::unexpected("Duplicate navigation path");
+
+        std::filesystem::create_directories(target.parent_path(), error);
+        if (error)
+            return std::unexpected(error.message());
+
+        return CreationMetadata::writePlist(target, document);
+    }
+
+    Result<std::string> NavigationWriter::index(const NavigationIndex& value, std::string title, size_t depth,
+                                                std::optional<std::string> filename)
+    {
+        if (depth >= nav::maximumDepth)
+            return std::unexpected("Navigation is excessively nested");
+
+        const auto path = filename.value_or(nextPath(kanwa_ ? ".idx" : ".plist"));
+        if (kanwa_)
+        {
+            auto node = binary(value, title, depth);
+            if (!node)
+                return std::unexpected(node.error());
+
+            Encoder encoder(static_cast<uint32_t>(value.kind));
+            if (auto encoded = encoder.node(*node, 4); !encoded)
+                return std::unexpected(encoded.error());
+
+            if (auto written = save(path, encoder.bytes()); !written)
+                return std::unexpected(written.error());
+
+            if (value.kind != NavigationKind::Generic && value.kind != NavigationKind::Root)
+                types_.try_emplace(static_cast<uint32_t>(value.kind), indexRelative(path), std::move(title));
+        }
+        else if (auto written = plist(value, title, path, depth); !written)
+            return std::unexpected(written.error());
+
+        return path;
+    }
+
+    Result<std::string> NavigationWriter::gallery(const AppendixGallery& value)
+    {
+        std::string html =
+            "<html xmlns=\"http://www.w3.org/1999/xhtml\" hmhtml=\"5\"><head><title>Images</title></head><body>";
+        for (const auto& image : value.images)
+        {
+            const auto relative = indexRelative(image);
+            html += "<p><img src=\"" + NativeContent::escapeXml(relative) + "\"/></p>";
+        }
+
+        html += "</body></html>";
+        const auto path = nextPath(".html");
+        if (auto saved = save(path, std::span(reinterpret_cast<const uint8_t*>(html.data()), html.size())); !saved)
+            return std::unexpected(saved.error());
+
+        return path;
+    }
+
+    Result<NavigationIndex> NavigationWriter::appendices(const AppendixMenu& menu, const size_t depth)
+    {
+        if (depth >= nav::maximumDepth)
+            return std::unexpected("Appendix menu is excessively nested");
+
+        NavigationIndex result;
+        for (const auto& section : menu.sections)
+        {
+            NavigationSection converted{section.name, {}};
+            for (const auto& item : section.items)
+            {
+                NavigationItem value{item.name, {}};
+                auto translated = std::visit([&](const auto& target) -> Result<void>
+                {
+                    using T = std::decay_t<decltype(target)>;
+                    if constexpr (std::is_same_v<T, AppendixMenu>)
+                    {
+                        auto child = appendices(target, depth + 1);
+                        if (!child)
+                            return std::unexpected(child.error());
+
+                        value.target = std::move(*child);
+                    }
+                    else if constexpr (std::is_same_v<T, AppendixGallery>)
+                    {
+                        auto path = gallery(target);
+                        if (!path)
+                            return std::unexpected(path.error());
+
+                        value.target = AppendixDocument{*path, {}};
+                    }
+                    else if constexpr (std::is_same_v<T, AppendixCustom>)
+                        return std::unexpected("Custom appendix presenters cannot be composed into generic navigation");
+                    else
+                        value.target = target;
+
+                    return {};
+                }, item.target);
+
+                if (!translated)
+                    return std::unexpected(translated.error());
+
+                converted.items.push_back(std::move(value));
+            }
+            result.sections.push_back(std::move(converted));
+        }
+        return result;
+    }
+
+    Result<void> NavigationWriter::write(ProductBuild& product, const NavigationIndex& value)
+    {
+        NavigationWriter writer(product);
+        auto menu = value;
+        auto existing = AppendixReader::open(writer.contents_);
+        if (!existing)
+            return std::unexpected(existing.error());
+
+        if (!existing->sections.empty())
+        {
+            auto converted = writer.appendices(*existing, 0);
+            if (!converted)
+                return std::unexpected(converted.error());
+
+            menu.sections.push_back({"付録", {{std::string("付録"), std::move(*converted)}}});
+        }
+
+        if (writer.kanwa_)
+            menu.kind = NavigationKind::Root;
+
+        auto written = writer.index(menu, "インデックス", 0,
+                                    writer.kanwa_
+                                        ? writer.directory_ + "/" + nav::rootIndex
+                                        : std::string(nav::rootPlist));
+        if (!written)
+            return std::unexpected(written.error());
+
+        product.metadata.appendixViewController = writer.kanwa_ ? nav::kanwaController : nav::generalController;
+        product.metadata.appendixFirst = true;
+        if (writer.kanwa_)
+        {
+            pugi::xml_document document;
+            auto root = CreationMetadata::plistRoot(document, "dict");
+            for (const auto& [kind, info] : writer.types_)
+            {
+                root.append_child("key").text().set(std::to_string(kind).c_str());
+                auto node = root.append_child("dict");
+                CreationMetadata::string(node, "fileName", info.first);
+                CreationMetadata::string(node, "title", info.second);
+            }
+            return CreationMetadata::writePlist(writer.contents_ / writer.directory_ / nav::typeInfo, document);
+        }
+        return {};
+    }
+}

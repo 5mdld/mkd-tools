@@ -6,6 +6,7 @@
 #include "native_format.hpp"
 #include "native_search.hpp"
 #include "creation_metadata.hpp"
+#include "navigation_writer.hpp"
 #include "creation_session.hpp"
 #include "io/write_validation.hpp"
 #include "product_information.hpp"
@@ -136,6 +137,16 @@ namespace MKD
         return {};
     }
 
+    Result<void> ProductWriter::setNavigation(NavigationIndex index) const
+    {
+        auto& product = *impl_->product;
+        if (auto state = product.output->check(); !state)
+            return state;
+
+        product.navigation = std::move(index);
+        return {};
+    }
+
     Result<void> ProductWriter::finish() const
     {
         auto& product = *impl_->product;
@@ -174,6 +185,10 @@ namespace MKD
 
         if (auto result = product.writeAppendices(); !result)
             return product.output->fail(result.error());
+
+        if (product.navigation)
+            if (auto result = detail::NavigationWriter::write(product, *product.navigation); !result)
+                return product.output->fail(result.error());
 
         if (auto result = detail::CreationMetadata::writeProduct(product.output->path(), product.name, product.metadata)
             ; !result)

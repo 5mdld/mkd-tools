@@ -9,6 +9,11 @@
 #include <cstdint>
 #include <string_view>
 
+namespace MKD::detail::native::classes
+{
+    inline constexpr char kanwaDelegate[] = "KLKanwaDicProductDelegate";
+}
+
 namespace MKD::detail::native::entry
 {
     struct TargetRange

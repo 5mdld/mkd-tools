@@ -67,6 +67,7 @@ namespace MKD::test
     TEST(Search, KanwaCompoundsPointInsideTheirParentArticle)
     {
         auto product = require(DictionaryProduct::openAtPath(dictionaries() / "BirbKanji"));
+        EXPECT_EQ(product.metadata().productDelegateClass, "KLKanwaDicProductDelegate");
         EXPECT_TRUE(std::filesystem::exists(dictionaries() / "BirbKanji/Contents/kanji/key/jyukugo.keystore"));
         EXPECT_FALSE(std::filesystem::exists(dictionaries() / "BirbKanji/Contents/kanji/key/idiom.keystore"));
         const auto& dictionary = product.dictionaries().front();

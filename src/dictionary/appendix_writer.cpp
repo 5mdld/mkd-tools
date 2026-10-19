@@ -175,23 +175,32 @@ namespace MKD::detail
         if (!store)
             return std::unexpected(store.error());
 
-        auto entry = store->get(value.entryId.pageId);
+        return validateEntry(*store, value.entryId);
+    }
+
+    Result<void> AppendixWriter::validateEntry(const ResourceStore& store, EntryId target)
+    {
+        if (auto index = store.indexOf(target.pageId); !index)
+            return std::unexpected(index.error());
+
+        if (!target.itemId)
+            return {};
+
+        auto entry = store.get(target.pageId);
         if (!entry)
             return std::unexpected(entry.error());
 
-        if (value.entryId.itemId)
-        {
-            auto xml = entry->utf8();
-            if (!xml)
-                return std::unexpected(xml.error());
+        auto xml = entry->utf8();
+        if (!xml)
+            return std::unexpected(xml.error());
 
-            auto references = PageReferences::read(value.entryId.pageId, *xml);
-            if (!references)
-                return std::unexpected(references.error());
+        auto references = PageReferences::read(target.pageId, *xml);
+        if (!references)
+            return std::unexpected(references.error());
 
-            if (!references->anchors.contains(value.entryId))
-                return std::unexpected("Missing appendix entry anchor");
-        }
+        if (!references->anchors.contains(target))
+            return std::unexpected("Missing appendix entry anchor");
+
         return {};
     }
 

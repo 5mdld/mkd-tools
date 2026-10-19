@@ -7,6 +7,7 @@
 #include "unicode/normalization.hpp"
 #include "resource/keystore/scope_definitions.hpp"
 #include "MKD/dictionary/dictionary_search.hpp"
+#include "native_format.hpp"
 
 #include <array>
 #include <string_view>
@@ -69,7 +70,7 @@ namespace MKD::detail::native::search
             .normalization = unicode::DictionaryKeyNormalizeOption::FoldSmallKana
         },
         DelegateDefinition{.name = "KJT_Delegate"},
-        DelegateDefinition{.name = "KLKanwaDicProductDelegate"},
+        DelegateDefinition{.name = classes::kanwaDelegate},
         DelegateDefinition{
             .name = "SKOGO_Delegate",
             .modernNormalization = unicode::DictionaryKeyNormalizeOption::CollapseSeparators,
