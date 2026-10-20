@@ -605,7 +605,7 @@ namespace MKD::detail
             if (!converted)
                 return std::unexpected(converted.error());
 
-            menu.sections.push_back({"付録", {{std::string("付録"), std::move(*converted)}}});
+            menu.sections.push_back({writer.kanwa_ ? "付録" : "", {{std::string("付録"), std::move(*converted)}}});
         }
 
         if (writer.kanwa_)
