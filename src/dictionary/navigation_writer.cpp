@@ -412,7 +412,11 @@ namespace MKD::detail
 
         if (value.compact)
             root.flags |= nav::compact;
-        if (!value.sectionIndex)
+        if (!value.sectionIndex || std::ranges::any_of(root.children, [](const Node& child)
+        {
+            const auto* title = std::get_if<std::string>(&child.title);
+            return title && title->empty();
+        }))
             root.flags |= nav::hideSectionIndex;
         if (value.parentHeadlines)
             root.flags |= nav::parentHeadlines;
