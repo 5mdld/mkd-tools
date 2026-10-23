@@ -22,7 +22,7 @@ namespace MKD::detail::native::entry
         uint16_t last;
     };
 
-    // In EntryTargetKind order. Leave headline reference and auxiliary identifier ranges unallocated.
+    // In EntryTargetKind order. Kanwa passage allocation reserves the upper halves for filter headlines.
     inline constexpr std::array targetRanges{
         TargetRange{0x4001, 0x4FFF}, TargetRange{0x8001, 0x8FFF},
         TargetRange{0x5001, 0x5FFF}, TargetRange{0xF001, 0xFFFF},

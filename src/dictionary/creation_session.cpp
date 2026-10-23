@@ -333,6 +333,9 @@ namespace MKD::detail
         if (auto valid = validateReferences(); !valid)
             return fail(valid.error());
 
+        if (auto result = writePassageHeadlines(); !result)
+            return fail(result.error());
+
         if (auto result = pages->finish(); !result)
             return fail(result.error());
 
@@ -362,6 +365,7 @@ namespace MKD::detail
         finished = true;
         pageIds = decltype(pageIds){};
         reservedEntries = decltype(reservedEntries){};
+        passageIndexes.clear();
         anchors = decltype(anchors){};
         references = decltype(references){};
         primaryHeadlines = decltype(primaryHeadlines){};

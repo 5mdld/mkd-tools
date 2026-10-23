@@ -41,6 +41,12 @@ namespace MKD
         [[nodiscard]] Result<void> addPage(uint32_t pageId, std::string_view xhtml) const;
         [[nodiscard]] Result<void> addHeadline(HeadlineComponents headline,
                                                HeadlineRole role = HeadlineRole::Primary) const;
+        /**
+         * Kanwa sense and example keys also generate native passage indexes.
+         * Each passage needs a primary headline and its own target. Companion records need no XML anchors.
+         * Generated character keys also participate in direct searches.
+         * Exact-only keys remain raw keys and do not generate passage indexes.
+         */
         [[nodiscard]] Result<void> addSearchKey(SearchScope scope, std::string_view key, EntryId target,
                                                 SearchKeyOptions options = {}) const;
         /** Registers PNG or SVG bytes under gaiji/. No image decoding is performed. */

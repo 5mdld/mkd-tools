@@ -30,6 +30,7 @@ target_sources(mkd PRIVATE
         creation_metadata.cpp
         creation_page.cpp
         creation_session.cpp
+        creation_search.cpp
 )
 
 target_link_libraries(mkd PUBLIC glaze::glaze)

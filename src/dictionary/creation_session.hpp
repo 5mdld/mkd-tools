@@ -47,6 +47,12 @@ namespace MKD::detail
         std::optional<ResourceStoreWriter> pages;
         std::map<HeadlineRole, HeadlineStoreWriter> headlines;
         std::map<SearchScope, KeystoreWriter> keys;
+        struct PassageIndex
+        {
+            SearchScope scope;
+            std::set<std::string> terms;
+        };
+        std::map<EntryId, PassageIndex> passageIndexes;
         std::optional<NamedResourceStoreWriter> graphics;
         std::optional<NamedResourceStoreWriter> audio;
         std::unordered_set<uint32_t> pageIds;
@@ -78,6 +84,8 @@ namespace MKD::detail
         Result<uint32_t> reserveEntry(std::optional<uint32_t> pageId);
         Result<EntryId> addTarget(uint32_t pageId, EntryTargetKind kind);
         Result<void> writePage(uint32_t pageId, std::string_view xml);
+        Result<void> addSearchKey(SearchScope scope, std::string_view key, EntryId target, SearchKeyOptions options);
+        Result<void> writePassageHeadlines();
         Result<void> validateReferences() const;
         Result<void> validateEntryReferences() const;
         Result<void> validateAssetReferences() const;

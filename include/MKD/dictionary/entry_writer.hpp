@@ -29,6 +29,7 @@ namespace MKD
         EntryWriter& operator=(EntryWriter&&) noexcept;
 
         [[nodiscard]] EntryId target() const noexcept;
+        /** Kanwa sense and example allocation reserves companion IDs, leaving 2047 targets of each kind per page. */
         [[nodiscard]] Result<EntryId> addTarget(EntryTargetKind kind) const;
         /** Writes once. All nonzero targets must appear as canonical XML IDs. */
         [[nodiscard]] Result<void> writeXml(std::string_view xml) const;

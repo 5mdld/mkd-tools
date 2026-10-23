@@ -10,7 +10,6 @@
 #include "native_content.hpp"
 #include "io/write_validation.hpp"
 #include "resource/detail/font_format.hpp"
-#include "unicode/normalization.hpp"
 
 #include <algorithm>
 
@@ -77,38 +76,12 @@ namespace MKD
         });
     }
 
-    Result<void> DictionaryWriter::addSearchKey(SearchScope scope, std::string_view key, const EntryId target,
+    Result<void> DictionaryWriter::addSearchKey(const SearchScope scope, std::string_view key, const EntryId target,
                                                 const SearchKeyOptions options) const
     {
         return impl_->write([&](detail::DictionaryBuild& build) -> Result<void>
         {
-            if (auto valid = detail::WriteValidation::entryId(target); !valid)
-                return valid;
-
-            if (auto valid = detail::WriteValidation::text(key); !valid)
-                return valid;
-
-            const auto profile = build.product.lock()->profile;
-            if (profile == CreationProfile::Kanwa && scope == SearchScope::Kanji)
-                scope = SearchScope::Headword;
-
-            const auto normalized = detail::unicode::normalizeDictionaryKey(key);
-            auto info = detail::CreationMetadata::scopeDefinition(scope, profile);
-            if (!info)
-                return std::unexpected(info.error());
-
-            auto it = build.keys.find(scope);
-            if (it == build.keys.end())
-            {
-                const auto filename = std::string(info->filename).append(".keystore");
-                auto writer = KeystoreWriter::create(build.root / detail::native::paths::keys / filename);
-                if (!writer)
-                    return std::unexpected(writer.error());
-
-                it = build.keys.emplace(scope, std::move(*writer)).first;
-            }
-            build.references.insert(target);
-            return it->second.add(normalized, target, options);
+            return build.addSearchKey(scope, key, target, options);
         });
     }
 

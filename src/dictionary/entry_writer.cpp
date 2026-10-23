@@ -67,7 +67,11 @@ namespace MKD::detail
         if (index >= native::entry::targetRanges.size())
             return std::unexpected("Invalid entry target kind");
 
-        const auto range = native::entry::targetRanges[index];
+        auto range = native::entry::targetRanges[index];
+        if (product.lock()->profile == CreationProfile::Kanwa &&
+            (kind == EntryTargetKind::Sense || kind == EntryTargetKind::Example))
+            range.last -= native::search::normalizedHeadlineOffset;
+
         auto& count = reservedEntries.at(pageId)[index];
         const auto item = range.first + count;
         if (item > range.last)
