@@ -352,13 +352,13 @@ namespace MKD::detail
 
     Result<void> DictionaryBuild::validateTarget(const EntryId target) const
     {
-        if (!finished())
-            return std::unexpected("Dictionary has not finished");
-
         if (auto valid = WriteValidation::entryId(target); !valid)
             return valid;
 
-        if (!std::ranges::binary_search(std::get<Finished>(state_).targets, target))
+        const bool exists = finished()
+                                ? std::ranges::binary_search(std::get<Finished>(state_).targets, target)
+                                : working().references.contains(target);
+        if (!exists)
             return std::unexpected("Missing entry target " + target.toString());
 
         return {};

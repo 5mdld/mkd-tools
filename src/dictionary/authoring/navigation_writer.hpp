@@ -5,6 +5,9 @@
 #pragma once
 
 #include "MKD/dictionary/navigation.hpp"
+#include "MKD/resource/appendix_entry_list.hpp"
+#include "prepared_product_files.hpp"
+#include "authoring_diagnostics.hpp"
 #include "binary/binary_buffer.hpp"
 #include "dictionary/navigation/index_format.hpp"
 #include <set>
@@ -18,7 +21,8 @@ namespace MKD::detail
     class NavigationWriter
     {
     public:
-        static Result<void> write(ProductBuild& product, const NavigationIndex& index);
+        static void prepare(const ProductBuild& product, const NavigationIndex& index, const AppendixMenu& appendices,
+                            PreparedProductFiles& files, IssueCollector& issues, const SourceContext& context);
 
     private:
         struct Node
@@ -52,28 +56,34 @@ namespace MKD::detail
             std::vector<uint8_t> bytes_;
         };
 
-        explicit NavigationWriter(ProductBuild& product);
+        explicit NavigationWriter(const ProductBuild& product, PreparedProductFiles& files, IssueCollector& issues,
+                                  const SourceContext& context);
         Result<std::string> index(const NavigationIndex& index, std::string title, size_t depth,
                                   std::optional<std::string> filename = std::nullopt);
         Result<Node> binary(const NavigationIndex& index, std::string title, size_t depth);
-        Result<Node> section(const NavigationSection& section, size_t depth, NavigationKind kind);
+        Result<Node> section(const NavigationSection& section, size_t depth, NavigationKind kind,
+                             std::string_view subject, size_t firstItem);
         Result<void> plist(const NavigationIndex& index, std::string_view title, std::string_view path, size_t depth);
-        Result<void> plistItem(pugi::xml_node parent, const NavigationItem& item, size_t depth);
+        Result<void> plistItem(pugi::xml_node parent, const NavigationItem& item, size_t depth,
+                               std::string_view subject);
         Result<std::string> targetFile(const NavigationItem& item, size_t depth, std::string title = {});
-        Result<AppendixEntryLink> entry(AppendixEntryLink target);
-        Result<void> label(const NavigationLabel& label);
+        AppendixEntryLink entry(AppendixEntryLink target, std::string subject);
+        Result<void> label(const NavigationLabel& label, std::string_view subject);
         Result<void> save(std::string_view path, std::span<const uint8_t> data) const;
         Result<NavigationIndex> appendices(const AppendixMenu& menu, size_t depth);
-        Result<NavigationIndex> entryList(const AppendixList& list) const;
+        Result<AppendixEntryList> entryList(const AppendixList& list) const;
         Result<std::string> gallery(const AppendixGallery& gallery);
         std::string nextPath(std::string_view extension);
         std::string indexRelative(std::string_view path) const;
-        ProductBuild& product_;
+        const ProductBuild& product_;
+        PreparedProductFiles& files_;
+        IssueCollector& issues_;
+        const SourceContext& context_;
         std::filesystem::path contents_;
         std::string directory_;
         bool kanwa_;
         size_t next_ = 0;
-        std::set<std::pair<uint16_t, EntryId>> checked_;
+        std::map<std::pair<uint16_t, EntryId>, DependencyOrigins> entryReferences_;
         std::map<uint32_t, std::pair<std::string, std::string>> types_;
     };
 }

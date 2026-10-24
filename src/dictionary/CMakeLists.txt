@@ -27,6 +27,7 @@ target_sources(mkd PRIVATE
         package/resource_loader.cpp
         search/text_normalize.cpp
         authoring/authoring_diagnostics.cpp
+        authoring/prepared_product_files.cpp
         authoring/product_build.cpp
         authoring/reference_index.cpp
         authoring/entry_allocator.cpp

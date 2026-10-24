@@ -118,32 +118,42 @@ namespace MKD::Python
                  }, "content"_a, nb::kw_only(), "encrypt_contents"_a = false, "source"_a = SourceContext{},
                  nb::keep_alive<0, 1>());
 
-        type.def(
-            "add_asset", [](const ProductWriter& product, std::string_view path, nb::handle data)
-            {
-                unwrap(product.addAsset(path, InputBytes(data).span()));
-            }, "path"_a, "data"_a);
-
-        type.def("set_appendices", [](const ProductWriter& product, AppendixMenu menu)
-        {
-            unwrap(product.setAppendices(std::move(menu)));
-        }, "menu"_a);
-
-        type.def("set_navigation", [](const ProductWriter& product, NavigationIndex index)
-        {
-            unwrap(product.setNavigation(std::move(index)));
-        }, "index"_a);
-
-        type.def("set_information", [](const ProductWriter& product, ProductInformation information)
-        {
-            unwrap(product.setInformation(std::move(information)));
-        }, "information"_a);
-
-        type.def("set_icon", [](const ProductWriter& product, nb::handle image)
+        type.def("add_asset",
+                 [](const ProductWriter& product, std::string_view path, nb::handle data, SourceContext source)
                  {
-                     unwrap(product.setIcon(InputBytes(image).span()));
-                 }, "image"_a,
-                 "Generate native icon variants from square PNG or JPEG bytes, up to 4096 pixels wide.");
+                     unwrap(product.addAsset(path, InputBytes(data).span(), source));
+                 }, "path"_a, "data"_a, nb::kw_only(), "source"_a = SourceContext{});
+
+        type.def("set_appendices", [](const ProductWriter& product, AppendixMenu menu, SourceContext source)
+        {
+            unwrap(product.setAppendices(std::move(menu), source));
+        }, "menu"_a, nb::kw_only(), "source"_a = SourceContext{});
+
+        type.def("set_navigation", [](const ProductWriter& product, NavigationIndex index, SourceContext source)
+        {
+            unwrap(product.setNavigation(std::move(index), source));
+        }, "index"_a, nb::kw_only(), "source"_a = SourceContext{});
+
+        type.def("set_information",
+                 [](const ProductWriter& product, ProductInformation information, SourceContext source)
+                 {
+                     unwrap(product.setInformation(std::move(information), source));
+                 }, "information"_a, nb::kw_only(), "source"_a = SourceContext{});
+
+        type.def("set_icon",
+                 [](const ProductWriter& product, nb::handle image, SourceContext source)
+                 {
+                     unwrap(product.setIcon(InputBytes(image).span(), source));
+                 }, "image"_a, nb::kw_only(), "source"_a = SourceContext{},
+                 "Generate the icon variants expected by Dictionaries from square PNG or JPEG bytes, "
+                 "up to 4096 pixels wide.");
+
+        type.def("preflight",
+                 [](const ProductWriter& writer, ValidationOptions options)
+                 {
+                     return unwrap(writer.preflight(options));
+                 }, nb::kw_only(), "options"_a = ValidationOptions{},
+                 "Check authoring input without writing or sealing. Reports are immutable snapshots.");
 
         type.def("finish", [](const ProductWriter& product) { unwrap(product.finish()); },
                  "Publish the staged product at its new destination. Destruction never publishes.");

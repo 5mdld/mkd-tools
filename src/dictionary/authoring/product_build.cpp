@@ -10,13 +10,13 @@
 #include "dictionary/package/metadata_writer.hpp"
 #include "dictionary/package/package_format.hpp"
 #include "dictionary/search/search_definitions.hpp"
-#include "dictionary/search/search_definitions.hpp"
 #include "dictionary/authoring/navigation_writer.hpp"
 #include "dictionary/navigation/index_format.hpp"
 #include "dictionary/authoring/appendix_writer.hpp"
 #include "io/write_validation.hpp"
 #include "output/directory_output.hpp"
 #include <algorithm>
+#include <ranges>
 
 namespace MKD::detail
 {
@@ -60,50 +60,54 @@ namespace MKD::detail
         reference.origins.add(std::move(source));
     }
 
-    void ProductBuild::configureNavigation(bool kanwa)
-    {
-        metadata_.appendixViewController =
-            kanwa ? monokakido::navigation::kanwaController : monokakido::navigation::generalController;
-        metadata_.appendixFirst = true;
-    }
-
-    Result<void> ProductBuild::setAppendices(const AppendixMenu value)
+    Result<void> ProductBuild::setAppendices(AppendixMenu value, SourceContext context)
     {
         if (auto state = output_->check(); !state)
             return state;
 
         appendices_ = std::move(value);
+        appendixContext_ = std::move(context);
         return {};
     }
 
-    Result<void> ProductBuild::setNavigation(const NavigationIndex value)
+    Result<void> ProductBuild::setNavigation(NavigationIndex value, SourceContext context)
     {
         if (auto state = output_->check(); !state)
             return state;
 
         navigation_ = std::move(value);
+        navigationContext_ = std::move(context);
         return {};
     }
 
-    Result<void> ProductBuild::setInformation(const ProductInformation value)
+    Result<void> ProductBuild::setInformation(ProductInformation value, SourceContext context)
     {
+        const auto reject = [&](std::string message)
+        {
+            return output_->fail(origin("setInformation", "information", context).describe() + ": " + message);
+        };
         if (auto state = output_->check(); !state)
             return state;
 
         if (auto valid = ProductInformationWriter::validate(value); !valid)
-            return output_->fail(valid.error());
+            return reject(valid.error());
 
         information_ = std::move(value);
+        informationContext_ = std::move(context);
         return {};
     }
 
-    Result<void> ProductBuild::setIcon(std::span<const uint8_t> bytes)
+    Result<void> ProductBuild::setIcon(std::span<const uint8_t> bytes, SourceContext context)
     {
+        const auto reject = [&](std::string message)
+        {
+            return output_->fail(origin("setIcon", "icon", context).describe() + ": " + message);
+        };
         if (auto state = output_->check(); !state)
             return state;
 
-        if (auto written = ProductIcon::write(*this, bytes); !written)
-            return output_->fail(written.error());
+        if (auto written = ProductIcon::write(*this, bytes, context); !written)
+            return reject(written.error());
 
         return {};
     }
@@ -178,47 +182,59 @@ namespace MKD::detail
         return dictionary;
     }
 
-    Result<void> ProductBuild::writeAsset(std::string_view relative, std::span<const uint8_t> bytes) const
+    Result<void> ProductBuild::validateAssetPath(std::string_view relative) const
     {
-        if (auto state = output_->check(); !state)
-            return state;
-
         if (auto valid = WriteValidation::relativePath(relative); !valid)
-            return output_->fail(valid.error());
+            return std::unexpected(valid.error());
 
         if (relative == name_ + ".json" || relative == monokakido::paths::appendixInfo ||
             relative == monokakido::paths::moreInfo)
-            return output_->fail("Asset path is reserved for generated product metadata");
+            return std::unexpected("Asset path is reserved for generated product metadata");
 
         const auto path = WriteValidation::fromUtf8(relative);
         if (*path.begin() == monokakido::paths::appendixMenus)
-            return output_->fail("Asset path is reserved for generated appendix menus");
+            return std::unexpected("Asset path is reserved for generated appendix menus");
 
         for (const auto& dictionary : dictionaries_)
             if (*path.begin() == WriteValidation::fromUtf8(dictionary->metadata().directory))
-                return output_->fail("Use the dictionary writer for content assets");
-
-        DirectoryOutput directory(output_->path() / monokakido::paths::productContents, false, false);
-        if (auto prepared = directory.prepare(); !prepared)
-            return output_->fail(prepared.error());
-
-        auto written = directory.writeFile(path, [bytes](OutputFile& file) { return file.write(bytes); });
-        if (!written)
-            return output_->fail(written.error());
-
-        if (written->skipped)
-            return output_->fail("Duplicate product asset");
+                return std::unexpected("Use the dictionary writer for content assets");
 
         return {};
     }
 
-    Result<void> ProductBuild::writeAppendices() const
+    Result<void> ProductBuild::writeAsset(std::string_view relative, std::span<const uint8_t> bytes,
+                                          SourceContext context) const
     {
-        for (const auto& [key, reference] : appendixReferences_)
-            if (auto valid = validateTarget(reference.target); !valid)
-                return valid;
+        const auto reject = [&](std::string message)
+        {
+            return output_->fail(origin("writeAsset", std::string(relative), context).describe() + ": " + message);
+        };
+        if (auto state = output_->check(); !state)
+            return state;
+
+        if (auto valid = validateAssetPath(relative); !valid)
+            return reject(valid.error());
+        const auto path = WriteValidation::fromUtf8(relative);
+
+        DirectoryOutput directory(output_->path() / monokakido::paths::productContents, false, false);
+        if (auto prepared = directory.prepare(); !prepared)
+            return reject(prepared.error());
+
+        auto written = directory.writeFile(path, [bytes](OutputFile& file) { return file.write(bytes); });
+        if (!written)
+            return reject(written.error());
+
+        if (written->skipped)
+            return reject("Duplicate product asset");
+
+        return {};
+    }
+
+    AppendixMenu ProductBuild::appendixMenu() const
+    {
         if (appendices_)
-            return AppendixWriter::write(*this, *appendices_);
+            return *appendices_;
+
         AppendixMenu menu;
         for (const auto& dictionary : dictionaries_)
         {
@@ -228,55 +244,101 @@ namespace MKD::detail
                 dictionary->metadata().title
                     ? dictionary->metadata().title->resolve()
                     : dictionary->metadata().directory,
-                {}
+                dictionary->appendices()
             };
-            section.items = dictionary->appendices();
             menu.sections.push_back(std::move(section));
         }
-        return menu.sections.empty() ? Result<void>{} : AppendixWriter::write(*this, menu);
+        return menu;
     }
 
-    Result<void> ProductBuild::finish()
+    Result<ProductBuild::Prepared> ProductBuild::prepare(ValidationOptions options) const
     {
-        if (auto state = output_->check(); !state)
-            return state;
+        if (auto state = check(); !state)
+            return std::unexpected(state.error());
 
-        if (dictionaries_.empty())
-            return output_->fail("Product has no dictionaries");
-
+        IssueCollector issues(options);
+        PreparedProductFiles files(path() / monokakido::paths::productContents);
+        auto metadata = metadata_;
         std::set<SearchScope> scopes;
+        if (dictionaries_.empty())
+            issues.add("missing-dictionaries", "product", "Product has no dictionaries",
+                       origin("preflight", "product"));
+
         for (const auto& dictionary : dictionaries_)
         {
+            dictionary->collectIssues(issues);
             if (!dictionary->finished())
-                return output_->fail("Finish every dictionary before finishing the product");
+                issues.pending(dictionary->metadata().identifier);
 
-            metadata_.contents.push_back(dictionary->metadata());
-            scopes.insert(dictionary->scopes().begin(), dictionary->scopes().end());
+            metadata.contents.push_back(dictionary->metadata());
+            const auto dictionaryScopes = dictionary->scopes();
+            scopes.insert(dictionaryScopes.begin(), dictionaryScopes.end());
         }
+
+        for (const auto& reference : appendixReferences_ | std::views::values)
+            if (auto valid = validateTarget(reference.target); !valid)
+                issues.add({
+                    .code = "invalid-appendix-target",
+                    .dictionaryId = reference.dictionaryId,
+                    .dictionary = reference.dictionary,
+                    .subject = std::to_string(reference.target.dictionaryId) + "/" +
+                    reference.target.entryId.toString(),
+                    .message = valid.error(),
+                    .occurrences = reference.origins.occurrences,
+                    .origins = reference.origins.samples
+                });
 
         if (profile_ == CreationProfile::Kanwa)
         {
             for (const auto& scope : monokakido::search::kanwaScopes)
                 if (scopes.contains(scope.scope))
-                    metadata_.searchScopeNames.emplace_back(scope.name);
+                    metadata.searchScopeNames.emplace_back(scope.name);
         }
         else
             for (auto scope : scopes)
-                metadata_.searchScopeNames.emplace_back(search::scopeDefinition(scope, profile_)->name);
+                metadata.searchScopeNames.emplace_back(search::scopeDefinition(scope, profile_)->name);
 
-        std::ranges::sort(metadata_.fonts);
-        if (auto result = ProductInformationWriter::write(*this); !result)
-            return output_->fail(result.error());
+        std::ranges::sort(metadata.fonts);
+        ProductInformationWriter::prepare(*this, metadata, files, issues, informationContext_);
+        const auto menu = appendixMenu();
+        if (!menu.sections.empty() || appendices_)
+            AppendixWriter::prepare(*this, menu, files, issues, appendixContext_);
 
-        if (auto result = writeAppendices(); !result)
-            return output_->fail(result.error());
+        if (navigation_ && !dictionaries_.empty())
+        {
+            NavigationWriter::prepare(*this, *navigation_, menu, files, issues, navigationContext_);
+            metadata.appendixViewController = profile_ == CreationProfile::Kanwa
+                                                  ? monokakido::navigation::kanwaController
+                                                  : monokakido::navigation::generalController;
+            metadata.appendixFirst = true;
+        }
 
-        if (navigation_)
-            if (auto result = NavigationWriter::write(*this, *navigation_); !result)
-                return output_->fail(result.error());
+        return Prepared{std::move(issues).take(), std::move(files), std::move(metadata)};
+    }
 
-        if (auto result = metadata_writer::writeProduct(output_->path(), name_, metadata_); !result)
-            return output_->fail(result.error());
+    Result<ValidationReport> ProductBuild::preflight(const ValidationOptions options) const
+    {
+        auto prepared = prepare(options);
+        if (!prepared)
+            return std::unexpected(prepared.error());
+
+        return std::move(prepared->report);
+    }
+
+    Result<void> ProductBuild::finish()
+    {
+        auto prepared = prepare({});
+        if (!prepared)
+            return std::unexpected(prepared.error());
+        if (!prepared->report.ready())
+            return std::unexpected(prepared->report.describe());
+
+        // After emission begins, an error may leave partial product files in staging.
+        metadata_ = std::move(prepared->metadata);
+        if (auto written = prepared->files.emit(); !written)
+            return fail(written.error());
+        if (auto written = metadata_writer::writeProduct(path(), name_, metadata_); !written)
+            return fail(written.error());
 
         return output_->publish();
     }

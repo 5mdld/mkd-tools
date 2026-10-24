@@ -5,11 +5,12 @@
 #include "dictionary/authoring/product_information.hpp"
 #include "product_information_style.hpp"
 #include "dictionary/authoring/product_build.hpp"
-#include "dictionary/package/metadata_writer.hpp"
 #include "dictionary/package/property_list.hpp"
 #include "dictionary/package/package_format.hpp"
 #include "io/write_validation.hpp"
 
+#include "prepared_product_files.hpp"
+#include "authoring_diagnostics.hpp"
 #include <sstream>
 
 namespace MKD::detail
@@ -57,21 +58,26 @@ namespace MKD::detail
                 appendTo(section, "p", content.publisher->resolve());
         }
 
-        Result<void> write(ProductBuild& product, std::string_view path) const
+        Result<void> prepare(const ProductBuild& product, PreparedProductFiles& files, std::string_view path) const
         {
             auto cssPath = WriteValidation::fromUtf8(path);
             cssPath.replace_extension(".css");
             const auto cssName = cssPath.filename().generic_string();
             stylesheet_.attribute("href").set_value(cssName.c_str());
             const auto css = resources::productInformationStylesheet;
-            if (auto written = product.writeAsset(cssPath.generic_string(),
-                                                  {reinterpret_cast<const uint8_t*>(css.data()), css.size()}); !written)
+            if (auto valid = product.validateAssetPath(path); !valid)
+                return valid;
+            if (auto valid = product.validateAssetPath(cssPath.generic_string()); !valid)
+                return valid;
+            if (auto written =
+                    files.add(cssPath.generic_string(), {reinterpret_cast<const uint8_t*>(css.data()), css.size()});
+                !written)
                 return written;
 
             std::ostringstream stream;
             document_.save(stream, "  ", pugi::format_default, pugi::encoding_utf8);
             const auto text = stream.str();
-            return product.writeAsset(path, {reinterpret_cast<const uint8_t*>(text.data()), text.size()});
+            return files.add(path, {reinterpret_cast<const uint8_t*>(text.data()), text.size()});
         }
 
     private:
@@ -110,11 +116,9 @@ namespace MKD::detail
             return {};
         }
 
-        static Result<void> requireAsset(const ProductBuild& product, std::string_view path)
+        static Result<void> requireAsset(const PreparedProductFiles& files, std::string_view path)
         {
-            std::error_code error;
-            if (!std::filesystem::is_regular_file(product.path() / monokakido::paths::productContents /
-                                                  WriteValidation::fromUtf8(path), error))
+            if (!files.contains(path))
                 return std::unexpected("Missing product information page: " + std::string(path));
             return {};
         }
@@ -134,9 +138,9 @@ namespace MKD::detail
             return section.append_child("array");
         }
 
-        static Result<void> productPage(ProductBuild& product)
+        static Result<void> productPage(const ProductBuild& product, const DictionaryMetadata& metadata,
+                                        PreparedProductFiles& files)
         {
-            const auto& metadata = product.metadata();
             const auto title = metadata.productTitle
                                    ? metadata.productTitle->resolve()
                                    : metadata.displayName
@@ -154,7 +158,7 @@ namespace MKD::detail
             if (metadata.version)
                 page.append("p", "Version " + *metadata.version, "version");
 
-            return page.write(product, monokakido::paths::informationPage);
+            return page.prepare(product, files, monokakido::paths::informationPage);
         }
     };
 
@@ -186,17 +190,22 @@ namespace MKD::detail
         return {};
     }
 
-    Result<void> ProductInformationWriter::write(ProductBuild& product)
+    void ProductInformationWriter::prepare(const ProductBuild& product, const DictionaryMetadata& metadata,
+                                           PreparedProductFiles& files, IssueCollector& issues,
+                                           const SourceContext& context)
     {
+        const auto check = [&](Result<void> result, std::string subject)
+        {
+            if (!result)
+                issues.add("invalid-product-information", subject, result.error(),
+                           origin("setInformation", subject, context));
+        };
         const auto& information = product.information();
         const auto page = information.page.value_or(monokakido::paths::informationPage);
         if (information.page)
-        {
-            if (auto found = InformationDocument::requireAsset(product, page); !found)
-                return found;
-        }
-        else if (auto written = InformationDocument::productPage(product); !written)
-            return written;
+            check(InformationDocument::requireAsset(files, page), page);
+        else
+            check(InformationDocument::productPage(product, metadata, files), page);
 
         pugi::xml_document document;
         auto root = property_list::root(document, "array");
@@ -207,21 +216,16 @@ namespace MKD::detail
         {
             const auto path = license.page.value_or("license/" + std::to_string(index++) + ".html");
             if (license.page)
-            {
-                if (auto found = InformationDocument::requireAsset(product, path); !found)
-                    return found;
-            }
+                check(InformationDocument::requireAsset(files, path), path);
             else
             {
                 InformationPage licensePage(license.title, true);
                 licensePage.append("pre", license.text);
-                if (auto written = licensePage.write(product, path); !written)
-                    return written;
+                check(licensePage.prepare(product, files, path), path);
             }
             InformationDocument::menuItem(items, license.title, path);
         }
         InformationDocument::menuItem(InformationDocument::section(root), monokakido::information::settings);
-        return property_list::write(product.path() / monokakido::paths::productContents /
-                                    monokakido::paths::moreInfo, document);
+        check(files.add(monokakido::paths::moreInfo, document), monokakido::paths::moreInfo);
     }
 }

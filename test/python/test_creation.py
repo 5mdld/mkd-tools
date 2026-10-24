@@ -42,6 +42,68 @@ class CreationTests(DictionaryTest):
             self.assertFalse(report.valid)
         self.assertEqual(*reports)
 
+    def test_product_preflight_allows_asset_and_menu_repairs_before_sealing(self):
+        for profile in (mkd.CreationProfile.GENERAL, mkd.CreationProfile.KANWA):
+            with self.subTest(profile=profile):
+                root = self.workspace()
+                path = root / 'Repair'
+                product = new_product(path, profile)
+                dictionary = new_dictionary(product)
+                target = one_birb(dictionary)
+                source = mkd.SourceContext(filename='menus.json', record='manuals')
+                product.set_appendices(mkd.AppendixMenu([
+                    mkd.AppendixSection('', [
+                        mkd.AppendixItem('Manual', mkd.AppendixDocument('birbs/manual.html')),
+                        mkd.AppendixItem('About', mkd.AppendixDocument('about.html')),
+                    ])
+                ]), source=source)
+                product.set_information(mkd.ProductInformation(licenses=[
+                    mkd.ProductLicense('Terms', page='legal.html'),
+                ]))
+                product.add_asset('corrupt.entries', b'not an entry list')
+                product.set_navigation(mkd.NavigationIndex(sections=[mkd.NavigationSection('Manuals', [
+                    mkd.NavigationItem(label='Missing', target=mkd.AppendixEntryLink(mkd.EntryId(99), 1000)),
+                    mkd.NavigationItem(label='Manual', target=mkd.AppendixDocument('first.html')),
+                    mkd.NavigationItem(label='Manual', target=mkd.AppendixDocument('second.html')),
+                    mkd.NavigationItem(label='Missing list', target=mkd.AppendixList('missing.entries')),
+                    mkd.NavigationItem(label='Corrupt list', target=mkd.AppendixList('corrupt.entries')),
+                    mkd.NavigationItem(label='Outside list', target=mkd.AppendixList('../outside.entries')),
+                ])]), source=source)
+
+                def snapshot():
+                    return {p.relative_to(root): p.read_bytes() if p.is_file() else None for p in root.rglob('*')}
+
+                before = snapshot()
+                report = product.preflight()
+                self.assertGreaterEqual(report.total_issues, 8)
+                self.assertIsInstance(report.pending_dictionaries, tuple)
+                self.assertEqual(report.pending_dictionaries, ('test.birbs',))
+                self.assertEqual(report.describe(), product.preflight().describe())
+                for name, position in (('first.html', 'item 2 Manual'), ('second.html', 'item 3 Manual')):
+                    issue, = [i for i in report.issues if name in i.message]
+                    self.assertIn(position, issue.origins[0].subject)
+                    self.assertEqual(issue.origins[0].context.filename, 'menus.json')
+                    self.assertEqual(issue.origins[0].context.record, 'manuals')
+                for name in ('missing.entries', 'corrupt.entries', '../outside.entries'):
+                    self.assertTrue(any(name in i.message for i in report.issues), name)
+                self.assertFalse(any('about.html' in i.message for i in report.issues))
+                with self.assertRaises(mkd.Error):
+                    product.finish()
+                self.assertEqual(before, snapshot())
+                dictionary.add_asset('manual.html', b'<html/>')
+                product.add_asset('legal.html', b'<html/>')
+                entries = dictionary.add_appendix_entries('birds', 'Birds', [mkd.AppendixEntry(target)])
+                product.set_navigation(mkd.NavigationIndex(sections=[mkd.NavigationSection('', [
+                    mkd.NavigationItem(label='Bird', target=mkd.AppendixEntryLink(target, 1000)),
+                    mkd.NavigationItem(label='Birds', target=entries),
+                ])]))
+                self.assertTrue(product.preflight().valid)
+                self.assertFalse(product.preflight().ready)
+                dictionary.finish()
+                self.assertTrue(product.preflight().ready)
+                product.finish()
+                self.assertTrue((path / 'Contents/about.html').is_file())
+
     def test_kanwa_passage_keys_search_their_normalized_phrases(self):
         path = self.workspace() / 'Passages'
         product = new_product(path, mkd.CreationProfile.KANWA)

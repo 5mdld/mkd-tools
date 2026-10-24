@@ -45,29 +45,35 @@ namespace MKD
         return DictionaryWriter(std::make_unique<DictionaryWriter::Impl>(std::move(*dictionary)));
     }
 
-    Result<void> ProductWriter::addAsset(std::string_view path, std::span<const uint8_t> bytes) const
+    Result<void> ProductWriter::addAsset(std::string_view path, std::span<const uint8_t> bytes,
+                                         SourceContext context) const
     {
-        return impl_->product->writeAsset(path, bytes);
+        return impl_->product->writeAsset(path, bytes, context);
     }
 
-    Result<void> ProductWriter::setAppendices(AppendixMenu menu) const
+    Result<void> ProductWriter::setAppendices(AppendixMenu menu, SourceContext context) const
     {
-        return impl_->product->setAppendices(std::move(menu));
+        return impl_->product->setAppendices(std::move(menu), context);
     }
 
-    Result<void> ProductWriter::setNavigation(NavigationIndex index) const
+    Result<void> ProductWriter::setNavigation(NavigationIndex index, SourceContext context) const
     {
-        return impl_->product->setNavigation(std::move(index));
+        return impl_->product->setNavigation(std::move(index), context);
     }
 
-    Result<void> ProductWriter::setInformation(ProductInformation information) const
+    Result<void> ProductWriter::setInformation(ProductInformation information, SourceContext context) const
     {
-        return impl_->product->setInformation(std::move(information));
+        return impl_->product->setInformation(std::move(information), context);
     }
 
-    Result<void> ProductWriter::setIcon(std::span<const uint8_t> image) const
+    Result<void> ProductWriter::setIcon(std::span<const uint8_t> image, SourceContext context) const
     {
-        return impl_->product->setIcon(image);
+        return impl_->product->setIcon(image, context);
+    }
+
+    Result<ValidationReport> ProductWriter::preflight(ValidationOptions options) const
+    {
+        return impl_->product->preflight(options);
     }
 
     Result<void> ProductWriter::finish() const

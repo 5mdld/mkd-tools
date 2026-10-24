@@ -9,11 +9,8 @@
 #include "dictionary/content/content_markup.hpp"
 #include "dictionary/authoring/product_build.hpp"
 #include "dictionary/package/property_list.hpp"
-#include "dictionary/navigation/appendix_reader.hpp"
-#include "dictionary/authoring/appendix_writer.hpp"
 #include "MKD/resource/appendix_entry_list.hpp"
 #include "io/write_validation.hpp"
-#include "io/output_file.hpp"
 #include <algorithm>
 #include <limits>
 
@@ -35,8 +32,10 @@ namespace MKD::detail
         return nav::ItemKind::Reference;
     }
 
-    NavigationWriter::NavigationWriter(ProductBuild& product)
-        : product_(product), contents_(product.path() / monokakido::paths::productContents),
+    NavigationWriter::NavigationWriter(const ProductBuild& product, PreparedProductFiles& files, IssueCollector& issues,
+                                       const SourceContext& context)
+        : product_(product), files_(files), issues_(issues), context_(context),
+          contents_(product.path() / monokakido::paths::productContents),
           directory_(product.profile() == CreationProfile::Kanwa
                          ? product.firstContent().directory + "/" + nav::directory
                          : "navigation-menus"),
@@ -170,12 +169,12 @@ namespace MKD::detail
         return {};
     }
 
-    Result<void> NavigationWriter::label(const NavigationLabel& value)
+    Result<void> NavigationWriter::label(const NavigationLabel& value, std::string_view subject)
     {
         if (const auto* link = std::get_if<AppendixEntryLink>(&value))
         {
-            auto target = entry(*link);
-            return target ? Result<void>{} : std::unexpected(target.error());
+            entry(*link, std::string(subject) + " label " + link->entryId.toString());
+            return {};
         }
 
         if (const auto* radical = std::get_if<RadicalLabel>(&value))
@@ -194,37 +193,19 @@ namespace MKD::detail
         return WriteValidation::xmlText(nav::encodeLabel(value), true);
     }
 
-    Result<AppendixEntryLink> NavigationWriter::entry(AppendixEntryLink target)
+    AppendixEntryLink NavigationWriter::entry(AppendixEntryLink target, std::string subject)
     {
         if (!target.dictionaryId)
             target.dictionaryId = *product_.firstContent().dictionaryId;
 
-        const auto identity = std::pair{target.dictionaryId, target.entryId};
-        if (checked_.contains(identity))
-            return target;
-
-        if (auto valid = product_.validateTarget(target); !valid)
-            return std::unexpected(valid.error());
-
-        checked_.insert(identity);
+        entryReferences_[{target.dictionaryId, target.entryId}].add(
+            origin("setNavigation", std::move(subject), context_));
         return target;
     }
 
     Result<void> NavigationWriter::save(std::string_view path, std::span<const uint8_t> data) const
     {
-        const auto target = contents_ / WriteValidation::fromUtf8(path);
-        std::error_code error;
-        if (std::filesystem::exists(target, error))
-            return std::unexpected("Duplicate navigation path: " + std::string(path));
-
-        if (error)
-            return std::unexpected(error.message());
-
-        std::filesystem::create_directories(target.parent_path(), error);
-        if (error)
-            return std::unexpected(error.message());
-
-        return OutputFile::writeAll(target, data);
+        return files_.add(path, data);
     }
 
     std::string NavigationWriter::nextPath(std::string_view extension)
@@ -239,34 +220,20 @@ namespace MKD::detail
                .generic_string();
     }
 
-    Result<NavigationIndex> NavigationWriter::entryList(const AppendixList& list) const
+    Result<AppendixEntryList> NavigationWriter::entryList(const AppendixList& list) const
     {
         auto path = resolveProductPath(contents_, list.path);
         if (!path)
-            return std::unexpected(path.error());
+            return std::unexpected(list.path + ": " + path.error());
+
+        if (path->extension() != ".entries")
+            return std::unexpected("Entry lists must use .entries files: " + list.path);
 
         auto source = AppendixEntryList::open(*path);
         if (!source)
-            return std::unexpected(source.error());
+            return std::unexpected(list.path + ": " + source.error());
 
-        NavigationIndex result;
-        result.sections.emplace_back();
-        result.rows = source->rows();
-        result.columns = source->columns();
-        for (size_t i = 0; i < source->size(); ++i)
-        {
-            auto item = source->entryAt(i);
-            if (!item)
-                return std::unexpected(item.error());
-
-            auto target = item->entryId;
-            if (!list.usingAnchorId)
-                target.itemId = 0;
-
-            result.sections.front().items.push_back(
-                {std::string(item->label.value_or("")), AppendixEntryLink{target, item->dictionaryId}});
-        }
-        return result;
+        return source;
     }
 
     Result<std::string> NavigationWriter::targetFile(const NavigationItem& item, size_t depth, std::string title)
@@ -276,35 +243,51 @@ namespace MKD::detail
 
         if (const auto* list = std::get_if<AppendixList>(&item.target))
         {
+            auto source = entryList(*list);
+            if (!source)
+                return std::unexpected(source.error());
+
             if (!kanwa_)
                 return list->path;
 
-            auto converted = entryList(*list);
-            if (!converted)
-                return std::unexpected(converted.error());
+            NavigationIndex converted;
+            converted.sections.emplace_back();
+            converted.rows = source->rows();
+            converted.columns = source->columns();
+            for (size_t i = 0; i < source->size(); ++i)
+            {
+                auto value = source->entryAt(i);
+                if (!value)
+                    return std::unexpected(list->path + " row " + std::to_string(i + 1) + ": " + value.error());
 
-            return index(*converted, nav::plainLabel(item.label), depth + 1);
+                auto target = value->entryId;
+                if (!list->usingAnchorId)
+                    target.itemId = 0;
+
+                converted.sections.front().items.push_back(
+                    {std::string(value->label.value_or("")), AppendixEntryLink{target, value->dictionaryId}});
+            }
+            return index(converted, nav::plainLabel(item.label), depth + 1);
         }
         if (const auto* document = std::get_if<AppendixDocument>(&item.target))
         {
             auto path = resolveProductPath(contents_, document->path);
             if (!path)
-                return std::unexpected(path.error());
+                return std::unexpected(document->path + ": " + path.error());
 
-            std::error_code error;
-            if (!std::filesystem::is_regular_file(*path, error))
-                return std::unexpected("Missing navigation document");
+            if (!files_.contains(document->path))
+                return std::unexpected("Missing navigation document: " + document->path);
 
             const auto extension = path->extension();
             if (extension != ".html" && extension != ".xml" && extension != ".pdf")
-                return std::unexpected("Navigation documents must be HTML, XML or PDF");
+                return std::unexpected("Navigation documents must be HTML, XML or PDF: " + document->path);
 
             return document->path + (document->fragment ? "#" + *document->fragment : "");
         }
         if (const auto* reference = std::get_if<NavigationReference>(&item.target))
         {
             if (auto view = NavigationView::open(contents_, *reference); !view)
-                return std::unexpected(view.error());
+                return std::unexpected(reference->path + ": " + view.error());
 
             if (reference->sectionPath.empty())
                 return reference->path;
@@ -333,7 +316,8 @@ namespace MKD::detail
     }
 
     Result<NavigationWriter::Node> NavigationWriter::section(const NavigationSection& value, size_t depth,
-                                                             NavigationKind kind)
+                                                             NavigationKind kind, std::string_view subject,
+                                                             size_t firstItem)
     {
         Node result;
         result.title = value.title;
@@ -344,19 +328,22 @@ namespace MKD::detail
         else
             result.content = Node::FileTable{};
 
+        size_t row = firstItem;
         for (const auto& item : value.items)
         {
-            if (auto valid = label(item.label); !valid)
-                return std::unexpected(valid.error());
+            const auto itemSubject = std::string(subject) + "/item " + std::to_string(++row) + " " +
+                nav::plainLabel(item.label);
+            if (auto valid = label(item.label, itemSubject); !valid)
+            {
+                issues_.add("invalid-navigation-label", nav::plainLabel(item.label), valid.error(),
+                            origin("setNavigation", itemSubject, context_));
+                continue;
+            }
 
             if (entries)
             {
-                auto target = entry(std::get<AppendixEntryLink>(item.target));
-                if (!target)
-                    return std::unexpected(target.error());
-
                 auto copy = item;
-                copy.target = *target;
+                copy.target = entry(std::get<AppendixEntryLink>(item.target), itemSubject);
                 std::get<Node::EntryTable>(result.content).items.push_back(std::move(copy));
                 if (!nav::encodeLabel(item.label).empty())
                     std::get<Node::EntryTable>(result.content).labelled = true;
@@ -366,7 +353,11 @@ namespace MKD::detail
                 const auto title = kind == NavigationKind::TotalStrokes ? nav::plainLabel(item.label) + "画" : "";
                 auto path = targetFile(item, depth, title);
                 if (!path)
-                    return std::unexpected(path.error());
+                {
+                    issues_.add("invalid-navigation-item", nav::plainLabel(item.label), path.error(),
+                                origin("setNavigation", itemSubject, context_));
+                    continue;
+                }
 
                 std::get<Node::FileTable>(result.content)
                     .emplace_back(nav::encodeLabel(item.label), path->empty() ? "" : indexRelative(*path));
@@ -381,8 +372,12 @@ namespace MKD::detail
         Node root;
         root.title = std::move(title);
         // Binary navigation record tables are homogeneous. Split mixed menus into adjacent display sections.
+        size_t sectionNumber = 0;
         for (const auto& original : value.sections)
         {
+            const auto subject = nav::plainLabel(root.title) + "/section " + std::to_string(++sectionNumber) + " " +
+                original.title;
+            size_t firstItem = 0;
             if (auto valid = WriteValidation::xmlText(original.title, true); !valid)
                 return std::unexpected(valid.error());
 
@@ -392,17 +387,18 @@ namespace MKD::detail
                 if (!run.items.empty() && std::holds_alternative<AppendixEntryLink>(run.items.back().target) !=
                     std::holds_alternative<AppendixEntryLink>(item.target))
                 {
-                    auto node = section(run, depth, value.kind);
+                    auto node = section(run, depth, value.kind, subject, firstItem);
                     if (!node)
                         return std::unexpected(node.error());
 
                     std::get<Node::Sections>(root.content).push_back(std::move(*node));
+                    firstItem += run.items.size();
                     run = {};
                 }
                 run.items.push_back(item);
             }
 
-            auto node = section(run, depth, value.kind);
+            auto node = section(run, depth, value.kind, subject, firstItem);
             if (!node)
                 return std::unexpected(node.error());
 
@@ -438,20 +434,18 @@ namespace MKD::detail
         return root;
     }
 
-    Result<void> NavigationWriter::plistItem(pugi::xml_node parent, const NavigationItem& value, size_t depth)
+    Result<void> NavigationWriter::plistItem(pugi::xml_node parent, const NavigationItem& value, size_t depth,
+                                             std::string_view subject)
     {
-        if (auto valid = label(value.label); !valid)
+        if (auto valid = label(value.label, subject); !valid)
             return valid;
 
         auto node = parent.append_child("dict");
         property_list::string(node, "title", nav::plainLabel(value.label));
         if (const auto* target = std::get_if<AppendixEntryLink>(&value.target))
         {
-            auto link = entry(*target);
-            if (!link)
-                return std::unexpected(link.error());
-
-            property_list::string(node, "entry", link->entryId.toString() + "-" + std::to_string(link->dictionaryId));
+            const auto link = entry(*target, std::string(subject));
+            property_list::string(node, "entry", link.entryId.toString() + "-" + std::to_string(link.dictionaryId));
         }
         else if (!std::holds_alternative<std::monostate>(value.target))
         {
@@ -483,33 +477,34 @@ namespace MKD::detail
 
         node.append_child("key").text().set("children");
         auto array = node.append_child("array");
+        size_t sectionNumber = 0;
         for (const auto& section : value.sections)
         {
+            const auto subject = std::string(path) + "/" + std::string(title) + "/section " +
+                std::to_string(++sectionNumber) + " " + section.title;
             if (section.title.empty())
             {
+                size_t row = 0;
                 for (const auto& item : section.items)
-                    if (auto result = plistItem(array, item, depth); !result)
-                        return result;
+                {
+                    const auto itemSubject = subject + "/item " + std::to_string(++row) + " " +
+                        nav::plainLabel(item.label);
+                    if (auto result = plistItem(array, item, depth, itemSubject); !result)
+                        issues_.add("invalid-navigation-item", nav::plainLabel(item.label), result.error(),
+                                    origin("setNavigation", itemSubject, context_));
+                }
             }
             else
             {
                 NavigationIndex child;
                 child.sections.push_back({"", section.items});
-                if (auto result = plistItem(array, {section.title, child}, depth); !result)
-                    return result;
+                if (auto result = plistItem(array, {section.title, child}, depth, subject); !result)
+                    issues_.add("invalid-navigation-section", section.title, result.error(),
+                                origin("setNavigation", subject, context_));
             }
         }
 
-        std::error_code error;
-        const auto target = contents_ / WriteValidation::fromUtf8(path);
-        if (std::filesystem::exists(target, error))
-            return std::unexpected("Duplicate navigation path");
-
-        std::filesystem::create_directories(target.parent_path(), error);
-        if (error)
-            return std::unexpected(error.message());
-
-        return property_list::write(target, document);
+        return files_.add(path, document);
     }
 
     Result<std::string> NavigationWriter::index(const NavigationIndex& value, std::string title, size_t depth,
@@ -611,46 +606,55 @@ namespace MKD::detail
         return result;
     }
 
-    Result<void> NavigationWriter::write(ProductBuild& product, const NavigationIndex& value)
+    void NavigationWriter::prepare(const ProductBuild& product, const NavigationIndex& value,
+                                   const AppendixMenu& appendices, PreparedProductFiles& files, IssueCollector& issues,
+                                   const SourceContext& context)
     {
-        NavigationWriter writer(product);
-        auto menu = value;
-        auto existing = AppendixReader::open(writer.contents_);
-        if (!existing)
-            return std::unexpected(existing.error());
-
-        if (!existing->sections.empty())
+        NavigationWriter writer(product, files, issues, context);
+        auto result = [&]() -> Result<void>
         {
-            auto converted = writer.appendices(*existing, 0);
-            if (!converted)
-                return std::unexpected(converted.error());
-
-            menu.sections.push_back({writer.kanwa_ ? "付録" : "", {{std::string("付録"), std::move(*converted)}}});
-        }
-
-        if (writer.kanwa_)
-            menu.kind = NavigationKind::Root;
-
-        auto written =
-            writer.index(menu, "インデックス", 0,
-                         writer.kanwa_ ? writer.directory_ + "/" + nav::rootIndex : std::string(nav::rootPlist));
-        if (!written)
-            return std::unexpected(written.error());
-
-        product.configureNavigation(writer.kanwa_);
-        if (writer.kanwa_)
-        {
-            pugi::xml_document document;
-            auto root = property_list::root(document, "dict");
-            for (const auto& [kind, info] : writer.types_)
+            auto menu = value;
+            if (!appendices.sections.empty())
             {
-                root.append_child("key").text().set(std::to_string(kind).c_str());
-                auto node = root.append_child("dict");
-                property_list::string(node, "fileName", info.first);
-                property_list::string(node, "title", info.second);
+                auto converted = writer.appendices(appendices, 0);
+                if (!converted)
+                    return std::unexpected(converted.error());
+                menu.sections.push_back({writer.kanwa_ ? "付録" : "", {{std::string("付録"), std::move(*converted)}}});
             }
-            return property_list::write(writer.contents_ / writer.directory_ / nav::typeInfo, document);
-        }
-        return {};
+            if (writer.kanwa_)
+                menu.kind = NavigationKind::Root;
+            auto prepared =
+                writer.index(menu, "インデックス", 0,
+                             writer.kanwa_ ? writer.directory_ + "/" + nav::rootIndex : std::string(nav::rootPlist));
+            if (!prepared)
+                return std::unexpected(prepared.error());
+            if (writer.kanwa_)
+            {
+                pugi::xml_document document;
+                auto root = property_list::root(document, "dict");
+                for (const auto& [kind, info] : writer.types_)
+                {
+                    root.append_child("key").text().set(std::to_string(kind).c_str());
+                    auto node = root.append_child("dict");
+                    property_list::string(node, "fileName", info.first);
+                    property_list::string(node, "title", info.second);
+                }
+                return files.add(writer.directory_ + "/" + nav::typeInfo, document);
+            }
+            return {};
+        }();
+        for (const auto& [target, origins] : writer.entryReferences_)
+            if (auto valid = product.validateTarget({target.second, target.first}); !valid)
+                issues.add({
+                    .code = "invalid-navigation-target",
+                    .dictionaryId = target.first,
+                    .subject = target.second.toString(),
+                    .message = valid.error(),
+                    .occurrences = origins.occurrences,
+                    .origins = origins.samples
+                });
+        if (!result)
+            issues.add("invalid-navigation", "navigation", result.error(),
+                       origin("setNavigation", "navigation", context));
     }
 }

@@ -73,7 +73,7 @@ namespace MKD::detail
         }
     };
 
-    Result<void> ProductIcon::write(ProductBuild& product, std::span<const uint8_t> bytes)
+    Result<void> ProductIcon::write(ProductBuild& product, std::span<const uint8_t> bytes, SourceContext context)
     {
         auto image = IconImage::read(bytes);
         if (!image)
@@ -86,7 +86,7 @@ namespace MKD::detail
                 return std::unexpected(png.error());
 
             const auto path = std::string(monokakido::paths::icons) + "/" + product.name() + std::string(variant.suffix);
-            if (auto written = product.writeAsset(path, *png); !written)
+            if (auto written = product.writeAsset(path, *png, context); !written)
                 return written;
         }
         return {};

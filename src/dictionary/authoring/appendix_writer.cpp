@@ -14,45 +14,58 @@
 
 namespace MKD::detail
 {
-    Result<void> AppendixWriter::write(const ProductBuild& product, const AppendixMenu& menu)
+    void AppendixWriter::prepare(const ProductBuild& product, const AppendixMenu& menu, PreparedProductFiles& files,
+                                 IssueCollector& issues, const SourceContext& context)
     {
-        return AppendixWriter(product).menu(menu, monokakido::paths::appendixInfo);
+        AppendixWriter writer(product, files, issues, context);
+        auto result = writer.menu(menu, monokakido::paths::appendixInfo);
+        for (const auto& [target, origins] : writer.entryReferences_)
+            if (auto valid = product.validateTarget({target.second, target.first}); !valid)
+                issues.add({.code = "invalid-appendix-target",
+                            .dictionaryId = target.first,
+                            .subject = target.second.toString(),
+                            .message = valid.error(),
+                            .occurrences = origins.occurrences,
+                            .origins = origins.samples});
+        if (!result)
+            issues.add("invalid-appendices", "appendices", result.error(),
+                       origin("setAppendices", "appendices", context));
     }
 
     Result<void> AppendixWriter::menu(const AppendixMenu& value, std::string_view path)
     {
-        if (++depth_ > maximumAppendixMenuDepth)
+        if (depth_ >= maximumAppendixMenuDepth)
             return std::unexpected("Appendix menus are excessively nested");
+        ++depth_;
 
         pugi::xml_document document;
         auto sections = property_list::root(document, "array");
         for (const auto& section : value.sections)
         {
             if (auto valid = WriteValidation::xmlText(section.name, true); !valid)
-                return valid;
+            {
+                issues_.add("invalid-appendix-section", section.name, valid.error(),
+                            origin("setAppendices", section.name, context_));
+                continue;
+            }
 
             auto node = sections.append_child("dict");
             property_list::string(node, metadata::appendix::name, section.name);
             node.append_child("key").text().set(metadata::appendix::children);
             auto children = node.append_child("array");
+            size_t row = 0;
             for (const auto& entry : section.items)
-                if (auto written = item(children.append_child("dict"), entry); !written)
-                    return written;
+            {
+                const auto previous = subject_;
+                subject_ = std::string(path) + "/" + section.name + "/" + std::to_string(++row) + " " + entry.name;
+                if (auto prepared = item(children.append_child("dict"), entry); !prepared)
+                    issues_.add("invalid-appendix-item", subject_, prepared.error(),
+                                origin("setAppendices", subject_, context_));
+                subject_ = previous;
+            }
         }
-        const auto output = product_.path() / monokakido::paths::productContents / WriteValidation::fromUtf8(path);
-        std::error_code error;
-        if (std::filesystem::exists(output, error))
-            return std::unexpected("Duplicate appendix menu path: " + std::string(path));
-
-        if (error)
-            return std::unexpected(error.message());
-
-        std::filesystem::create_directories(output.parent_path(), error);
-        if (error)
-            return std::unexpected(error.message());
-
         --depth_;
-        return property_list::write(output, document);
+        return files_.add(path, document);
     }
 
     Result<void> AppendixWriter::item(pugi::xml_node node, const AppendixItem& value)
@@ -109,9 +122,7 @@ namespace MKD::detail
         if (resolved->extension() != extension)
             return std::unexpected("Invalid appendix file extension: " + std::string(path));
 
-        std::error_code error;
-        const auto regular = std::filesystem::is_regular_file(*resolved, error);
-        if (error || !regular)
+        if (!files_.contains(path))
             return std::unexpected("Missing appendix file: " + std::string(path));
 
         return {};
@@ -125,7 +136,7 @@ namespace MKD::detail
         const auto path =
             product_.path() / monokakido::paths::productContents / WriteValidation::fromUtf8(value.path);
         if (auto list = AppendixEntryList::open(path); !list)
-            return std::unexpected(list.error());
+            return std::unexpected(value.path + ": " + list.error());
 
         property_list::string(node, metadata::appendix::contents, value.path);
         property_list::boolean(node, metadata::appendix::singleSection, value.singleSection);
@@ -157,10 +168,9 @@ namespace MKD::detail
         return {};
     }
 
-    Result<void> AppendixWriter::target(pugi::xml_node node, const AppendixEntryLink& value) const
+    Result<void> AppendixWriter::target(pugi::xml_node node, const AppendixEntryLink& value)
     {
-        if (auto valid = product_.validateTarget(value); !valid)
-            return valid;
+        entryReferences_[{value.dictionaryId, value.entryId}].add(origin("setAppendices", subject_, context_));
 
         property_list::string(node, metadata::appendix::entry,
                               value.entryId.toString() + "-" + std::to_string(value.dictionaryId));
@@ -191,14 +201,8 @@ namespace MKD::detail
         }
         const auto relative =
             std::format("{}/gallery-{}/{}", monokakido::paths::appendixMenus, ++nextMenu_, monokakido::paths::graphicsInfo);
-        const auto path = product_.path() / monokakido::paths::productContents / relative;
-        std::error_code error;
-        std::filesystem::create_directories(path.parent_path(), error);
-        if (error)
-            return std::unexpected(error.message());
-
-        if (auto written = property_list::write(path, document); !written)
-            return written;
+        if (auto prepared = files_.add(relative, document); !prepared)
+            return prepared;
 
         property_list::string(node, metadata::appendix::contents, relative);
         return {};

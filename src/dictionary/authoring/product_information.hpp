@@ -9,11 +9,14 @@
 namespace MKD::detail
 {
     class ProductBuild;
+    class PreparedProductFiles;
+    class IssueCollector;
 
     class ProductInformationWriter
     {
     public:
         static Result<void> validate(const ProductInformation& information);
-        static Result<void> write(ProductBuild& product);
+        static void prepare(const ProductBuild& product, const DictionaryMetadata& metadata,
+                            PreparedProductFiles& files, IssueCollector& issues, const SourceContext& context);
     };
 }

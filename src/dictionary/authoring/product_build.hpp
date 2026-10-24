@@ -7,6 +7,7 @@
 #include "MKD/dictionary/product_writer.hpp"
 #include "io/build_directory.hpp"
 #include "authoring_diagnostics.hpp"
+#include "prepared_product_files.hpp"
 #include <memory>
 #include <map>
 #include <tuple>
@@ -24,28 +25,35 @@ namespace MKD::detail
                      CreationProfile profile);
         Result<std::shared_ptr<DictionaryBuild>> addDictionary(DictionaryContent content,
                                                                DictionaryWriteOptions options, SourceContext context);
-        Result<void> writeAsset(std::string_view relative, std::span<const uint8_t> bytes) const;
-        Result<void> setAppendices(AppendixMenu menu);
-        Result<void> setNavigation(NavigationIndex index);
-        Result<void> setInformation(ProductInformation information);
-        Result<void> setIcon(std::span<const uint8_t> image);
+        Result<void> writeAsset(std::string_view relative, std::span<const uint8_t> bytes, SourceContext context) const;
+        Result<void> validateAssetPath(std::string_view relative) const;
+        Result<void> setAppendices(AppendixMenu menu, SourceContext context);
+        Result<void> setNavigation(NavigationIndex index, SourceContext context);
+        Result<void> setInformation(ProductInformation information, SourceContext context);
+        Result<void> setIcon(std::span<const uint8_t> image, SourceContext context);
+        Result<ValidationReport> preflight(ValidationOptions options) const;
         Result<void> finish();
         Result<void> validateTarget(const AppendixEntryLink& target) const;
         void referenceAppendix(AppendixEntryLink target, const DictionaryContent& dictionary, AuthoringOrigin origin);
         [[nodiscard]] bool hasFont(std::string_view filename) const;
         void registerFont(std::string filename) { metadata_.fonts.push_back(std::move(filename)); }
-        void configureNavigation(bool kanwa);
         [[nodiscard]] const std::filesystem::path& path() const { return output_->path(); }
         [[nodiscard]] Result<void> check() const { return output_->check(); }
         Result<void> fail(std::string error) const { return output_->fail(std::move(error)); }
-        [[nodiscard]] const DictionaryMetadata& metadata() const { return metadata_; }
         [[nodiscard]] const std::string& name() const { return name_; }
         [[nodiscard]] CreationProfile profile() const { return profile_; }
         [[nodiscard]] const ProductInformation& information() const { return information_; }
         [[nodiscard]] const DictionaryContent& firstContent() const;
 
     private:
-        Result<void> writeAppendices() const;
+        struct Prepared
+        {
+            ValidationReport report;
+            PreparedProductFiles files;
+            DictionaryMetadata metadata;
+        };
+        Result<Prepared> prepare(ValidationOptions options) const;
+        AppendixMenu appendixMenu() const;
         struct AppendixReference
         {
             AppendixEntryLink target;
@@ -61,6 +69,7 @@ namespace MKD::detail
         std::optional<AppendixMenu> appendices_;
         std::optional<NavigationIndex> navigation_;
         std::map<std::tuple<uint16_t, uint16_t, EntryId>, AppendixReference> appendixReferences_;
+        SourceContext appendixContext_, navigationContext_, informationContext_;
         std::vector<std::shared_ptr<DictionaryBuild>> dictionaries_;
     };
 }

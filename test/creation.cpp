@@ -4,6 +4,8 @@
 
 #include "support/test_dictionary.hpp"
 #include <array>
+#include <algorithm>
+#include <map>
 
 namespace MKD::test
 {
@@ -195,7 +197,11 @@ namespace MKD::test
                 }
             }
         }));
+        const auto report = require(build.product.preflight());
+        EXPECT_TRUE(report.valid());
+        EXPECT_EQ(report.pendingDictionaries.size(), 2);
         require(lion.finish());
+        EXPECT_TRUE(require(build.product.preflight()).valid());
         build.finish();
         auto product = require(DictionaryProduct::openAtPath(path));
         const auto& items = product.appendices().sections.front().items;
@@ -224,5 +230,80 @@ namespace MKD::test
             EXPECT_FALSE(build.product.finish());
             EXPECT_FALSE(std::filesystem::exists(workspace.path / name));
         }
+    }
+    TEST(Creation, PreflightAndCompletionValidationLeaveSupportedRepairsOpen)
+    {
+        Workspace workspace;
+        const auto path = workspace.path / "Repair";
+        BirbBuild build(path);
+        auto entry = require(build.dictionary.createEntry(7, {.filename = "birds.xml", .record = "sparrow"}));
+        auto reserved = require(build.dictionary.createEntry(9));
+        require(entry.writeXml("<html>\n<body><img src=\"missing.png\"/></body></html>"));
+        require(build.dictionary.addSearchKey(SearchScope::Headword, "sparrow", entry.target()));
+        const auto snapshot = [&]
+        {
+            std::map<std::filesystem::path, std::vector<uint8_t>> files;
+            for (const auto& file : std::filesystem::recursive_directory_iterator(workspace.path))
+                files.emplace(file.path(), file.is_regular_file() ? readFile(file.path()) : std::vector<uint8_t>{});
+            return files;
+        };
+        const auto before = snapshot();
+        const auto report = require(build.dictionary.preflight());
+        EXPECT_FALSE(report.valid());
+        EXPECT_GE(report.totalIssues, 4);
+        const auto limited = require(build.dictionary.preflight({.maxIssues = 0}));
+        EXPECT_TRUE(limited.issues.empty());
+        EXPECT_TRUE(limited.truncated());
+        EXPECT_FALSE(limited.valid());
+        EXPECT_EQ(report.describe(), require(build.dictionary.preflight()).describe());
+        EXPECT_FALSE(build.dictionary.finish());
+        EXPECT_FALSE(build.product.finish());
+        EXPECT_EQ(before, snapshot());
+        const auto resource = std::ranges::find(report.issues, "missing-resource", &AuthoringIssue::code);
+        ASSERT_NE(resource, report.issues.end());
+        EXPECT_EQ(resource->dictionaryId, 1000);
+        ASSERT_EQ(resource->origins.size(), 1);
+        EXPECT_EQ(resource->origins.front().context.filename, "birds.xml");
+        EXPECT_EQ(resource->origins.front().context.record, "sparrow");
+        ASSERT_TRUE(resource->origins.front().location);
+        EXPECT_EQ(resource->origins.front().location->line, 2);
+
+        require(build.dictionary.addAsset("missing.png", {}));
+        require(build.dictionary.addHeadline({.headline = u"Sparrow", .entryId = entry.target()}));
+        require(reserved.writeXml("<html><body>A second bird.</body></html>"));
+        require(build.dictionary.addHeadline({.headline = u"Bird", .entryId = reserved.target()}));
+        require(build.dictionary.setEntryOrder(std::array{uint32_t{7}}));
+        EXPECT_FALSE(build.dictionary.finish());
+        require(build.dictionary.setEntryOrder(std::array{uint32_t{9}, uint32_t{7}}));
+        EXPECT_TRUE(require(build.dictionary.preflight()).ready());
+        auto productReport = require(build.product.preflight());
+        EXPECT_TRUE(productReport.valid());
+        EXPECT_FALSE(productReport.ready());
+        require(build.dictionary.finish());
+        EXPECT_FALSE(build.dictionary.preflight());
+        EXPECT_TRUE(require(build.product.preflight()).ready());
+        require(build.product.finish());
+        EXPECT_TRUE(DictionaryProduct::openAtPath(path));
+    }
+
+    TEST(Creation, FinalisationIoFailureRemainsTerminalAfterTheFilesystemIsRepaired)
+    {
+        Workspace workspace;
+        const auto path = workspace.path / "Repair";
+        BirbBuild build(path);
+        build.addBirb();
+        require(build.dictionary.finish());
+        const auto staging = std::filesystem::directory_iterator(workspace.path)->path();
+        const auto obstruction = staging / "Contents" / "Repair.json";
+        std::filesystem::create_directory(obstruction);
+        const auto failed = build.product.finish();
+        ASSERT_FALSE(failed);
+        std::filesystem::remove(obstruction);
+        const auto retried = build.product.finish();
+        ASSERT_FALSE(retried);
+        EXPECT_EQ(failed.error(), retried.error());
+        EXPECT_FALSE(build.product.preflight());
+        EXPECT_FALSE(build.product.addAsset("repair.txt", bytes("too late")));
+        EXPECT_FALSE(std::filesystem::exists(path));
     }
 }

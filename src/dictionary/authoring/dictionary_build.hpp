@@ -49,7 +49,10 @@ namespace MKD::detail
         [[nodiscard]] const DictionaryContent& metadata() const { return metadata_; }
         [[nodiscard]] const std::filesystem::path& root() const { return root_; }
         [[nodiscard]] bool finished() const { return std::holds_alternative<Finished>(state_); }
-        [[nodiscard]] const std::set<SearchScope>& scopes() const { return std::get<Finished>(state_).scopes; }
+        [[nodiscard]] std::set<SearchScope> scopes() const
+        {
+            return finished() ? std::get<Finished>(state_).scopes : working().indexes.scopes();
+        }
 
         [[nodiscard]] const std::vector<AppendixItem>& appendices() const
         {
