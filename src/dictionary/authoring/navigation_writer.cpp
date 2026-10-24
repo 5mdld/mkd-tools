@@ -2,6 +2,7 @@
 // kiwakiwaaにより 2026/10/19 に作成されました。
 //
 
+#include "dictionary/package/paths.hpp"
 #include "dictionary/authoring/navigation_writer.hpp"
 #include "dictionary/navigation/native_navigation.hpp"
 #include "dictionary/content/native_content.hpp"
@@ -237,7 +238,7 @@ namespace MKD::detail
 
     Result<NavigationIndex> NavigationWriter::entryList(const AppendixList& list) const
     {
-        auto path = AppendixReader::resolve(contents_, list.path);
+        auto path = resolveProductPath(contents_, list.path);
         if (!path)
             return std::unexpected(path.error());
 
@@ -285,7 +286,7 @@ namespace MKD::detail
         }
         if (const auto* document = std::get_if<AppendixDocument>(&item.target))
         {
-            auto path = AppendixReader::resolve(contents_, document->path);
+            auto path = resolveProductPath(contents_, document->path);
             if (!path)
                 return std::unexpected(path.error());
 

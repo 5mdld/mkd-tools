@@ -3,8 +3,11 @@
 //
 
 #include "MKD/dictionary/paths.hpp"
+#include "paths.hpp"
+#include "io/write_validation.hpp"
 #include "dictionary/package/native_format.hpp"
 
+#include <charconv>
 #include <array>
 #include <span>
 
@@ -72,12 +75,43 @@ namespace MKD
         const auto status = fs::status(path, ec);
         if (ec == std::errc::no_such_file_or_directory)
             return std::optional<fs::path>{};
+
         if (ec)
             return std::unexpected("Cannot inspect '" + path.string() + "': " + ec.message());
+
         if (!fs::exists(status))
             return std::optional<fs::path>{};
+
         if (!fs::is_directory(status))
             return std::unexpected("Resource path is not a directory: " + path.string());
+
         return std::optional(path);
+    }
+}
+
+namespace MKD::detail
+{
+    Result<std::filesystem::path> resolveProductPath(const std::filesystem::path& contents, std::string_view path)
+    {
+        if (auto valid = WriteValidation::relativePath(path); !valid)
+            return std::unexpected(valid.error());
+
+        if (path.find_first_of("?#") != std::string_view::npos)
+            return std::unexpected("Appendix paths must not contain query strings or fragments");
+
+        std::error_code error;
+        auto resolved = std::filesystem::weakly_canonical(contents / WriteValidation::fromUtf8(path), error);
+        if (error)
+            return std::unexpected(error.message());
+
+        const auto base = std::filesystem::weakly_canonical(contents, error);
+        if (error)
+            return std::unexpected(error.message());
+
+        const auto relative = resolved.lexically_relative(base);
+        if (relative.empty() || *relative.begin() == "..")
+            return std::unexpected("Appendix path escapes the product");
+
+        return resolved;
     }
 }

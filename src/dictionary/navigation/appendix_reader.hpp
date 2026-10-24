@@ -20,7 +20,6 @@ namespace MKD::detail
     public:
         static Result<AppendixMenu> open(const std::filesystem::path& contents);
         static std::unordered_map<std::string, std::string> listTitles(const AppendixMenu& menu);
-        static Result<std::filesystem::path> resolve(const std::filesystem::path& contents, std::string_view path);
 
     private:
         explicit AppendixReader(std::filesystem::path contents) : contents_(std::move(contents))

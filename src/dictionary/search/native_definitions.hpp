@@ -106,3 +106,13 @@ namespace MKD::detail::native::search
         NormalizationDefinition{.name = "kogo", .options = unicode::DictionaryKeyNormalizeOption::FoldSmallKana}
     };
 }
+
+namespace MKD
+{
+    enum class CreationProfile;
+}
+
+namespace MKD::detail::search
+{
+    Result<ScopeDefinition> scopeDefinition(SearchScope scope, CreationProfile profile);
+}

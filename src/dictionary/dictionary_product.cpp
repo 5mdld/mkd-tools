@@ -2,6 +2,7 @@
 // kiwakiwaaにより 2026/02/24 に作成されました。
 //
 
+#include "dictionary/package/paths.hpp"
 #include "MKD/dictionary/dictionary_product.hpp"
 #include "dictionary/package/native_format.hpp"
 #include "dictionary/navigation/native_navigation.hpp"
@@ -246,7 +247,7 @@ namespace MKD
 
     Result<RetainedSpan> DictionaryProduct::resource(std::string_view relativePath) const
     {
-        auto path = detail::AppendixReader::resolve(paths_.productRoot() / detail::native::paths::productContents,
+        auto path = detail::resolveProductPath(paths_.productRoot() / detail::native::paths::productContents,
                                                     relativePath);
         if (!path)
             return std::unexpected(path.error());
@@ -259,7 +260,7 @@ namespace MKD
         if (!list.path.ends_with(".entries"))
             return std::unexpected("Expected an appendix entry list");
 
-        auto path = detail::AppendixReader::resolve(paths_.productRoot() / detail::native::paths::productContents,
+        auto path = detail::resolveProductPath(paths_.productRoot() / detail::native::paths::productContents,
                                                     list.path);
         if (!path)
             return std::unexpected(path.error());

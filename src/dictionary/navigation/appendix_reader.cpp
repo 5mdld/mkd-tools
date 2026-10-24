@@ -2,6 +2,7 @@
 // kiwakiwaaにより 2026/10/18 に作成されました。
 //
 
+#include "dictionary/package/paths.hpp"
 #include "dictionary/navigation/appendix_reader.hpp"
 #include "dictionary/package/native_format.hpp"
 #include "io/write_validation.hpp"
@@ -11,30 +12,6 @@
 
 namespace MKD::detail
 {
-    Result<std::filesystem::path> AppendixReader::resolve(const std::filesystem::path& contents, std::string_view path)
-    {
-        if (auto valid = WriteValidation::relativePath(path); !valid)
-            return std::unexpected(valid.error());
-
-        if (path.find_first_of("?#") != std::string_view::npos)
-            return std::unexpected("Appendix paths must not contain query strings or fragments");
-
-        std::error_code error;
-        auto resolved = std::filesystem::weakly_canonical(contents / WriteValidation::fromUtf8(path), error);
-        if (error)
-            return std::unexpected(error.message());
-
-        const auto base = std::filesystem::weakly_canonical(contents, error);
-        if (error)
-            return std::unexpected(error.message());
-
-        const auto relative = resolved.lexically_relative(base);
-        if (relative.empty() || *relative.begin() == "..")
-            return std::unexpected("Appendix path escapes the product");
-
-        return resolved;
-    }
-
     Result<AppendixMenu> AppendixReader::open(const std::filesystem::path& contents)
     {
         std::error_code error;
@@ -50,7 +27,7 @@ namespace MKD::detail
 
     Result<AppendixMenu> AppendixReader::read(std::string_view relative)
     {
-        auto path = resolve(contents_, relative);
+        auto path = resolveProductPath(contents_, relative);
         if (!path)
             return std::unexpected(path.error());
 
@@ -141,7 +118,7 @@ namespace MKD::detail
         const auto hash = contents->find('#');
         const auto path = contents->substr(0, hash);
         const auto fragment = hash == std::string::npos ? std::nullopt : std::optional(contents->substr(hash + 1));
-        if (auto resolved = resolve(contents_, path); !resolved)
+        if (auto resolved = resolveProductPath(contents_, path); !resolved)
             return std::unexpected(resolved.error());
 
         const auto extension = WriteValidation::fromUtf8(path).extension();
@@ -178,7 +155,7 @@ namespace MKD::detail
 
     Result<AppendixGallery> AppendixReader::gallery(std::string_view relative) const
     {
-        auto path = resolve(contents_, relative);
+        auto path = resolveProductPath(contents_, relative);
         if (!path)
             return std::unexpected(path.error());
 
@@ -194,7 +171,7 @@ namespace MKD::detail
             if (!image)
                 return std::unexpected("Appendix gallery item has no image file");
 
-            if (auto resolved = resolve(contents_, *image); !resolved)
+            if (auto resolved = resolveProductPath(contents_, *image); !resolved)
                 return std::unexpected(resolved.error());
 
             result.images.push_back(std::move(*image));

@@ -5,6 +5,10 @@ configure_file(authoring/resources/product_information_style.hpp.in product_info
 target_include_directories(mkd PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 
 target_sources(mkd PRIVATE
+        search/native_definitions.cpp
+        package/property_list.cpp
+        package/metadata_writer.cpp
+        authoring/metadata_preparation.cpp
         navigation/navigation.cpp
         navigation/native_navigation.cpp
         authoring/navigation_writer.cpp

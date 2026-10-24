@@ -2,6 +2,7 @@
 // kiwakiwaaにより 2026/10/19 に作成されました。
 //
 
+#include "dictionary/package/paths.hpp"
 #include "MKD/dictionary/navigation.hpp"
 #include "MKD/resource/retained_span.hpp"
 #include "MKD/resource/appendix_entry_list.hpp"
@@ -58,7 +59,7 @@ namespace MKD
                                                       const NavigationReference& reference,
                                                       std::vector<std::pair<std::string, size_t>> ancestors)
     {
-        auto resolved = detail::AppendixReader::resolve(contents, reference.path);
+        auto resolved = detail::resolveProductPath(contents, reference.path);
         if (!resolved)
             return std::unexpected(resolved.error());
 
@@ -291,7 +292,7 @@ namespace MKD
                                   ? (std::filesystem::path(path).parent_path() / name).lexically_normal().
                                   generic_string()
                                   : name;
-        auto resolved = detail::AppendixReader::resolve(contents, relative);
+        auto resolved = detail::resolveProductPath(contents, relative);
         if (!resolved)
             return std::unexpected(resolved.error());
 

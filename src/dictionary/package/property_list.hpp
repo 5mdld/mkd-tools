@@ -89,3 +89,18 @@ namespace MKD::detail
         pugi::xml_document document_;
     };
 }
+
+namespace MKD
+{
+    struct LocalizedString;
+}
+
+namespace MKD::detail::property_list
+{
+    pugi::xml_node root(pugi::xml_document& document, std::string_view kind);
+    void string(pugi::xml_node dictionary, std::string_view key, std::string_view value);
+    void integer(pugi::xml_node dictionary, std::string_view key, uint64_t value);
+    void boolean(pugi::xml_node dictionary, std::string_view key, bool value);
+    void localized(pugi::xml_node dictionary, std::string_view key, const std::optional<LocalizedString>& value);
+    Result<void> write(const std::filesystem::path& path, pugi::xml_document& document);
+}

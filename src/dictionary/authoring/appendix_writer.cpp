@@ -2,6 +2,7 @@
 // kiwakiwaaにより 2026/10/18 に作成されました。
 //
 
+#include "dictionary/package/paths.hpp"
 #include "dictionary/authoring/appendix_writer.hpp"
 #include "dictionary/navigation/appendix_reader.hpp"
 #include "dictionary/creation_metadata.hpp"
@@ -102,7 +103,7 @@ namespace MKD::detail
         if (auto valid = WriteValidation::xmlText(path); !valid)
             return valid;
 
-        auto resolved = AppendixReader::resolve(product_.output->path() / native::paths::productContents, path);
+        auto resolved = resolveProductPath(product_.output->path() / native::paths::productContents, path);
         if (!resolved)
             return std::unexpected(resolved.error());
 
