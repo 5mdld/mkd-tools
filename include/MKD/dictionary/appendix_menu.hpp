@@ -18,7 +18,7 @@ namespace MKD
         std::string path;
         /** Shows one ungrouped list instead of headline sections. */
         bool singleSection = false;
-        /** Uses each row's item ID when opening a subentry. */
+        /** Uses each row's item ID when choosing grouping headlines. */
         bool usingAnchorId = false;
         bool skipThe = false;
     };

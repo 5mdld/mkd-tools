@@ -120,9 +120,22 @@ class CreationTests(DictionaryTest):
         for term in ('鳥などが声を出す', '鳴禽', '鳴禽'):
             dictionary.add_search_key(mkd.SearchScope.SENSE, term, sense)
         dictionary.add_search_key(mkd.SearchScope.EXAMPLE, '春の林で鳴禽の声を聞く。', example)
+        passages = dictionary.add_appendix_entries('passages', 'Passages', [
+            mkd.AppendixEntry(sense), mkd.AppendixEntry(example, label='Example'),
+        ])
+        product.set_appendices(mkd.AppendixMenu([mkd.AppendixSection('', [
+            mkd.AppendixItem('Page headlines', mkd.AppendixList(passages.path)),
+            mkd.AppendixItem('Anchor headlines', mkd.AppendixList(passages.path, using_anchor_id=True)),
+        ])]))
+        product.set_navigation(mkd.NavigationIndex())
         dictionary.finish()
         product.finish()
-        reopened = mkd.DictionaryProduct.open(path).dictionaries[0]
+        opened = mkd.DictionaryProduct.open(path)
+        appendices = opened.navigation.item_at(0, 0).target
+        for i in range(2):
+            entries = appendices.item_at(0, i).target
+            self.assertEqual([entries.item_at(0, row).target.entry_id for row in range(2)], [sense, example])
+        reopened = opened.dictionaries[0]
         search = mkd.DictionarySearch(reopened)
         for scope, term, target in (
             (mkd.SearchScope.SENSE, '鳥などが声を出す', sense),

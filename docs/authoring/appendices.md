@@ -120,9 +120,9 @@ Add the corresponding assets before finishing. Paths in menu targets are relativ
 to the product's `Contents` directory. Registration through the dictionary writer
 returns a target with that prefix already included.
 
-For lists of subentries, enable `using_anchor_id` / `usingAnchorId`. Otherwise the
-Dictionaries app opens their parent articles. `single_section` / `singleSection` shows
-one list without headline grouping:
+Enable `using_anchor_id` / `usingAnchorId` to group rows by subentry headlines
+instead of parent article headlines. Selecting a row follows its full entry target
+either way. `single_section` / `singleSection` shows one list without headline grouping:
 
 === "Python"
 

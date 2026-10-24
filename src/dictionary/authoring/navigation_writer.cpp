@@ -262,12 +262,9 @@ namespace MKD::detail
                 if (!value)
                     return std::unexpected(list->path + " row " + std::to_string(i + 1) + ": " + value.error());
 
-                auto target = value->entryId;
-                if (!list->usingAnchorId)
-                    target.itemId = 0;
-
+                // The anchor option affects headline grouping, while row selection follows the full entry ID.
                 converted.sections.front().items.push_back(
-                    {std::string(value->label.value_or("")), AppendixEntryLink{target, value->dictionaryId}});
+                    {std::string(value->label.value_or("")), AppendixEntryLink{value->entryId, value->dictionaryId}});
             }
             return index(converted, nav::plainLabel(item.label), depth + 1);
         }
