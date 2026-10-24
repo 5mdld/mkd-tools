@@ -3,7 +3,7 @@
 //
 
 #include "dictionary/package/resource_resolver.hpp"
-#include "dictionary/package/native_format.hpp"
+#include "dictionary/package/package_format.hpp"
 #include "io/write_validation.hpp"
 
 

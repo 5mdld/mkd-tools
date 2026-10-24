@@ -6,7 +6,7 @@
 #include "install_transaction.hpp"
 #include "MKDCLI/commands.hpp"
 #include "dictionary/package/property_list.hpp"
-#include "dictionary/package/native_format.hpp"
+#include "dictionary/package/package_format.hpp"
 #include "MKD/platform/directory_dictionary_source.hpp"
 #include "MKD/platform/macos/paths.hpp"
 #include "receipt/purchase_receipt.hpp"

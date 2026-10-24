@@ -4,7 +4,7 @@
 
 #include "dictionary/authoring/product_icon.hpp"
 #include "dictionary/authoring/product_build.hpp"
-#include "dictionary/package/native_format.hpp"
+#include "dictionary/package/package_format.hpp"
 
 #define STBI_ONLY_PNG
 #define STBI_ONLY_JPEG

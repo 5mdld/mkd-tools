@@ -10,7 +10,7 @@ namespace MKD
     enum class CreationProfile;
 }
 
-#include "dictionary/package/native_format.hpp"
+#include "dictionary/package/package_format.hpp"
 #include <map>
 #include <unordered_set>
 

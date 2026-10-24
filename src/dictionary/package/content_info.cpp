@@ -3,8 +3,8 @@
 //
 
 #include "dictionary/package/content_info.hpp"
-#include "dictionary/package/native_format.hpp"
-#include "dictionary/search/native_definitions.hpp"
+#include "dictionary/package/package_format.hpp"
+#include "dictionary/search/search_definitions.hpp"
 #include "dictionary/package/property_list.hpp"
 
 #include <algorithm>

@@ -2,7 +2,7 @@
 // kiwakiwaaにより 2026/10/19 に作成されました。
 //
 
-#include "dictionary/navigation/native_navigation.hpp"
+#include "dictionary/navigation/index_format.hpp"
 
 namespace MKD::detail::native::navigation
 {

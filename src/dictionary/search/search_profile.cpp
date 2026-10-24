@@ -3,7 +3,7 @@
 //
 
 #include "search_profile.hpp"
-#include "dictionary/package/native_format.hpp"
+#include "dictionary/package/package_format.hpp"
 
 #include <algorithm>
 

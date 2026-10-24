@@ -24,7 +24,7 @@ nav = [
     { "Searching" = [
         { "Search and open results" = "searching/queries.md" },
         { "Scopes and matching" = "searching/matching.md" },
-        { "Native search rules" = "searching/native_rules.md" },
+        { "Native search rules" = "searching/dictionary_rules.md" },
     ] },
     { "Authoring" = [
         { "Your first dictionary" = "authoring/first_dictionary.md" },

@@ -3,7 +3,7 @@
 //
 
 #include "MKD/resource/resource_loader.hpp"
-#include "dictionary/package/native_format.hpp"
+#include "dictionary/package/package_format.hpp"
 #include "resource/detail/font_format.hpp"
 #include "resource/detail/resource_files.hpp"
 #include "dictionary/navigation/appendix_reader.hpp"

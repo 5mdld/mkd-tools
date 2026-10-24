@@ -3,8 +3,8 @@
 //
 
 #include "asset_writer.hpp"
-#include "dictionary/package/native_format.hpp"
-#include "dictionary/content/native_content.hpp"
+#include "dictionary/package/package_format.hpp"
+#include "dictionary/content/content_markup.hpp"
 #include "io/write_validation.hpp"
 #include "output/directory_output.hpp"
 #include <algorithm>

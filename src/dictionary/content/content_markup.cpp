@@ -2,7 +2,7 @@
 // kiwakiwaaにより 2026/10/17 に作成されました。
 //
 
-#include "dictionary/content/native_content.hpp"
+#include "dictionary/content/content_markup.hpp"
 #include "io/write_validation.hpp"
 
 #include <charconv>

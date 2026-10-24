@@ -5,7 +5,7 @@
 #include "MKD/dictionary/paths.hpp"
 #include "paths.hpp"
 #include "io/write_validation.hpp"
-#include "dictionary/package/native_format.hpp"
+#include "dictionary/package/package_format.hpp"
 
 #include "MKD/dictionary/content_analysis.hpp"
 #include <charconv>

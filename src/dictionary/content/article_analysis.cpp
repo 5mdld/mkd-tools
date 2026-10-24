@@ -4,7 +4,7 @@
 
 #include "MKD/dictionary/content_analysis.hpp"
 #include "analysis_support.hpp"
-#include "native_content.hpp"
+#include "content_markup.hpp"
 #include "io/write_validation.hpp"
 #include <algorithm>
 #include <pugixml.hpp>

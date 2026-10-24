@@ -5,9 +5,9 @@
 #include "search_index_builder.hpp"
 #include "MKD/dictionary/product_writer.hpp"
 #include "reference_index.hpp"
-#include "dictionary/search/native_definitions.hpp"
+#include "dictionary/search/search_definitions.hpp"
 #include "dictionary/search/key_analysis.hpp"
-#include "dictionary/package/native_format.hpp"
+#include "dictionary/package/package_format.hpp"
 #include "io/write_validation.hpp"
 #include "unicode/unicode.hpp"
 #include <limits>

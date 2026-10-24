@@ -6,7 +6,7 @@
 #include "product_build.hpp"
 #include "MKD/dictionary/content_analysis.hpp"
 #include "unicode/utf8.hpp"
-#include "dictionary/content/native_content.hpp"
+#include "dictionary/content/content_markup.hpp"
 #include "dictionary/authoring/metadata_preparation.hpp"
 #include "dictionary/package/metadata_writer.hpp"
 #include "io/write_validation.hpp"

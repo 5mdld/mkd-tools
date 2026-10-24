@@ -6,7 +6,7 @@
 
 #include "MKD/dictionary/dictionary.hpp"
 #include "MKD/dictionary/dictionary_search.hpp"
-#include "dictionary/search/native_definitions.hpp"
+#include "dictionary/search/search_definitions.hpp"
 
 #include <map>
 

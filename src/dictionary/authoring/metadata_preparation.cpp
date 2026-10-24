@@ -4,9 +4,9 @@
 
 #include "metadata_preparation.hpp"
 #include "MKD/dictionary/product_writer.hpp"
-#include "dictionary/package/native_format.hpp"
-#include "dictionary/search/native_definitions.hpp"
-#include "dictionary/navigation/native_navigation.hpp"
+#include "dictionary/package/package_format.hpp"
+#include "dictionary/search/search_definitions.hpp"
+#include "dictionary/navigation/index_format.hpp"
 #include "io/write_validation.hpp"
 
 namespace MKD::detail::metadata_preparation

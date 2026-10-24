@@ -2,7 +2,7 @@
 // kiwakiwaaにより 2026/10/24 に作成されました。
 //
 
-#include "native_definitions.hpp"
+#include "search_definitions.hpp"
 #include "MKD/dictionary/product_writer.hpp"
 
 namespace MKD::detail::search

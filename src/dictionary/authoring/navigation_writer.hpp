@@ -6,7 +6,7 @@
 
 #include "MKD/dictionary/navigation.hpp"
 #include "binary/binary_buffer.hpp"
-#include "dictionary/navigation/native_navigation.hpp"
+#include "dictionary/navigation/index_format.hpp"
 #include <set>
 #include <map>
 #include <pugixml.hpp>

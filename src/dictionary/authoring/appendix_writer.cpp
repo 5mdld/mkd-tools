@@ -7,7 +7,7 @@
 #include "dictionary/navigation/appendix_reader.hpp"
 #include "dictionary/package/property_list.hpp"
 #include "dictionary/authoring/product_build.hpp"
-#include "dictionary/package/native_format.hpp"
+#include "dictionary/package/package_format.hpp"
 #include "io/write_validation.hpp"
 #include <algorithm>
 #include <format>

@@ -46,5 +46,5 @@ expected keystore names automatically. Product-specific delegates cannot be auth
 
 These choices do not generate keys from text or determine navigation membership.
 Add [keys](../authoring/search_keys.md) and [navigation](../authoring/navigation.md)
-explicitly. See [native search rules](../searching/native_rules.md) when reading
+explicitly. See [native search rules](../searching/dictionary_rules.md) when reading
 existing dictionaries with specialised profiles.

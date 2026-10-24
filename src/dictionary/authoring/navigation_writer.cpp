@@ -3,10 +3,10 @@
 //
 
 #include "dictionary/package/paths.hpp"
-#include "dictionary/package/native_format.hpp"
+#include "dictionary/package/package_format.hpp"
 #include "dictionary/authoring/navigation_writer.hpp"
-#include "dictionary/navigation/native_navigation.hpp"
-#include "dictionary/content/native_content.hpp"
+#include "dictionary/navigation/index_format.hpp"
+#include "dictionary/content/content_markup.hpp"
 #include "dictionary/authoring/product_build.hpp"
 #include "dictionary/package/property_list.hpp"
 #include "dictionary/navigation/appendix_reader.hpp"

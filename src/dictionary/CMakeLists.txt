@@ -6,12 +6,12 @@ target_include_directories(mkd PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 
 target_sources(mkd PRIVATE
         navigation/navigation.cpp
-        navigation/native_navigation.cpp
+        navigation/index_format.cpp
         authoring/navigation_writer.cpp
         navigation/appendix_reader.cpp
         authoring/appendix_writer.cpp
         content/inline_text.cpp
-        content/native_content.cpp
+        content/content_markup.cpp
         package/resource_resolver.cpp
         content/css_lexer.cpp
         content/analysis.cpp
@@ -35,7 +35,7 @@ target_sources(mkd PRIVATE
         authoring/product_icon.cpp
         authoring/dictionary_writer.cpp
         authoring/entry_writer.cpp
-        search/native_definitions.cpp
+        search/search_definitions.cpp
         authoring/metadata_preparation.cpp
         package/property_list.cpp
         package/metadata_writer.cpp

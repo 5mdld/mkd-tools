@@ -100,4 +100,4 @@ With `Native`, an unsuccessful exact lookup may retry as a prefix lookup.
 A headword query may also try idioms or examples. Use `None` to skip these retries
 and native query expansion.
 
-Next: [Understand native search rules](native_rules.md).
+Next: [Understand native search rules](dictionary_rules.md).

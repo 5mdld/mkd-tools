@@ -4,8 +4,8 @@
 
 #include "metadata_writer.hpp"
 #include "property_list.hpp"
-#include "native_format.hpp"
-#include "dictionary/search/native_definitions.hpp"
+#include "package_format.hpp"
+#include "dictionary/search/search_definitions.hpp"
 #include "io/output_file.hpp"
 
 namespace MKD::detail::metadata_writer

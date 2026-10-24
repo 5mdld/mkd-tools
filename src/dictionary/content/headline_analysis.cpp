@@ -3,7 +3,7 @@
 //
 
 #include "MKD/dictionary/content_analysis.hpp"
-#include "native_content.hpp"
+#include "content_markup.hpp"
 #include "io/write_validation.hpp"
 #include "unicode/utf8.hpp"
 #include <algorithm>
