@@ -226,8 +226,11 @@ namespace MKD
 
         for (const auto& store : headlines_)
         {
-            if (const auto components = store.componentsForEntryId(entryId))
-                return detail::unicode::toUtf8(components->full());
+            auto components = store.findComponentsForEntryId(entryId);
+            if (!components)
+                return std::unexpected(components.error());
+            if (*components)
+                return detail::unicode::toUtf8((**components).full());
         }
 
         return std::unexpected("headline not found");
@@ -241,8 +244,11 @@ namespace MKD
 
         for (const auto& store : headlines_)
         {
-            if (const auto headline = store.sortingHeadlineForEntryId(entryId))
-                return detail::unicode::toUtf8(*headline);
+            auto headline = store.findSortingHeadlineForEntryId(entryId);
+            if (!headline)
+                return std::unexpected(headline.error());
+            if (*headline)
+                return detail::unicode::toUtf8(**headline);
         }
 
         return std::unexpected("sorting headline not found");

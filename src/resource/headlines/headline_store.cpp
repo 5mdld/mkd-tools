@@ -235,29 +235,44 @@ namespace MKD
         return impl_->recordAt(index).id;
     }
 
-    Result<HeadlineComponents> HeadlineStore::componentsForEntryId(const EntryId& id, bool allowFallback) const
+    Result<std::optional<HeadlineComponents>> HeadlineStore::findComponentsForEntryId(const EntryId& id,
+                                                                                     bool allowFallback) const
     {
         auto index = impl_->find(id);
-        if (!index && allowFallback && id.itemId != 0)
-            index = impl_->find({id.pageId, 0});
+        if (!index && allowFallback && id.itemId != 0) index = impl_->find({id.pageId, 0});
+        if (!index) return std::optional<HeadlineComponents>{};
+        return impl_->components(impl_->recordAt(*index)).transform([](HeadlineComponents value)
+        {
+            return std::optional(std::move(value));
+        });
+    }
 
-        if (!index)
-            return std::unexpected("Headline not found");
+    Result<std::optional<std::u16string>> HeadlineStore::findSortingHeadlineForEntryId(const EntryId& id) const
+    {
+        auto index = impl_->find(id);
+        if (!index && id.itemId != 0) index = impl_->find({id.pageId, 0});
+        if (!index) return std::optional<std::u16string>{};
+        const auto record = impl_->recordAt(*index);
+        return impl_->readString(record.sorting == 0 ? record.headline : record.sorting).transform([](std::u16string value)
+        {
+            return std::optional(std::move(value));
+        });
+    }
 
-        return impl_->components(impl_->recordAt(*index));
+    Result<HeadlineComponents> HeadlineStore::componentsForEntryId(const EntryId& id, bool allowFallback) const
+    {
+        auto found = findComponentsForEntryId(id, allowFallback);
+        if (!found) return std::unexpected(found.error());
+        if (!*found) return std::unexpected("Headline not found");
+        return std::move(**found);
     }
 
     Result<std::u16string> HeadlineStore::sortingHeadlineForEntryId(const EntryId& id) const
     {
-        auto index = impl_->find(id);
-        if (!index && id.itemId != 0)
-            index = impl_->find({id.pageId, 0});
-
-        if (!index)
-            return std::unexpected("Headline not found");
-
-        const auto record = impl_->recordAt(*index);
-        return impl_->readString(record.sorting == 0 ? record.headline : record.sorting);
+        auto found = findSortingHeadlineForEntryId(id);
+        if (!found) return std::unexpected(found.error());
+        if (!*found) return std::unexpected("Headline not found");
+        return std::move(**found);
     }
 
     size_t HeadlineStore::size() const noexcept { return impl_->size(); }

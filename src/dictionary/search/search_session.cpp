@@ -598,15 +598,10 @@ namespace MKD::detail::search
     {
         for (const auto& store : profile_.dictionary().headlines())
         {
-            auto value = store.componentsForEntryId(id, !sorting);
-            if (!value)
-            {
-                if (value.error() == "Headline not found")
-                    continue;
-
-                return std::unexpected(value.error());
-            }
-            return unicode::toUtf8(sorting ? value->sortingHeadline : value->full());
+            auto value = store.findComponentsForEntryId(id, !sorting);
+            if (!value) return std::unexpected(value.error());
+            if (!*value) continue;
+            return unicode::toUtf8(sorting ? (**value).sortingHeadline : (**value).full());
         }
         return std::optional<std::string>{};
     }

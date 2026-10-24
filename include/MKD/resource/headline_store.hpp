@@ -9,6 +9,7 @@
 
 #include <filesystem>
 #include <memory>
+#include <optional>
 #include <ranges>
 #include <string>
 #include <string_view>
@@ -38,6 +39,10 @@ namespace MKD
         /** Only the requested entry is decoded. Returned component strings are owned. */
         [[nodiscard]] Result<HeadlineComponents> entryAt(size_t index) const;
         [[nodiscard]] Result<EntryId> entryIdAt(size_t index) const;
+        /** An absent record is distinct from a record whose strings cannot be decoded. */
+        [[nodiscard]] Result<std::optional<HeadlineComponents>> findComponentsForEntryId(const EntryId& id,
+                                                                                        bool allowFallback = true) const;
+        [[nodiscard]] Result<std::optional<std::u16string>> findSortingHeadlineForEntryId(const EntryId& id) const;
         [[nodiscard]] Result<HeadlineComponents> componentsForEntryId(const EntryId& id,
                                                                       bool allowFallback = true) const;
         [[nodiscard]] Result<std::u16string> sortingHeadlineForEntryId(const EntryId& id) const;
