@@ -74,7 +74,7 @@ namespace MKD::Python
     {
         auto view = nb::class_<NavigationView>(module, "NavigationView");
         auto item = nb::class_<NavigationItemView>(module, "NavigationItemView");
-        view.def_prop_ro("native_kind", &NavigationView::nativeKind);
+        view.def_prop_ro("kind_code", &NavigationView::kindCode);
         view.def_prop_ro("section_count", &NavigationView::sectionCount);
         view.def("section_title", [](const NavigationView& view, const size_t section)
         {

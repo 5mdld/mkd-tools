@@ -63,7 +63,7 @@ refuses an existing destination. This creates one dictionary under `Contents/ja`
 | `displayName` | Human-readable product name. |
 | `identifier` | Stable textual identity for this dictionary's content. |
 | `directory` | Content directory name inside `Contents/`. |
-| `dictionaryId` | Nonzero 16-bit native dictionary ID. |
+| `dictionaryId` | Nonzero 16-bit dictionary ID. |
 
 Content identifiers, directory names, and numeric dictionary IDs must be unique
 within the product. Choose numeric IDs that do not collide with products you
@@ -97,7 +97,7 @@ intend to use together. `1000` is an example, not a reserved custom ID.
     entry.writeXml(articleXml).value();
     ```
 
-Supply a complete UTF-8 XML document using the native article markup shown above.
+Supply a complete UTF-8 XML document using the article XML markup shown above.
 The namespace is part of that markup. `createEntry()` / `create_entry()` allocates
 a page ID. `target` refers to the whole article.
 
@@ -148,7 +148,7 @@ controls headline ordering. Neither field comes from the XML heading.
 
 Search keys use UTF-8. Both keys point to the same article. Neither the headline
 nor `sortingHeadline` automatically adds search keys. The writer normalises
-these keys using its supported default native profile.
+these keys using its supported general search profile.
 
 ## Add copyright information
 

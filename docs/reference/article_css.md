@@ -34,4 +34,4 @@ These controls only affect interaction.
 | `word-select: character` | Suppresses word expansion. Double-clicking no longer selects the whole word. | ![Narrow selection instead of the whole word](../assets/reference/character.png) |
 | `user-select: none` | Prevents selection of the span. `text` allows it, `auto` uses the default. The `-webkit-user-select` is also accepted. | ![Unselectable grey span beside selectable text](../assets/reference/unselectable.png) |
 | `user-select: nocopy` | Leaves text visible but excludes it from copied text. Copying this paragraph yields only `Copied birb.` | ![Visible Not copied span beside Copied birb](../assets/reference/nocopy.png) |
-| `speech: disabled` / `enabled` | Excludes or includes text in native read-aloud. Here playback begins with `The`, skipping `Silent birb.` | ![Native speech highlight starts after the disabled span](../assets/reference/speech.png) |
+| `speech: disabled` / `enabled` | Excludes or includes text in read-aloud in Dictionaries. Here playback begins with `The`, skipping `Silent birb.` | ![Read-aloud highlight starts after the disabled span](../assets/reference/speech.png) |

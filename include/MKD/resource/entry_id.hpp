@@ -15,7 +15,7 @@ namespace MKD
     {
         uint32_t pageId;
         uint16_t itemId;
-        /** Native reference with at least five decimal page digits and four hexadecimal item digits. */
+        /** Entry reference with at least five decimal page digits and four hexadecimal item digits. */
         [[nodiscard]] std::string toString() const;
         auto operator<=>(const EntryId&) const = default;
     };

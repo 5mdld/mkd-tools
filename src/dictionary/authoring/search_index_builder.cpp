@@ -35,7 +35,7 @@ namespace MKD::detail
             (scope == SearchScope::Sense || scope == SearchScope::Example);
         if (passage)
         {
-            if (target.itemId > std::numeric_limits<uint16_t>::max() - native::search::normalizedHeadlineOffset)
+            if (target.itemId > std::numeric_limits<uint16_t>::max() - monokakido::search::normalizedHeadlineOffset)
                 return std::unexpected("Native passage companion overflows target " + target.toString());
 
             if (const auto found = passages_.find(target); found != passages_.end() && found->second.scope != scope)
@@ -46,7 +46,7 @@ namespace MKD::detail
         if (it == keys_.end())
         {
             auto writer =
-                KeystoreWriter::create(root_ / native::paths::keys / (std::string(info->filename) + ".keystore"));
+                KeystoreWriter::create(root_ / monokakido::paths::keys / (std::string(info->filename) + ".keystore"));
             if (!writer)
                 return std::unexpected(writer.error());
             it = keys_.emplace(scope, std::move(*writer)).first;
@@ -77,7 +77,7 @@ namespace MKD::detail
     {
         for (const auto& target : passages_ | std::views::keys)
         {
-            const auto companion = search::companionTarget(target, native::search::normalizedHeadlineOffset);
+            const auto companion = search::companionTarget(target, monokakido::search::normalizedHeadlineOffset);
             if (references.contains(companion) || references.references(companion))
                 return std::unexpected("Native passage companion " + companion.toString() + " for " +
                     target.toString() + " collides with an article target or headline");
@@ -95,8 +95,8 @@ namespace MKD::detail
                 text += term;
             }
 
-            // Native filtering reads this record directly. Only the passage itself is a jump target.
-            const auto companion = search::companionTarget(target, native::search::normalizedHeadlineOffset);
+            // Passage filtering reads this record directly. Only the passage itself is a jump target.
+            const auto companion = search::companionTarget(target, monokakido::search::normalizedHeadlineOffset);
             if (auto written = headlines_.at(HeadlineRole::Primary)
                                          .add({
                                              .headline = unicode::toUtf16(text),
@@ -114,7 +114,7 @@ namespace MKD::detail
         if (auto valid = WriteValidation::entryId(headline.entryId); !valid)
             return valid;
 
-        const auto& names = native::paths::headlineFiles;
+        const auto& names = monokakido::paths::headlineFiles;
         const auto index = static_cast<size_t>(role);
         if (index >= names.size())
             return std::unexpected("Invalid headline role");
@@ -122,7 +122,7 @@ namespace MKD::detail
         auto it = headlines_.find(role);
         if (it == headlines_.end())
         {
-            auto writer = HeadlineStoreWriter::create(root_ / native::paths::headlines / names[index]);
+            auto writer = HeadlineStoreWriter::create(root_ / monokakido::paths::headlines / names[index]);
             if (!writer)
                 return std::unexpected(writer.error());
 

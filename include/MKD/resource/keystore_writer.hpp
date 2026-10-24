@@ -20,7 +20,7 @@ namespace MKD
     struct KeystorePosting
     {
         EntryId entryId;
-        /** Encoded dictionary ID. Generic native search replaces it with the current dictionary's ID. */
+        /** Encoded dictionary ID. Dictionary-specific search replaces it with the current dictionary's ID. */
         uint16_t dictionaryId = 0;
         /** Optional trailing byte with profile-specific meaning. Leave absent for ordinary keys. */
         std::optional<uint8_t> type;

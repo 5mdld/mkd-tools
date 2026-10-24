@@ -22,14 +22,14 @@ Ask the dictionary which scopes are available:
 === "Python"
 
     ```python
-    available_scopes = search.scopes(fallback=mkd.SearchFallback.NATIVE)
+    available_scopes = search.scopes(fallback=mkd.SearchFallback.DICTIONARY_RULES)
     examples = search.search("鳥", scope=mkd.SearchScope.EXAMPLE)
     ```
 
 === "C++"
 
     ```cpp
-    auto availableScopes = search.scopes(MKD::SearchFallback::Native);
+    auto availableScopes = search.scopes(MKD::SearchFallback::DictionaryRules);
     auto examples = search.search("鳥", {.scope = MKD::SearchScope::Example}).value();
     ```
 
@@ -38,7 +38,7 @@ See the [scope reference](../reference/search_profiles.md) for other indexes and
 ## Prefix and suffix matching
 
 Use `match` to choose prefix, suffix or exact lookup. Set `fallback` to `None`
-when you want the match and scope to stay fixed. The default, `Native`, can try
+when you want the match and scope to stay fixed. The default, `DictionaryRules`, can try
 variations according to the dictionary's rules.
 
 === "Python"
@@ -96,8 +96,8 @@ excluded from prefix and suffix results. An absent required index yields no matc
 Exact lookup still normalises the query using the dictionary's rules. It does
 not require byte-for-byte equality with the stored key.
 
-With `Native`, an unsuccessful exact lookup may retry as a prefix lookup.
+With `DictionaryRules`, an unsuccessful exact lookup may retry as a prefix lookup.
 A headword query may also try idioms or examples. Use `None` to skip these retries
-and native query expansion.
+and dictionary-specific query expansion.
 
-Next: [Understand native search rules](dictionary_rules.md).
+Next: [Understand dictionary-specific search rules](dictionary_rules.md).

@@ -39,7 +39,7 @@ A compound belongs to its parent article's page.
 is an error. Search results keep their own sequence, including compound targets.
 Order lookup reads no article XML.
 
-Without an order file, the native fallback is page IDs `1` through the article
+Without an order file, the default browsing order is page IDs `1` through the article
 count. It assumes consecutive IDs. The writer always generates an order file,
 including for dictionaries with gaps in their page IDs.
 

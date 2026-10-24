@@ -35,13 +35,13 @@ Use the unfinished `dictionary` from [the first dictionary](first_dictionary.md)
     entry.writeXml(articleXml).value();
     ```
 
-Supply a complete UTF-8 XML document using the native article markup shown above.
+Supply a complete UTF-8 XML document using the article XML markup shown above.
 The namespace is part of that markup. `createEntry()` / `create_entry()` allocates
 a page ID. `target` refers to the whole article.
 
 ## Structure the document
 
-Use UTF-8 XML with the native namespace and `hmhtml="5"`. Put the title and
+Use UTF-8 XML with the XHTML namespace and `hmhtml="5"`. Put the title and
 stylesheet links in `<head>`, then the displayed article in `<body>`.
 
 ```xml

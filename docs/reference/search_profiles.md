@@ -1,6 +1,6 @@
 # Search scopes and creation profiles
 
-A scope selects indexed material. A creation profile selects the generic native behaviour for the product.
+A scope selects indexed material. A creation profile selects the search behaviour and package defaults for a new product.
 
 ## Choose a search scope
 
@@ -35,7 +35,7 @@ and `Example`.
 
 ## Creation profiles
 
-| Profile | Use it for | Native scopes |
+| Profile | Use it for | Supported scopes |
 | --- | --- | --- |
 | `GENERAL` / `General` | General dictionaries, glossaries and reference works | All generic scopes in the tables above |
 | `KANWA` / `Kanwa` | Kanji entries with independently searchable jukugo | `Headword`, `Idiom`, `Sense`, `Example` |
@@ -46,5 +46,5 @@ expected keystore names automatically. Product-specific delegates cannot be auth
 
 These choices do not generate keys from text or determine navigation membership.
 Add [keys](../authoring/search_keys.md) and [navigation](../authoring/navigation.md)
-explicitly. See [native search rules](../searching/dictionary_rules.md) when reading
+explicitly. See [dictionary-specific search rules](../searching/dictionary_rules.md) when reading
 existing dictionaries with specialised profiles.

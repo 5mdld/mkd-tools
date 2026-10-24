@@ -35,5 +35,5 @@ namespace MKD
         return impl_->profile.scopes(fallback);
     }
 
-    bool DictionarySearch::supportsNativeSearch() const noexcept { return !impl_->profile.unsupportedReason(); }
+    bool DictionarySearch::supportsDictionaryRules() const noexcept { return !impl_->profile.unsupportedReason(); }
 }

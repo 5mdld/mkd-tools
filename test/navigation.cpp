@@ -105,9 +105,9 @@ namespace MKD::test
             return *require(product.navigation());
         }();
 
-        EXPECT_EQ(root.nativeKind(), 1);
+        EXPECT_EQ(root.kindCode(), 1);
         auto radicals = std::get<NavigationView>(require(root.itemAt(0, 0)).target);
-        EXPECT_EQ(radicals.nativeKind(), 2);
+        EXPECT_EQ(radicals.kindCode(), 2);
         auto radical = require(radicals.itemAt(0, 0));
         EXPECT_EQ(std::get<RadicalLabel>(radical.label).reading, "とり");
         auto members = std::get<NavigationView>(radical.target);

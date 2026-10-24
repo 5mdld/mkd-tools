@@ -17,10 +17,10 @@ namespace MKD::detail::search
             if (auto scope = store.scope())
                 directStores_[*scope].push_back(&store);
 
-        mapNativeStores();
-        for (const auto& [scope, stores] : nativeStores_)
+        mapDictionaryStores();
+        for (const auto& [scope, stores] : dictionaryStores_)
             if (!stores.empty())
-                nativeScopes_.push_back(scope);
+                dictionaryScopes_.push_back(scope);
 
         for (const auto& [scope, stores] : directStores_)
             if (!stores.empty())
@@ -30,19 +30,19 @@ namespace MKD::detail::search
     void SearchProfile::selectDefinitions()
     {
         const auto name = dictionary_.searchConfiguration().productSearchClass.value_or(
-            native::search::defaultClass.name.data());
+            monokakido::search::defaultClass.name.data());
         const auto definition =
-            std::ranges::find(native::search::classes, name, &native::search::ClassDefinition::name);
-        if (definition == native::search::classes.end())
+            std::ranges::find(monokakido::search::classes, name, &monokakido::search::ClassDefinition::name);
+        if (definition == monokakido::search::classes.end())
             unsupported_ = "Unsupported native search class: " + name;
         else
             class_ = *definition;
 
         if (const auto& delegate = dictionary_.searchConfiguration().productDelegateClass)
         {
-            const auto found = std::ranges::find(native::search::delegates, *delegate,
-                                                 &native::search::DelegateDefinition::name);
-            if (found != native::search::delegates.end())
+            const auto found = std::ranges::find(monokakido::search::delegates, *delegate,
+                                                 &monokakido::search::DelegateDefinition::name);
+            if (found != monokakido::search::delegates.end())
                 delegate_ = *found;
             else if (!unsupported_)
                 unsupported_ = "Unsupported native search delegate: " + *delegate;
@@ -52,10 +52,10 @@ namespace MKD::detail::search
     void SearchProfile::selectNormalization()
     {
         const auto name = dictionary_.content().keyNormalization.value_or(
-            native::search::defaultNormalization.name.data());
-        const auto definition = std::ranges::find(native::search::normalizations, name,
-                                                  &native::search::NormalizationDefinition::name);
-        normalizationKnown_ = definition != native::search::normalizations.end();
+            monokakido::search::defaultNormalization.name.data());
+        const auto definition = std::ranges::find(monokakido::search::normalizations, name,
+                                                  &monokakido::search::NormalizationDefinition::name);
+        normalizationKnown_ = definition != monokakido::search::normalizations.end();
         if (normalizationKnown_)
             normalization_ = definition->options | delegate_.normalization;
         else
@@ -66,16 +66,16 @@ namespace MKD::detail::search
     {
         if (const auto found = directStores_.find(source); found != directStores_.end())
         {
-            auto& stores = nativeStores_[destination];
+            auto& stores = dictionaryStores_[destination];
             for (const auto* store : found->second)
                 if (std::ranges::find(stores, store) == stores.end())
                     stores.push_back(store);
         }
     }
 
-    void SearchProfile::mapNativeStores()
+    void SearchProfile::mapDictionaryStores()
     {
-        if (class_.family == native::search::Family::Kanwa)
+        if (class_.family == monokakido::search::Family::Kanwa)
         {
             addStores(SearchScope::Headword, SearchScope::Headword);
             addStores(SearchScope::Headword, SearchScope::Idiom);
@@ -84,7 +84,7 @@ namespace MKD::detail::search
             addStores(SearchScope::Example, SearchScope::Example);
             addStores(SearchScope::Sense, SearchScope::Sense);
         }
-        else if (class_.family == native::search::Family::Kogo)
+        else if (class_.family == monokakido::search::Family::Kogo)
         {
             for (const auto scope : {
                      SearchScope::Headword, SearchScope::Example, SearchScope::Sense, SearchScope::Modern
@@ -93,11 +93,11 @@ namespace MKD::detail::search
         }
         else
         {
-            nativeStores_ = directStores_;
+            dictionaryStores_ = directStores_;
             if (delegate_.includesSupplementaryHeadwords)
                 for (const auto& store : dictionary_.keystores())
-                    if (store.filename() == native::paths::supplementaryHeadwords)
-                        nativeStores_[SearchScope::Headword].push_back(&store);
+                    if (store.filename() == monokakido::paths::supplementaryHeadwords)
+                        dictionaryStores_[SearchScope::Headword].push_back(&store);
         }
     }
 
@@ -145,26 +145,26 @@ namespace MKD::detail::search
 
     bool SearchProfile::splitsQuery(const SearchScope scope) const noexcept
     {
-        if (class_.family == native::search::Family::Kanwa && scope == SearchScope::Idiom) return false;
+        if (class_.family == monokakido::search::Family::Kanwa && scope == SearchScope::Idiom) return false;
         return hasHeadlineKeyIdentifiers() || compoundSearch(scope)
-            || (class_.family == native::search::Family::Kogo && scope == SearchScope::Modern);
+            || (class_.family == monokakido::search::Family::Kogo && scope == SearchScope::Modern);
     }
 
     bool SearchProfile::complexSearch(const SearchScope scope) const noexcept
     {
-        if (class_.family == native::search::Family::Kanwa || class_.family == native::search::Family::Complex)
+        if (class_.family == monokakido::search::Family::Kanwa || class_.family == monokakido::search::Family::Complex)
             return scope == SearchScope::Example || scope == SearchScope::Sense;
 
         const auto id = dictionary_.content().dictionaryId;
-        return class_.family == native::search::Family::Kogo && id
-            && std::ranges::find(native::search::classicalComplexDictionaries, *id) !=
-            native::search::classicalComplexDictionaries.end()
+        return class_.family == monokakido::search::Family::Kogo && id
+            && std::ranges::find(monokakido::search::classicalComplexDictionaries, *id) !=
+            monokakido::search::classicalComplexDictionaries.end()
             && (scope == SearchScope::Example || scope == SearchScope::Sense || scope == SearchScope::Modern);
     }
 
     std::span<const Keystore* const> SearchProfile::stores(const SearchScope scope, const SearchFallback fallback) const
     {
-        const auto& map = fallback == SearchFallback::Native ? nativeStores_ : directStores_;
+        const auto& map = fallback == SearchFallback::DictionaryRules ? dictionaryStores_ : directStores_;
         const auto found = map.find(scope);
         return found == map.end() ? std::span<const Keystore* const>{} : found->second;
     }
@@ -173,14 +173,14 @@ namespace MKD::detail::search
     {
         if (fallback == SearchFallback::None)
             return directScopes_;
-        return unsupported_ ? std::span<const SearchScope>{} : nativeScopes_;
+        return unsupported_ ? std::span<const SearchScope>{} : dictionaryScopes_;
     }
 
     uint16_t SearchProfile::headlineOffset(const SearchScope scope) const noexcept
     {
-        return class_.family == native::search::Family::Kogo && scope == SearchScope::Modern
-                   ? native::search::modernHeadlineOffset
-                   : native::search::normalizedHeadlineOffset;
+        return class_.family == monokakido::search::Family::Kogo && scope == SearchScope::Modern
+                   ? monokakido::search::modernHeadlineOffset
+                   : monokakido::search::normalizedHeadlineOffset;
     }
 
     unicode::DictionaryKeyNormalizeOption SearchProfile::modernNormalization() const noexcept

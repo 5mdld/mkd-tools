@@ -47,8 +47,7 @@ Completion checks that:
 - Referenced local assets and configured presentation stylesheets exist.
 - Any explicit browsing order contains every page exactly once.
 
-Validation covers supported references and resources, rather than every native
-presentation feature. Product-specific delegates and headline-key identifier
+Validation covers supported references and resources, rather than every presentation feature in Dictionaries. Product-specific delegates and headline-key identifier
 authoring are not supported.
 
 ## Install and replace
@@ -74,4 +73,4 @@ bookmarks to survive changed article order, preserve the affected IDs when
 [importing content](../reference/authoring_options.md#import-explicit-ids).
 
 Verify search, links, navigation, media and both article presentations in the
-actual app. The writer checks references, but it does not reproduce native layout.
+actual app. The writer checks references, but it does not reproduce the layout rendered by Dictionaries.

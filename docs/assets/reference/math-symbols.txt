@@ -1,4 +1,4 @@
-Named symbols in the native math catalogue, Dictionaries 1.4.6
+Named symbols in the Dictionaries math catalogue, Dictionaries 1.4.6
 Only registered symbol families with non-empty glyph definitions are included.
 Formatting syntax and limitations: ../../reference/mathematics.md
 

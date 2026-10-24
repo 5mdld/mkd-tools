@@ -1,4 +1,4 @@
-# Browse native indexes
+# Browse navigation indexes
 
 [![KJT groups 鳥 entries by the number of strokes outside the radical.](../assets/guide/kjt-radicals.png)](../assets/guide/kjt-radicals.png)
 
@@ -6,9 +6,9 @@
 
 Indexes are category trees, separate from search results and article order. Use an open `product`.
 
-## Browse native indexes
+## Browse navigation indexes
 
-Native indexes organise entries into categories, radicals, readings or stroke
+Navigation indexes organise entries into categories, radicals, readings or stroke
 groups. They are separate from search results and article browsing order.
 
 === "Python"
@@ -47,5 +47,9 @@ Opening reads only the root. Child indexes are opened as their items are read,
 and article bodies remain untouched. Child views retain their data after the
 product closes. A product with ordinary appendix menus returns `None` /
 `std::nullopt`.
+
+`kind_code` in Python (`kindCode()` in C++) exposes the numeric kind stored in a
+binary index, such as the code for radicals or readings. Property-list menus
+report zero. Unknown codes remain available as numbers.
 
 Next: [Read appendix menus](appendices.md).

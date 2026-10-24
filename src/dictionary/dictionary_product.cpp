@@ -41,7 +41,7 @@ namespace MKD
             path = fs::absolute(path, error);
             if (error) return std::unexpected(error.message());
             auto metadata = DictionaryMetadata::loadFromPath(
-                path / detail::native::paths::productContents / (path.stem().string() + ".json")
+                path / detail::monokakido::paths::productContents / (path.stem().string() + ".json")
             );
             if (!metadata)
                 return std::unexpected(std::format("Failed to load metadata: '{}'", metadata.error()));
@@ -53,7 +53,7 @@ namespace MKD
             if (!paths)
                 return std::unexpected(std::format("Failed to resolve paths: '{}'", paths.error()));
 
-            auto appendices = detail::AppendixReader::open(path / detail::native::paths::productContents);
+            auto appendices = detail::AppendixReader::open(path / detail::monokakido::paths::productContents);
             if (!appendices) return std::unexpected(appendices.error());
 
             return ProductBase{
@@ -135,7 +135,7 @@ namespace MKD
             {
                 auto content = contentDef;
                 auto configuration = searchConfiguration;
-                const auto directory = paths.productRoot() / detail::native::paths::productContents / content.directory;
+                const auto directory = paths.productRoot() / detail::monokakido::paths::productContents / content.directory;
                 if (auto info = detail::ContentInfo::load(directory, content, configuration); !info)
                     return std::unexpected(info.error());
 
@@ -247,7 +247,7 @@ namespace MKD
 
     Result<RetainedSpan> DictionaryProduct::resource(std::string_view relativePath) const
     {
-        auto path = detail::resolveProductPath(paths_.productRoot() / detail::native::paths::productContents,
+        auto path = detail::resolveProductPath(paths_.productRoot() / detail::monokakido::paths::productContents,
                                                relativePath);
         if (!path)
             return std::unexpected(path.error());
@@ -260,7 +260,7 @@ namespace MKD
         if (!list.path.ends_with(".entries"))
             return std::unexpected("Expected an appendix entry list");
 
-        auto path = detail::resolveProductPath(paths_.productRoot() / detail::native::paths::productContents,
+        auto path = detail::resolveProductPath(paths_.productRoot() / detail::monokakido::paths::productContents,
                                                list.path);
         if (!path)
             return std::unexpected(path.error());
@@ -280,7 +280,7 @@ namespace MKD
 
     Result<std::optional<NavigationView>> DictionaryProduct::navigation() const
     {
-        namespace nav = detail::native::navigation;
+        namespace nav = detail::monokakido::navigation;
 
         std::string relative;
         if (metadata_.appendixViewController == nav::generalController)
@@ -294,7 +294,7 @@ namespace MKD
         else
             return std::optional<NavigationView>{};
 
-        auto root = NavigationView::open(paths_.productRoot() / detail::native::paths::productContents, {relative, {}});
+        auto root = NavigationView::open(paths_.productRoot() / detail::monokakido::paths::productContents, {relative, {}});
         if (!root)
             return std::unexpected(root.error());
 
@@ -317,7 +317,7 @@ namespace MKD
 
     std::optional<fs::path> DictionaryProduct::iconPath() const
     {
-        const auto iconsDir = paths_.productRoot() / detail::native::paths::productContents / "icons";
+        const auto iconsDir = paths_.productRoot() / detail::monokakido::paths::productContents / "icons";
         if (!fs::is_directory(iconsDir))
             return std::nullopt;
 

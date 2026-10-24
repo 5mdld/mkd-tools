@@ -52,7 +52,7 @@ namespace MKD::detail
     void ProductBuild::configureNavigation(bool kanwa)
     {
         metadata_.appendixViewController =
-            kanwa ? native::navigation::kanwaController : native::navigation::generalController;
+            kanwa ? monokakido::navigation::kanwaController : monokakido::navigation::generalController;
         metadata_.appendixFirst = true;
     }
 
@@ -111,7 +111,7 @@ namespace MKD::detail
             return std::unexpected(output.error());
 
         std::error_code error;
-        std::filesystem::create_directory((*output)->path() / native::paths::productContents, error);
+        std::filesystem::create_directory((*output)->path() / monokakido::paths::productContents, error);
         if (error)
             return std::unexpected(error.message());
 
@@ -170,19 +170,19 @@ namespace MKD::detail
         if (auto valid = WriteValidation::relativePath(relative); !valid)
             return output_->fail(valid.error());
 
-        if (relative == name_ + ".json" || relative == native::paths::appendixInfo ||
-            relative == native::paths::moreInfo)
+        if (relative == name_ + ".json" || relative == monokakido::paths::appendixInfo ||
+            relative == monokakido::paths::moreInfo)
             return output_->fail("Asset path is reserved for generated product metadata");
 
         const auto path = WriteValidation::fromUtf8(relative);
-        if (*path.begin() == native::paths::appendixMenus)
+        if (*path.begin() == monokakido::paths::appendixMenus)
             return output_->fail("Asset path is reserved for generated appendix menus");
 
         for (const auto& dictionary : dictionaries_)
             if (*path.begin() == WriteValidation::fromUtf8(dictionary->metadata().directory))
                 return output_->fail("Use the dictionary writer for content assets");
 
-        DirectoryOutput directory(output_->path() / native::paths::productContents, false, false);
+        DirectoryOutput directory(output_->path() / monokakido::paths::productContents, false, false);
         if (auto prepared = directory.prepare(); !prepared)
             return output_->fail(prepared.error());
 
@@ -240,7 +240,7 @@ namespace MKD::detail
 
         if (profile_ == CreationProfile::Kanwa)
         {
-            for (const auto& scope : native::search::kanwaScopes)
+            for (const auto& scope : monokakido::search::kanwaScopes)
                 if (scopes.contains(scope.scope))
                     metadata_.searchScopeNames.emplace_back(scope.name);
         }

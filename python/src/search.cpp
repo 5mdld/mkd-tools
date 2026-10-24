@@ -49,7 +49,7 @@ namespace MKD::Python
             .value("SUFFIX", SearchMode::Suffix);
         nb::enum_<SearchFallback>(module, "SearchFallback")
             .value("NONE", SearchFallback::None)
-            .value("NATIVE", SearchFallback::Native);
+            .value("DICTIONARY_RULES", SearchFallback::DictionaryRules);
         nb::enum_<SearchOrigin>(module, "SearchOrigin")
             .value("QUERY", SearchOrigin::Query)
             .value("INFLECTION", SearchOrigin::Inflection)
@@ -95,9 +95,9 @@ namespace MKD::Python
         auto type = nb::class_<DictionarySearch>(module, "DictionarySearch");
         type.def(nb::init<const Dictionary&>(), "dictionary"_a, nb::keep_alive<1, 2>());
 
-        type.def_prop_ro("supports_native_search", &DictionarySearch::supportsNativeSearch);
+        type.def_prop_ro("supports_dictionary_rules", &DictionarySearch::supportsDictionaryRules);
 
-        type.def("scopes", &searchScopes, nb::kw_only(), "fallback"_a = SearchFallback::Native);
+        type.def("scopes", &searchScopes, nb::kw_only(), "fallback"_a = SearchFallback::DictionaryRules);
 
         type.def(
             "search",
@@ -108,6 +108,6 @@ namespace MKD::Python
                     query, {.scope = scope, .match = match, .fallback = fallback, .limit = limit}));
             },
             "query"_a, nb::kw_only(), "scope"_a = SearchScope::Headword, "match"_a = SearchMode::Prefix,
-            "fallback"_a = SearchFallback::Native, "limit"_a = 0, nb::call_guard<nb::gil_scoped_release>());
+            "fallback"_a = SearchFallback::DictionaryRules, "limit"_a = 0, nb::call_guard<nb::gil_scoped_release>());
     }
 }

@@ -89,9 +89,9 @@ namespace MKD::Python
             .def(nb::init<EntryId, std::string>(), "target"_a, "text"_a)
             .def_ro("target", &EntryLink::target)
             .def_ro("text", &EntryLink::text);
-        nb::class_<NativeMarkup>(module, "NativeMarkup")
+        nb::class_<HeadlineMarkup>(module, "HeadlineMarkup")
             .def(nb::init<std::string>(), "text"_a)
-            .def_ro("text", &NativeMarkup::text);
+            .def_ro("text", &HeadlineMarkup::text);
     }
 
     void bindInlineText(nb::module_& module)

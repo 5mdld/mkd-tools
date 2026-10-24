@@ -24,7 +24,7 @@ Spelling 鶫 and reading つぐみ can both lead to one article. Use an allocate
 
 Search keys use UTF-8. Both keys point to the same article. Neither the headline
 nor `sortingHeadline` automatically adds search keys. The writer normalises
-these keys using its supported default native profile.
+these keys using its supported general search profile.
 
 ## Restrict a key to exact matching
 

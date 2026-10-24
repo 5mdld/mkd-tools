@@ -45,14 +45,14 @@ namespace MKD
         auto operator<=>(const EntryLink&) const = default;
     };
 
-    /** Preserves native tokens which have no portable content representation. */
-    struct NativeMarkup
+    /** Preserves an encoded headline command without interpreting it. */
+    struct HeadlineMarkup
     {
         std::string text;
-        auto operator<=>(const NativeMarkup&) const = default;
+        auto operator<=>(const HeadlineMarkup&) const = default;
     };
 
-    using InlineElement = std::variant<std::string, Ruby, Gaiji, EntryLink, NativeMarkup>;
+    using InlineElement = std::variant<std::string, Ruby, Gaiji, EntryLink, HeadlineMarkup>;
 
     /** Owns its text. Encoders reject content which their target syntax cannot represent. */
     class InlineText
@@ -63,7 +63,7 @@ namespace MKD
         [[nodiscard]] static Result<InlineText> fromHeadline(std::u16string_view text);
         [[nodiscard]] Result<std::u16string> toHeadline() const;
         [[nodiscard]] Result<std::string> toXhtml() const;
-        /** Uses ruby base text and gaiji replacement text. Unknown native tokens are errors. */
+        /** Uses ruby base text and gaiji replacement text. Preserved headline commands return an error. */
         [[nodiscard]] Result<std::string> plainText() const;
 
     private:

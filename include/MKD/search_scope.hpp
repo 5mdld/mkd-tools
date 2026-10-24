@@ -28,7 +28,7 @@ namespace MKD
         Numeral = 101
     };
 
-    /** Accepts native metadata names and index stems, including profile-specific aliases. */
+    /** Accepts product metadata names and index stems, including profile-specific aliases. */
     [[nodiscard]] std::optional<SearchScope> searchScopeFromName(std::string_view name) noexcept;
     [[nodiscard]] std::optional<SearchScope> searchScopeFromFilename(std::string_view filename) noexcept;
 }

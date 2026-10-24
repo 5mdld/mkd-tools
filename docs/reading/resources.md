@@ -92,4 +92,4 @@ The C++ stream overload and `fragments()` remain available. Both approaches avoi
 assembling a contiguous font buffer. Night-mode CSS is available through
 `nightmodeStylesheet()` / `nightmode_stylesheet`.
 
-Next: [Browse native indexes](navigation.md).
+Next: [Browse navigation indexes](navigation.md).

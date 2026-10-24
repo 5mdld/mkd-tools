@@ -74,7 +74,7 @@ namespace MKD::test
         EXPECT_FALSE(DirectoryDictionarySource(workspace.path / "MissingBirb").findAllAvailable());
     }
 
-    TEST_F(DictionaryTest, NumericOrderIsTheNativeFallback)
+    TEST_F(DictionaryTest, NumericOrderIsTheDefaultBrowsingOrder)
     {
         Workspace workspace;
         const auto path = workspace.path / "Birbs";

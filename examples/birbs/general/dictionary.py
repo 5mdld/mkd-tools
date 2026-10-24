@@ -106,7 +106,7 @@ def add_entries(dictionary, entries):
         target = entry_targets["main"]
         title = entry["reading"] + "【" + entry["word"] + "】"
 
-        # The same structured text becomes article XML and a native headline.
+        # The same structured text becomes article XML and an encoded headline.
         if entry["word"] == "鶫":
             label = inline(mkd.Ruby("鶫", "つぐみ"))
         else:
@@ -138,8 +138,8 @@ def add_entries(dictionary, entries):
             role=mkd.HeadlineRole.SHORT,
         )
 
-        # NativeMarkup retains a headline command, not an XML element.
-        secondary = inline(mkd.NativeMarkup("{B:" + entry["word"] + "}"))
+        # HeadlineMarkup retains a headline command, not an XML element.
+        secondary = inline(mkd.HeadlineMarkup("{B:" + entry["word"] + "}"))
         dictionary.add_headline(
             mkd.HeadlineComponents(secondary.to_headline(), target),
             role=mkd.HeadlineRole.SECONDARY,

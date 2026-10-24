@@ -32,7 +32,7 @@ Names must be single filenames. Reference these assets with the content-relative
 paths `graphics/bird.svg` and `audio/bird.aac` in article XML. For example, an image
 uses `<img src="graphics/bird.svg" alt="鶫"/>`. The writer packs graphics and audio
 into named stores. `add_asset` cannot write into those generated directories.
-Native playback still depends on a supported media format.
+Playback in Dictionaries still depends on a supported media format.
 
 ## Place media in the article
 
@@ -42,7 +42,7 @@ Native playback still depends on a supported media format.
 ```
 
 An image’s `src` names the registered graphic. A link to an audio resource plays
-it when tapped. Use media formats supported by the native app. An audio link does
+it when tapped. Use media formats supported by the Dictionaries app. An audio link does
 not require a dedicated button API.
 
 Use `dictionary.add_asset()` / `addAsset()` for other content-relative loose

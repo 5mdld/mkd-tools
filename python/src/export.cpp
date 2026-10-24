@@ -149,7 +149,7 @@ namespace MKD::Python
         bindExportEvents(module);
         module.def("export_to_directory", &exportDictionary, "dictionary"_a, "destination"_a,
                    nb::kw_only(), "options"_a = ExportOptions{}, "progress"_a = nb::none(),
-                   "Export selected resources, releasing the GIL during native work. "
+                   "Export selected resources, releasing the GIL during C++ export work. "
                    "File failures are returned in the result. Progress events are owned copies. "
                    "Callbacks may run on workers. A callback exception is raised after export finishes.");
     }

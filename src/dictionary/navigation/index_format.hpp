@@ -9,7 +9,7 @@
 #include "unicode/utf8.hpp"
 #include <array>
 
-namespace MKD::detail::native::navigation
+namespace MKD::detail::monokakido::navigation
 {
     inline constexpr char rootPlist[] = "Root.plist";
     inline constexpr char rootIndex[] = "Top.idx";

@@ -17,7 +17,7 @@ namespace MKD
     class EntryOrder
     {
     public:
-        /** Maps an order file. When absent, native browsing assumes page IDs 1 through the store count. */
+        /** Maps an order file. When absent, Dictionaries assumes page IDs 1 through the store count. */
         [[nodiscard]] static Result<EntryOrder> open(const std::filesystem::path& path, const ResourceStore& entries);
 
         [[nodiscard]] size_t size() const noexcept;

@@ -63,6 +63,6 @@ places its items directly in the grid. A titled section becomes a submenu.
 `shorten_headlines` / `shortenHeadlines` selects shorter headlines for entry lists.
 
 Setting navigation changes the app’s 付録 tab to インデックス. Existing appendices
-remain under 付録 in the generated index. The writer generates the native files.
+remain under 付録 in the generated index. The writer generates the index files.
 
 Next: [Build kanwa indexes](kanwa_navigation.md).

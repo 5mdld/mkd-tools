@@ -121,7 +121,7 @@ to the product's `Contents` directory. Registration through the dictionary write
 returns a target with that prefix already included.
 
 For lists of subentries, enable `using_anchor_id` / `usingAnchorId`. Otherwise the
-native app opens their parent articles. `single_section` / `singleSection` shows
+Dictionaries app opens their parent articles. `single_section` / `singleSection` shows
 one list without headline grouping:
 
 === "Python"

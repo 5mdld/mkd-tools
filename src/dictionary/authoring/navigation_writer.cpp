@@ -19,7 +19,7 @@
 
 namespace MKD::detail
 {
-    namespace nav = native::navigation;
+    namespace nav = monokakido::navigation;
 
     nav::ItemKind NavigationWriter::Node::kind() const
     {
@@ -36,7 +36,7 @@ namespace MKD::detail
     }
 
     NavigationWriter::NavigationWriter(ProductBuild& product)
-        : product_(product), contents_(product.path() / native::paths::productContents),
+        : product_(product), contents_(product.path() / monokakido::paths::productContents),
           directory_(product.profile() == CreationProfile::Kanwa
                          ? product.firstContent().directory + "/" + nav::directory
                          : "navigation-menus"),
@@ -380,7 +380,7 @@ namespace MKD::detail
     {
         Node root;
         root.title = std::move(title);
-        // Native record tables are homogeneous. Split mixed menus into adjacent display sections.
+        // Binary navigation record tables are homogeneous. Split mixed menus into adjacent display sections.
         for (const auto& original : value.sections)
         {
             if (auto valid = WriteValidation::xmlText(original.title, true); !valid)
@@ -548,7 +548,7 @@ namespace MKD::detail
         for (const auto& image : value.images)
         {
             const auto relative = indexRelative(image);
-            html += "<p><img src=\"" + NativeContent::escapeXml(relative) + "\"/></p>";
+            html += "<p><img src=\"" + ContentMarkup::escapeXml(relative) + "\"/></p>";
         }
 
         html += "</body></html>";

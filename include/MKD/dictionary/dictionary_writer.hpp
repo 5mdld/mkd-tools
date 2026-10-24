@@ -42,8 +42,8 @@ namespace MKD
         [[nodiscard]] Result<void> addHeadline(HeadlineComponents headline,
                                                HeadlineRole role = HeadlineRole::Primary) const;
         /**
-         * Kanwa sense and example keys also generate native passage indexes.
-         * Each passage needs a primary headline and its own target. Companion records need no XML anchors.
+         * Kanwa sense and example keys generate additional search records for the Dictionaries app.
+         * Each indexed sense or example needs a primary headline and its own target. Generated records need no XML anchors.
          * Generated character keys also participate in direct searches.
          * Exact-only keys remain raw keys and do not generate passage indexes.
          */

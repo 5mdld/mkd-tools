@@ -69,7 +69,7 @@ namespace MKD::detail::keystore
     {
         if (mode == CompareMode::Length)
         {
-            // Native index A counts all code points, including spaces and hyphens.
+            // Index A counts all code points, including spaces and hyphens.
             const auto left = unicode::codepointCount(a);
             const auto right = unicode::codepointCount(b);
             if (left != right)

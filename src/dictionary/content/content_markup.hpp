@@ -10,21 +10,21 @@
 
 namespace MKD::detail
 {
-    struct NativeEntryReference
+    struct EntryReference
     {
         static std::optional<EntryId> parse(std::string_view text);
     };
 
-    struct NativeLabelToken
+    struct HeadlineToken
     {
         std::string_view source;
         std::vector<std::string_view> fields;
-        static Result<NativeLabelToken> read(std::string_view source);
-        static Result<NativeLabelToken> readLeading(std::string_view source);
+        static Result<HeadlineToken> read(std::string_view source);
+        static Result<HeadlineToken> readLeading(std::string_view source);
         [[nodiscard]] InlineElement element() const;
     };
 
-    struct NativeContent
+    struct ContentMarkup
     {
         static Result<void> labelText(std::string_view text, bool field = false);
         static Result<void> gaijiPath(std::string_view path);
@@ -37,7 +37,7 @@ namespace MKD::detail
         Result<std::string> operator()(const Ruby& ruby) const;
         Result<std::string> operator()(const Gaiji& gaiji) const;
         Result<std::string> operator()(const EntryLink& link) const;
-        Result<std::string> operator()(const NativeMarkup& markup) const;
+        Result<std::string> operator()(const HeadlineMarkup& markup) const;
     };
 
     struct PlainTextEncoder
@@ -46,7 +46,7 @@ namespace MKD::detail
         Result<std::string_view> operator()(const Ruby& ruby) const;
         Result<std::string_view> operator()(const Gaiji& gaiji) const;
         Result<std::string_view> operator()(const EntryLink& link) const;
-        Result<std::string_view> operator()(const NativeMarkup& markup) const;
+        Result<std::string_view> operator()(const HeadlineMarkup& markup) const;
     };
 
     struct XhtmlEncoder
@@ -55,11 +55,11 @@ namespace MKD::detail
         Result<std::string> operator()(const Ruby& ruby) const;
         Result<std::string> operator()(const Gaiji& gaiji) const;
         Result<std::string> operator()(const EntryLink& link) const;
-        Result<std::string> operator()(const NativeMarkup& markup) const;
+        Result<std::string> operator()(const HeadlineMarkup& markup) const;
     };
 }
 
-namespace MKD::detail::native::label
+namespace MKD::detail::monokakido::headline
 {
     inline constexpr char ruby[] = "RB";
     inline constexpr char image[] = "IMG";

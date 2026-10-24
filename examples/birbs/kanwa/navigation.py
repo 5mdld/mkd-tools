@@ -1,4 +1,4 @@
-"""Native kanwa indexes built from the example's kanji metadata."""
+"""Kanwa navigation indexes built from the example's kanji metadata."""
 
 from itertools import groupby
 

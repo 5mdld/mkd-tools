@@ -6,7 +6,7 @@ In 旺文社漢字典, a 熟語 search for ”ちょうご” opens 鳥語 withi
 ![The Dictionaries app with 鳥語 selected in KJT's 熟語 results and the compound visible within the 鳥 article.](../assets/kjt-chougo.png)
 
 The selected compound has its own headline and target. Its XML remains part of
-the 鳥 page. This shortened native excerpt shows the target on its container:
+the 鳥 page. This shortened article excerpt shows the target on its container:
 
 ```xml
 <SubItem id="08721-8006">
@@ -127,7 +127,7 @@ scope used for phrases in general dictionaries.
 ## Write the XML
 
 Use the compound target as the container's `id`. Formatting it produces the
-native ID spelling, such as `00001-8001`.
+canonical entry ID spelling, such as `00001-8001`.
 
 === "Python"
 
@@ -204,7 +204,7 @@ keys if the example should appear in search results.
 
 ## Link to a target
 
-`InlineText` builds escaped text and native links. Use an existing target, such as
+`InlineText` builds escaped text and article links. Use an existing target, such as
 the `compound` above:
 
 === "Python"

@@ -34,7 +34,7 @@ namespace MKD
             if (begin == std::string::npos)
                 break;
 
-            auto token = detail::NativeLabelToken::readLeading(std::string_view(utf8).substr(begin));
+            auto token = detail::HeadlineToken::readLeading(std::string_view(utf8).substr(begin));
             if (!token)
                 return std::unexpected(token.error());
 

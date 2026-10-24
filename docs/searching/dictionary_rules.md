@@ -1,4 +1,4 @@
-# Understand native search rules
+# Understand dictionary-specific search rules
 
 [![大辞泉 shows a headline in the result list and the selected article beside it.](../assets/guide/daijisen-search.png)](../assets/guide/daijisen-search.png)
 
@@ -8,12 +8,13 @@ The same query can follow different lookup rules in different dictionaries.
 
 ## Dictionary-specific search rules
 
-`Native` selects the supported search rules described by the product's metadata.
-You do not select an algorithm class yourself. Depending on the dictionary and
+`DictionaryRules` (`DICTIONARY_RULES` in Python) selects the supported search rules
+described by the product's metadata. You do not select an algorithm class
+yourself. Depending on the dictionary and
 scope, those rules can change which indexes are consulted, split a query into
 terms and intersect their results, try inflections, or retry another scope.
 
-| Dictionary / search | Behaviour under `Native` |
+| Dictionary / search | Behaviour under `DictionaryRules` |
 | --- | --- |
 | 大辞泉 headwords | Includes supplementary headword indexes when present, as well as the main headword index. |
 | 角川新字源 headwords | Searches both headword and idiom indexes. `Kanji` selects its headword index, while `Idiom` selects its idiom index. |
@@ -21,23 +22,25 @@ terms and intersect their results, try inflections, or retry another scope.
 | 詩語集 example and sense searches | Intersect character-component matches, with sorting-headline filtering for multi-character terms. |
 
 The algorithm is not identical across these dictionaries. A scope's name alone
-does not determine the lookup steps. Native rules are implemented for recognised
-profiles, rather than by calling the native app. Linguistic support can vary by platform.
+does not determine the lookup steps. mkd implements these rules for recognised
+search profiles. It does not call the Dictionaries app to perform searches.
+Linguistic support can vary by platform.
 
 === "Python"
 
     ```python
-    recognised = search.supports_native_search
+    recognised = search.supports_dictionary_rules
     ```
 
 === "C++"
 
     ```cpp
-    bool recognised = search.supportsNativeSearch();
+    bool recognised = search.supportsDictionaryRules();
     ```
 
-An unrecognised native profile returns an error on native search. Direct lookup
-with `None` can still work if the dictionary's normalisation is supported.
+An unrecognised search profile returns an error when using `DictionaryRules`.
+Direct lookup with `None` can still work if the dictionary's normalisation is
+supported.
 
 ## Inspect how a query matched
 
@@ -66,7 +69,7 @@ query terms or variations that contributed to the search, including their actual
 match mode and origin (`Query`, `Inflection`, `Compound`, or `JoinedQuery`). It is
 search-level information, not a list of matching substrings for each entry.
 
-Results follow stored index order and applicable native ordering rules, not a
+Results follow stored index order and applicable dictionary-specific ordering rules, not a
 relevance score. No matches is a successful empty result.
 
 Next: [Create your first dictionary](../authoring/first_dictionary.md).

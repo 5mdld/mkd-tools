@@ -21,7 +21,7 @@ Create a search object and reuse it for subsequent queries:
     auto result = search.search("つぐみ").value();
     ```
 
-This searches headwords by prefix, using the dictionary's native rules.
+This searches headwords by prefix, using the dictionary's configured search rules.
 In 大辞泉 it finds the bird 鶫 and a book titled つぐみ, among other entries
 beginning with that reading. Search uses indexed keys, not the displayed XML text.
 
@@ -52,7 +52,7 @@ beginning with that reading. Search uses indexed keys, not the displayed XML tex
     `result.entries` contains ordered page/anchor targets. `entryUtf8ById()`
     returns the complete article XML as an owning UTF-8 string.
 
-A headline can contain native formatting tokens. Article lookup returns the entire
+A headline can contain encoded headline commands. Article lookup returns the entire
 page even when the target refers to an anchor within it.
 
 ## Limit or cancel a search

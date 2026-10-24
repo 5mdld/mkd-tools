@@ -22,11 +22,11 @@ namespace MKD
     class Dictionary;
 
     // None performs one normalised index lookup.
-    // Native adds dictionary search rules and fallbacks.
+    // DictionaryRules follows the product's search profile, including query expansion and scope fallbacks.
     enum class SearchFallback : uint8_t
     {
         None,
-        Native
+        DictionaryRules
     };
 
     enum class SearchOrigin : uint8_t
@@ -41,7 +41,7 @@ namespace MKD
     {
         SearchScope scope = SearchScope::Headword;
         SearchMode match = SearchMode::Prefix;
-        SearchFallback fallback = SearchFallback::Native;
+        SearchFallback fallback = SearchFallback::DictionaryRules;
         // Zero leaves the result unlimited. Limits apply after filtering and ordering.
         size_t limit = 0;
     };
@@ -55,7 +55,10 @@ namespace MKD
         auto operator<=>(const SearchMatch&) const = default;
     };
 
-    /** Entry order follows the dictionary's stored key order, with native ordering rules when requested. */
+    /**
+     * Entry order follows the dictionary's stored key order,
+     * with dictionary-specific ordering rules when requested.
+     */
     struct SearchResult
     {
         std::vector<EntryId> entries;
@@ -82,16 +85,16 @@ namespace MKD
 
         /**
          * Calls have independent cancellation and may run concurrently.
-         * Empty queries return no matches. Native rules use platform linguistic support.
+         * Empty queries return no matches. Dictionary rules use platform linguistic support.
          */
         [[nodiscard]] Result<SearchResult> search(std::string_view query,
                                                   const SearchOptions& options = {}, std::stop_token stop = {}) const;
 
         /** Scopes available for the selected policy. The returned view belongs to this object. */
         [[nodiscard]] std::span<const SearchScope> scopes(
-            SearchFallback fallback = SearchFallback::Native) const noexcept;
-        /** Whether the dictionary's native class, delegate, indexes and normalisation are recognised. */
-        [[nodiscard]] bool supportsNativeSearch() const noexcept;
+            SearchFallback fallback = SearchFallback::DictionaryRules) const noexcept;
+        /** Whether the product's search class, delegate and key normalisation are recognised. */
+        [[nodiscard]] bool supportsDictionaryRules() const noexcept;
 
     private:
         struct Impl;

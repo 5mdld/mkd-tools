@@ -22,7 +22,7 @@ namespace MKD::detail::metadata_preparation
         if (name.contains('/') || name.starts_with('.'))
             return std::unexpected("Invalid product name");
 
-        const std::string identifier = std::string(native::defaults::productIdentifierPrefix) + name;
+        const std::string identifier = std::string(monokakido::defaults::productIdentifierPrefix) + name;
         if (auto valid = WriteValidation::xmlText(identifier); !valid)
             return std::unexpected(valid.error());
 
@@ -42,7 +42,7 @@ namespace MKD::detail::metadata_preparation
             return std::unexpected("Unknown creation profile");
 
         const auto searchClass =
-            profile == CreationProfile::Kanwa ? native::search::kanwaClass.name : native::search::defaultClass.name;
+            profile == CreationProfile::Kanwa ? monokakido::search::kanwaClass.name : monokakido::search::defaultClass.name;
         if (metadata.productSearchClass && *metadata.productSearchClass != searchClass)
             return std::unexpected("Specialised native search classes need an authoring profile");
 
@@ -56,9 +56,9 @@ namespace MKD::detail::metadata_preparation
         metadata.productSearchClass = searchClass;
         if (profile == CreationProfile::Kanwa)
         {
-            metadata.productDelegateClass = native::classes::kanwaDelegate;
-            metadata.contentsViewController = native::navigation::kanwaContents;
-            metadata.labelFormatter = native::navigation::kanwaFormatter;
+            metadata.productDelegateClass = monokakido::classes::kanwaDelegate;
+            metadata.contentsViewController = monokakido::navigation::kanwaContents;
+            metadata.labelFormatter = monokakido::navigation::kanwaFormatter;
         }
 
         for (const auto* text : {&metadata.displayName, &metadata.description, &metadata.genre, &metadata.productTitle})
@@ -104,7 +104,7 @@ namespace MKD::detail::metadata_preparation
         if (auto valid = WriteValidation::xmlText(content.directory); !valid)
             return std::unexpected(valid.error());
 
-        if (content.directory == native::paths::appendixMenus)
+        if (content.directory == monokakido::paths::appendixMenus)
             return std::unexpected("Content directory is reserved for appendix menus");
 
         if (content.directory.contains('/') || content.directory.starts_with('.'))
@@ -131,7 +131,7 @@ namespace MKD::detail::metadata_preparation
             if (auto valid = WriteValidation::xmlText(*content.version); !valid)
                 return std::unexpected(valid.error());
 
-        if (content.keyNormalization && *content.keyNormalization != native::search::defaultNormalization.name.data())
+        if (content.keyNormalization && *content.keyNormalization != monokakido::search::defaultNormalization.name.data())
             return std::unexpected("Creation currently supports the default native key normalisation");
 
         if (content.hasHeadlineKeyIdentifier.value_or(false))
@@ -140,7 +140,7 @@ namespace MKD::detail::metadata_preparation
         if (auto valid = validatePresentation(content.presentation); !valid)
             return std::unexpected(valid.error());
 
-        content.keyNormalization = native::search::defaultNormalization.name.data();
+        content.keyNormalization = monokakido::search::defaultNormalization.name.data();
         content.hasHeadlineKeyIdentifier = false;
         return content;
     }

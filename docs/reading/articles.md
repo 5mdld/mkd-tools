@@ -71,7 +71,7 @@ order in the app.
 
 A target may identify a passage inside an article. Use its page ID to read the
 whole XML document and retain the full target to locate the passage. Headline
-text can contain native formatting tokens. See [formatted headlines](../reference/indexes.md#decode-a-headline).
+text can contain encoded headline commands. See [formatted headlines](../reference/indexes.md#decode-a-headline).
 
 For byte views without an extra copy, see [buffers and ownership](../reference/buffers.md).
 

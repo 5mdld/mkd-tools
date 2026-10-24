@@ -1,6 +1,6 @@
 # Add an article section menu
 
-![Native section menu in 旺文社漢字典「鳥」](../assets/css/kjt-index.png)
+![Article section menu in 旺文社漢字典「鳥」](../assets/css/kjt-index.png)
 
 旺文社漢字典「鳥」. The app presents these links through its menu button.
 
@@ -47,7 +47,7 @@ article elements and use the same targets in the menu links:
     ```
 
 Insert both fragments into the article XML before writing it. Keep
-`entry-index { display: none; }` in the stylesheet. The native app reads the
+`entry-index { display: none; }` in the stylesheet. The Dictionaries app reads the
 links even though the menu element is hidden in the article body.
 
 Next: [Add ruby](ruby.md).

@@ -51,7 +51,7 @@ controls headline ordering. Neither field comes from the XML heading.
     dictionary.addHeadline({.headline = u"つぐみ", .entryId = target}, MKD::HeadlineRole::Short).value();
     ```
 
-Primary, secondary and short headlines are stored separately for native consumers
+Primary, secondary and short headlines are stored separately for the Dictionaries app
 to select. An alternative label does not replace the required primary headline or
 add a search key. Use `HeadlineRole::Secondary` / `HeadlineRole.SECONDARY` for the
 secondary store.

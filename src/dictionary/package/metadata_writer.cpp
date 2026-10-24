@@ -18,7 +18,7 @@ namespace MKD::detail::metadata_writer
             return std::unexpected("Cannot serialise product metadata");
 
         const auto bytes = std::span(reinterpret_cast<const uint8_t*>(json.data()), json.size());
-        const auto path = root / native::paths::productContents / (std::string(name) + ".json");
+        const auto path = root / monokakido::paths::productContents / (std::string(name) + ".json");
         if (auto written = OutputFile::writeAll(path, bytes); !written)
             return written;
 
@@ -26,12 +26,12 @@ namespace MKD::detail::metadata_writer
         auto dictionary = property_list::root(document, "dict");
         property_list::string(dictionary, metadata::package::identifier, metadata.productIdentifier);
         property_list::string(dictionary, metadata::package::version,
-                              metadata.version.value_or(native::defaults::productVersion));
-        property_list::string(dictionary, metadata::package::platform, native::defaults::platform);
-        property_list::string(dictionary, metadata::package::releaseType, native::defaults::releaseType);
-        property_list::string(dictionary, metadata::package::buildVersion, native::defaults::buildVersion);
-        property_list::integer(dictionary, metadata::package::mkdPackageVersion, native::defaults::mkdPackageVersion);
-        return property_list::write(root / native::paths::productInfo, document);
+                              metadata.version.value_or(monokakido::defaults::productVersion));
+        property_list::string(dictionary, metadata::package::platform, monokakido::defaults::platform);
+        property_list::string(dictionary, metadata::package::releaseType, monokakido::defaults::releaseType);
+        property_list::string(dictionary, metadata::package::buildVersion, monokakido::defaults::buildVersion);
+        property_list::integer(dictionary, metadata::package::mkdPackageVersion, monokakido::defaults::mkdPackageVersion);
+        return property_list::write(root / monokakido::paths::productInfo, document);
     }
 
     Result<void> writeContent(const std::filesystem::path& root, const DictionaryContent& metadata,
@@ -43,9 +43,9 @@ namespace MKD::detail::metadata_writer
         property_list::string(dictionary, metadata::content::directory, metadata.directory);
         property_list::integer(dictionary, metadata::content::dictionaryId, *metadata.dictionaryId);
         property_list::string(dictionary, metadata::content::version,
-                              metadata.version.value_or(native::defaults::contentVersion));
+                              metadata.version.value_or(monokakido::defaults::contentVersion));
         property_list::string(dictionary, metadata::content::keyNormalization,
-                              metadata.keyNormalization.value_or(native::search::defaultNormalization.name.data()));
+                              metadata.keyNormalization.value_or(monokakido::search::defaultNormalization.name.data()));
         property_list::boolean(dictionary, metadata::content::hasHeadlineKeyIdentifier,
                                metadata.hasHeadlineKeyIdentifier.value_or(false));
 
@@ -64,6 +64,6 @@ namespace MKD::detail::metadata_writer
         for (const auto& language : *metadata.languages)
             languages.append_child("string").text().set(language.c_str());
 
-        return property_list::write(root / native::paths::contentInfo, document);
+        return property_list::write(root / monokakido::paths::contentInfo, document);
     }
 }

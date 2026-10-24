@@ -9,12 +9,12 @@
 #include <cstdint>
 #include <string_view>
 
-namespace MKD::detail::native::classes
+namespace MKD::detail::monokakido::classes
 {
     inline constexpr char kanwaDelegate[] = "KLKanwaDicProductDelegate";
 }
 
-namespace MKD::detail::native::entry
+namespace MKD::detail::monokakido::entry
 {
     struct TargetRange
     {
@@ -30,7 +30,7 @@ namespace MKD::detail::native::entry
     };
 }
 
-namespace MKD::detail::native::paths
+namespace MKD::detail::monokakido::paths
 {
     inline constexpr char productContents[] = "Contents";
     inline constexpr char productInfo[] = "ContentInfo.plist";
@@ -53,7 +53,7 @@ namespace MKD::detail::native::paths
     inline constexpr char entryOrder[] = "contents-order.dat";
 }
 
-namespace MKD::detail::native::defaults
+namespace MKD::detail::monokakido::defaults
 {
     inline constexpr char productIdentifierPrefix[] = "jp.monokakido.Dictionaries.";
     inline constexpr char productVersion[] = "1.0";
@@ -64,21 +64,21 @@ namespace MKD::detail::native::defaults
     inline constexpr uint32_t mkdPackageVersion = 1;
 }
 
-namespace MKD::detail::native::paths
+namespace MKD::detail::monokakido::paths
 {
     inline constexpr std::array headlineFiles{
         "headline.headlinestore", "headline2.headlinestore", "short-headline.headlinestore"
     };
 }
 
-namespace MKD::detail::native::modernEntries
+namespace MKD::detail::monokakido::modernEntries
 {
     inline constexpr char8_t filenameSuffix[] = u8"-GendaiEntryRange.plist";
     inline constexpr char minimumKey[] = "MinimumEntryID";
     inline constexpr char maximumKey[] = "MaximumEntryID";
 }
 
-namespace MKD::detail::native::search
+namespace MKD::detail::monokakido::search
 {
     inline constexpr std::array<uint16_t, 2> classicalComplexDictionaries{75, 82};
     inline constexpr uint16_t normalizedHeadlineOffset = 2048;
@@ -86,12 +86,12 @@ namespace MKD::detail::native::search
     inline constexpr size_t modernHeadlinePrefixLength = 3;
 }
 
-namespace MKD::detail::native::contentTypes
+namespace MKD::detail::monokakido::contentTypes
 {
     inline constexpr char dictionary[] = "Dictionary";
 }
 
-namespace MKD::detail::native::information
+namespace MKD::detail::monokakido::information
 {
     inline constexpr char items[] = "items";
     inline constexpr char name[] = "name";
@@ -100,7 +100,7 @@ namespace MKD::detail::native::information
     inline constexpr char settings[] = "$settings$";
 }
 
-namespace MKD::detail::native::icons
+namespace MKD::detail::monokakido::icons
 {
     struct Variant
     {

@@ -79,13 +79,13 @@ namespace MKD::detail
         if (!image)
             return std::unexpected(image.error());
 
-        for (const auto& variant : native::icons::variants)
+        for (const auto& variant : monokakido::icons::variants)
         {
             auto png = image->png(variant.pixels);
             if (!png)
                 return std::unexpected(png.error());
 
-            const auto path = std::string(native::paths::icons) + "/" + product.name() + std::string(variant.suffix);
+            const auto path = std::string(monokakido::paths::icons) + "/" + product.name() + std::string(variant.suffix);
             if (auto written = product.writeAsset(path, *png); !written)
                 return written;
         }

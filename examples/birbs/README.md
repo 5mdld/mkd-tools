@@ -15,4 +15,4 @@ python examples/birbs/build.py build/birbs --encrypt
 ```
 
 The products demonstrate search scopes, headline variants, ruby, gaiji, media,
-fonts, native CSS, information pages, icons, native index navigation, appendix menus and browsing order.
+fonts, article CSS, information pages, icons, index navigation, appendix menus and browsing order.

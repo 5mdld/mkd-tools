@@ -16,7 +16,7 @@ namespace MKD::detail
 {
     Result<void> AppendixWriter::write(const ProductBuild& product, const AppendixMenu& menu)
     {
-        return AppendixWriter(product).menu(menu, native::paths::appendixInfo);
+        return AppendixWriter(product).menu(menu, monokakido::paths::appendixInfo);
     }
 
     Result<void> AppendixWriter::menu(const AppendixMenu& value, std::string_view path)
@@ -39,7 +39,7 @@ namespace MKD::detail
                 if (auto written = item(children.append_child("dict"), entry); !written)
                     return written;
         }
-        const auto output = product_.path() / native::paths::productContents / WriteValidation::fromUtf8(path);
+        const auto output = product_.path() / monokakido::paths::productContents / WriteValidation::fromUtf8(path);
         std::error_code error;
         if (std::filesystem::exists(output, error))
             return std::unexpected("Duplicate appendix menu path: " + std::string(path));
@@ -102,7 +102,7 @@ namespace MKD::detail
         if (auto valid = WriteValidation::xmlText(path); !valid)
             return valid;
 
-        auto resolved = resolveProductPath(product_.path() / native::paths::productContents, path);
+        auto resolved = resolveProductPath(product_.path() / monokakido::paths::productContents, path);
         if (!resolved)
             return std::unexpected(resolved.error());
 
@@ -123,7 +123,7 @@ namespace MKD::detail
             return valid;
 
         const auto path =
-            product_.path() / native::paths::productContents / WriteValidation::fromUtf8(value.path);
+            product_.path() / monokakido::paths::productContents / WriteValidation::fromUtf8(value.path);
         if (auto list = AppendixEntryList::open(path); !list)
             return std::unexpected(list.error());
 
@@ -169,7 +169,7 @@ namespace MKD::detail
 
     Result<void> AppendixWriter::target(pugi::xml_node node, const AppendixMenu& value)
     {
-        const auto path = std::format("{}/menu-{}.plist", native::paths::appendixMenus, ++nextMenu_);
+        const auto path = std::format("{}/menu-{}.plist", monokakido::paths::appendixMenus, ++nextMenu_);
         if (auto written = menu(value, path); !written)
             return written;
 
@@ -190,8 +190,8 @@ namespace MKD::detail
             property_list::string(images.append_child("dict"), metadata::appendix::file, image);
         }
         const auto relative =
-            std::format("{}/gallery-{}/{}", native::paths::appendixMenus, ++nextMenu_, native::paths::graphicsInfo);
-        const auto path = product_.path() / native::paths::productContents / relative;
+            std::format("{}/gallery-{}/{}", monokakido::paths::appendixMenus, ++nextMenu_, monokakido::paths::graphicsInfo);
+        const auto path = product_.path() / monokakido::paths::productContents / relative;
         std::error_code error;
         std::filesystem::create_directories(path.parent_path(), error);
         if (error)

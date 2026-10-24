@@ -15,14 +15,14 @@ namespace MKD::detail
     Result<AppendixMenu> AppendixReader::open(const std::filesystem::path& contents)
     {
         std::error_code error;
-        const auto exists = std::filesystem::exists(contents / native::paths::appendixInfo, error);
+        const auto exists = std::filesystem::exists(contents / monokakido::paths::appendixInfo, error);
         if (error)
             return std::unexpected(error.message());
 
         if (!exists)
             return AppendixMenu{};
 
-        return AppendixReader(contents).read(native::paths::appendixInfo);
+        return AppendixReader(contents).read(monokakido::paths::appendixInfo);
     }
 
     Result<AppendixMenu> AppendixReader::read(std::string_view relative)
@@ -99,7 +99,7 @@ namespace MKD::detail
         if (auto entry = properties.text(metadata::appendix::entry))
         {
             const auto separator = entry->rfind('-');
-            const auto id = NativeEntryReference::parse(entry->substr(0, separator));
+            const auto id = EntryReference::parse(entry->substr(0, separator));
             uint16_t dictionary = 0;
             if (!id || separator == std::string::npos)
                 return std::unexpected("Invalid appendix entry target: " + *entry);
@@ -129,7 +129,7 @@ namespace MKD::detail
                 properties.flag(metadata::appendix::skipThe)
             };
 
-        if (extension == ".plist" && WriteValidation::fromUtf8(path).filename() != native::paths::graphicsInfo)
+        if (extension == ".plist" && WriteValidation::fromUtf8(path).filename() != monokakido::paths::graphicsInfo)
         {
             auto menu = read(path);
             if (!menu)

@@ -36,7 +36,7 @@ namespace MKD
         [[nodiscard]] Result<AppendixEntryList> openAppendixList(const AppendixList& list) const;
         /** Maps document bytes on demand. The returned span retains its mapping independently of this product. */
         [[nodiscard]] Result<RetainedSpan> openAppendixDocument(const AppendixDocument& document) const;
-        /** Opens the native root on demand. Absence means the product uses ordinary appendices. */
+        /** Opens the root navigation index on demand. Absence means the product uses ordinary appendices. */
         [[nodiscard]] Result<std::optional<NavigationView>> navigation() const;
         [[nodiscard]] std::string displayTitle() const;
         [[nodiscard]] std::optional<fs::path> iconPath() const;

@@ -15,7 +15,7 @@
 
 namespace MKD
 {
-    namespace nav = detail::native::navigation;
+    namespace nav = detail::monokakido::navigation;
 
     // A view owns one backing store and describes one node within it. Descendants are opened on demand.
     struct NavigationView::Impl
@@ -235,7 +235,7 @@ namespace MKD
         return std::pair{*data, binary.header};
     }
 
-    uint32_t NavigationView::nativeKind() const noexcept
+    uint32_t NavigationView::kindCode() const noexcept
     {
         const auto binary = std::get_if<Impl::Binary>(&impl_->state);
         return binary ? binary->kind : 0;
@@ -459,7 +459,7 @@ namespace MKD
             text = text.substr(0, last);
         }
 
-        auto id = detail::NativeEntryReference::parse(text);
+        auto id = detail::EntryReference::parse(text);
         if (!id)
             return std::unexpected("Invalid navigation entry ID");
 

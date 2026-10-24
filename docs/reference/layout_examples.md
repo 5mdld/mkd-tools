@@ -1,6 +1,6 @@
-# Native layout examples
+# Article layout examples
 
-Short XML and CSS examples for the [native CSS reference](article_css.md).
+Short XML and CSS examples for the [article CSS reference](article_css.md).
 Add these rules to an [article stylesheet](../authoring/styling.md).
 
 ## Compact readings with warichu
@@ -50,7 +50,7 @@ For your own glyphs, use [gaiji registration](../authoring/gaiji.md#register-and
 
 ## Mathematical expressions
 
-![Native fractions in 大辞林「分数」](../assets/css/daijirin-math.png)
+![Fractions rendered in 大辞林「分数」](../assets/css/daijirin-math.png)
 
 大辞林「分数」. Both fractions remain upright within the vertical text.
 
@@ -169,7 +169,7 @@ character forms.
 ## Ruby presentation
 
 Ruby markup comes from [Add ruby](../authoring/ruby.md#add-ruby). Style its
-reading with the native display rules:
+reading with the Dictionaries display rules:
 
 ```css
 rt {

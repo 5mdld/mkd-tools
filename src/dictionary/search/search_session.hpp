@@ -31,7 +31,7 @@ namespace MKD::detail::search
 
         [[nodiscard]] Result<void> validate() const;
         [[nodiscard]] Result<SearchResult> finish(Matches result) const;
-        [[nodiscard]] Result<Matches> nativeQuery() const;
+        [[nodiscard]] Result<Matches> dictionaryQuery() const;
         [[nodiscard]] Result<Matches> fallbackScopes(const std::vector<std::string>& keys) const;
         [[nodiscard]] Result<Matches> terms(const std::vector<std::string>& keys, SearchScope scope) const;
 

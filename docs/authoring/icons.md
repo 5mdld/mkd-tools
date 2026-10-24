@@ -22,7 +22,7 @@ Supply one source image for your product. The app chooses the appropriate scale 
     ```
 
 Supply one square PNG or JPEG, up to 4096 pixels wide. The writer generates all
-13 native filename/scale variants. Supply the icon once per product. The input
+13 filename/scale variants required by Dictionaries. Supply the icon once per product. The input
 bytes are consumed during the call.
 
 Next: [Write article XML](articles.md).

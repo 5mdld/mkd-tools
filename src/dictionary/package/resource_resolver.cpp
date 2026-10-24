@@ -34,15 +34,15 @@ namespace MKD::detail
         const auto slash = path.find('/');
         const auto storeName = path.substr(0, slash);
         const auto name = slash == std::string_view::npos ? std::string_view{} : path.substr(slash + 1);
-        if (!name.empty() && (storeName == native::paths::graphics || storeName == native::paths::legacyGraphics))
+        if (!name.empty() && (storeName == monokakido::paths::graphics || storeName == monokakido::paths::legacyGraphics))
         {
             bool useLoaded = directory.empty();
             if (!directory.empty())
             {
                 std::error_code error;
-                const auto preferred = std::filesystem::is_directory(directory / native::paths::graphics, error)
-                                           ? native::paths::graphics
-                                           : native::paths::legacyGraphics;
+                const auto preferred = std::filesystem::is_directory(directory / monokakido::paths::graphics, error)
+                                           ? monokakido::paths::graphics
+                                           : monokakido::paths::legacyGraphics;
                 useLoaded = storeName == preferred;
             }
 
@@ -57,7 +57,7 @@ namespace MKD::detail
                 return store->get(name);
             }
         }
-        if (audio && storeName == native::paths::audio && !name.empty())
+        if (audio && storeName == monokakido::paths::audio && !name.empty())
             if (const auto store = std::get_if<NamedResourceStore>(audio))
                 return store->get(name);
 

@@ -14,7 +14,7 @@ Every result below is cropped from Monokakido 1.4.6.
 
 ## Formatting
 
-| Feature | Formula text | Native result |
+| Feature | Formula text | Result in Dictionaries |
 | --- | --- | --- |
 | Fraction | `\frac{a}{b}` | ![a over b](../assets/reference/math-fraction.png) |
 | Subscript and superscript | `x_{i}^{2}` | ![x with subscript i and superscript 2](../assets/reference/math-scripts.png) |
@@ -40,7 +40,7 @@ integrals such as `\iint`, and accents such as `\acute`, `\grave`, `\breve`,
 Vector forms include `\overrightarrow` and `\overleftrightarrow`.
 
 [Symbol command list](../assets/reference/math-symbols.txt) lists the named
-symbols with glyph definitions in the registered native command families.
+symbols with glyph definitions in the supported math command families.
 It is a lookup aid, not a list of TeX packages or environments.
 
 ## Limits

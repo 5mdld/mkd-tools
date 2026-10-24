@@ -76,7 +76,7 @@ namespace MKD
         /**
          * Decode entry ids for a previously located keystore position.
          * Resolved IDs apply the embedded conversion table. Stored IDs retain
-         * native key order and can be resolved after search intersections.
+         * stored key order and can be resolved after search intersections.
          *
          * @param type Which index to query
          * @param index Position within that index

@@ -41,7 +41,7 @@ Add 雀, then place it before 鶫.
     ```
 
 An explicit order must contain every page ID exactly once. The default is
-ascending page ID. This writes native browsing order. It does not reorder search
+ascending page ID. This writes the browsing order used by Dictionaries. It does not reorder search
 results or the resource-store iteration sequence.
 
 Finish the dictionary and product after adding the desired content.

@@ -39,15 +39,15 @@ namespace MKDCLI::macOS
     MKD::Result<MKD::DictionaryMetadata> readPackage(const std::filesystem::path& root)
     {
         using namespace MKD::detail;
-        auto info = PropertyList::open(root / native::paths::productInfo, "dict");
+        auto info = PropertyList::open(root / monokakido::paths::productInfo, "dict");
         if (!info ||
-            info->dictionary().integer(metadata::package::mkdPackageVersion) != native::defaults::mkdPackageVersion)
+            info->dictionary().integer(metadata::package::mkdPackageVersion) != monokakido::defaults::mkdPackageVersion)
             return std::unexpected("Not a supported mkd package. Rebuild it with the current ProductWriter.");
-        auto product = MKD::DictionaryMetadata::loadFromPath(root / native::paths::productContents /
+        auto product = MKD::DictionaryMetadata::loadFromPath(root / monokakido::paths::productContents /
                                                              (root.filename().string() + ".json"));
         if (!product)
             return std::unexpected(product.error());
-        const auto expectedId = std::string(native::defaults::productIdentifierPrefix) + root.filename().string();
+        const auto expectedId = std::string(monokakido::defaults::productIdentifierPrefix) + root.filename().string();
         if (product->productIdentifier != expectedId ||
             info->dictionary().text(metadata::package::identifier) != expectedId || product->contents.empty())
             return std::unexpected("Package identity does not match its metadata");
@@ -91,7 +91,7 @@ namespace MKDCLI::macOS
         {
             if (std::filesystem::exists(destination) && std::filesystem::equivalent(item.path, destination))
                 continue;
-            auto other = MKD::DictionaryMetadata::loadFromPath(item.path / MKD::detail::native::paths::productContents /
+            auto other = MKD::DictionaryMetadata::loadFromPath(item.path / MKD::detail::monokakido::paths::productContents /
                                                                (item.id + ".json"));
             if (!other)
                 return std::unexpected(other.error());

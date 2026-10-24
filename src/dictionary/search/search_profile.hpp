@@ -18,7 +18,7 @@ namespace MKD::detail::search
         explicit SearchProfile(const Dictionary& dictionary);
 
         [[nodiscard]] const Dictionary& dictionary() const noexcept { return dictionary_; }
-        [[nodiscard]] native::search::Family family() const noexcept { return class_.family; }
+        [[nodiscard]] monokakido::search::Family family() const noexcept { return class_.family; }
         [[nodiscard]] unicode::DictionaryKeyNormalizeOption normalization() const noexcept { return normalization_; }
         [[nodiscard]] bool normalizationKnown() const noexcept { return normalizationKnown_; }
         [[nodiscard]] bool japanese() const noexcept;
@@ -46,16 +46,16 @@ namespace MKD::detail::search
     private:
         void selectDefinitions();
         void selectNormalization();
-        void mapNativeStores();
+        void mapDictionaryStores();
         void addStores(SearchScope destination, SearchScope source);
 
         const Dictionary& dictionary_;
-        native::search::ClassDefinition class_ = native::search::defaultClass;
-        native::search::DelegateDefinition delegate_{};
+        monokakido::search::ClassDefinition class_ = monokakido::search::defaultClass;
+        monokakido::search::DelegateDefinition delegate_{};
         unicode::DictionaryKeyNormalizeOption normalization_{};
         std::map<SearchScope, std::vector<const Keystore*>> directStores_;
-        std::map<SearchScope, std::vector<const Keystore*>> nativeStores_;
-        std::vector<SearchScope> nativeScopes_;
+        std::map<SearchScope, std::vector<const Keystore*>> dictionaryStores_;
+        std::vector<SearchScope> dictionaryScopes_;
         std::vector<SearchScope> directScopes_;
         std::optional<std::string> unsupported_;
         bool normalizationKnown_ = true;

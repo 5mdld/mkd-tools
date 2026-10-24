@@ -25,7 +25,7 @@ namespace MKD::detail
         if (pages_.contains(page) || reserved_.contains(page))
             return std::unexpected("Page ID is already written or reserved: " + std::to_string(page));
 
-        reserved_.emplace(page, std::array<uint32_t, native::entry::targetRanges.size()>{});
+        reserved_.emplace(page, std::array<uint32_t, monokakido::entry::targetRanges.size()>{});
         return page;
     }
 
@@ -35,12 +35,12 @@ namespace MKD::detail
             return std::unexpected("Cannot allocate targets after writing entry XML");
 
         const auto index = static_cast<size_t>(kind);
-        if (index >= native::entry::targetRanges.size())
+        if (index >= monokakido::entry::targetRanges.size())
             return std::unexpected("Invalid entry target kind");
 
-        auto range = native::entry::targetRanges[index];
+        auto range = monokakido::entry::targetRanges[index];
         if (profile_ == CreationProfile::Kanwa && (kind == EntryTargetKind::Sense || kind == EntryTargetKind::Example))
-            range.last -= native::search::normalizedHeadlineOffset;
+            range.last -= monokakido::search::normalizedHeadlineOffset;
 
         auto& count = reserved_.at(pageId)[index];
         const auto item = range.first + count;
@@ -86,7 +86,7 @@ namespace MKD::detail
         for (const auto page : order_)
             bytes.writeLittle(page);
 
-        return OutputFile::writeAll(root / native::paths::contents / native::paths::entryOrder, bytes.data());
+        return OutputFile::writeAll(root / monokakido::paths::contents / monokakido::paths::entryOrder, bytes.data());
     }
 
     Result<void> EntryAllocator::recordPage(const uint32_t page)

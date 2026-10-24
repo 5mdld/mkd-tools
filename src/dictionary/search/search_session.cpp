@@ -68,8 +68,8 @@ namespace MKD::detail::search
         if (auto valid = validate(); !valid)
             return std::unexpected(valid.error());
 
-        auto result = options_.fallback == SearchFallback::Native
-                          ? nativeQuery()
+        auto result = options_.fallback == SearchFallback::DictionaryRules
+                          ? dictionaryQuery()
                           : terms(query_.keys(options_.scope, SearchFallback::None), options_.scope);
         if (!result)
             return std::unexpected(result.error());
@@ -89,14 +89,14 @@ namespace MKD::detail::search
             SearchMode::Suffix)
             return std::unexpected("Invalid search mode");
 
-        if (options_.fallback != SearchFallback::Native && options_.fallback != SearchFallback::None)
+        if (options_.fallback != SearchFallback::DictionaryRules && options_.fallback != SearchFallback::None)
             return std::unexpected("Invalid search fallback policy");
 
         const auto scope = options_.scope;
         if (std::ranges::none_of(searchScopes, [scope](const auto& names) { return names.scope == scope; }))
             return std::unexpected("Invalid search scope");
 
-        if ((options_.fallback == SearchFallback::Native || !profile_.normalizationKnown()) && profile_.
+        if ((options_.fallback == SearchFallback::DictionaryRules || !profile_.normalizationKnown()) && profile_.
             unsupportedReason())
             return std::unexpected(*profile_.unsupportedReason());
 
@@ -107,7 +107,7 @@ namespace MKD::detail::search
     {
         if (result.scope == SearchScope::Headword)
         {
-            // Native keeps key order through intersection and resolves IDs only at the end.
+            // Monokakido's search keeps key order through intersection and resolves IDs only at the end.
             const auto* store = profile_.headwordStore();
             if (store && store->resolveEntryIds(result.entries))
             {
@@ -117,12 +117,12 @@ namespace MKD::detail::search
                     return !seen.insert(id).second;
                 });
             }
-            if (options_.fallback == SearchFallback::Native)
+            if (options_.fallback == SearchFallback::DictionaryRules)
                 if (auto ordered = orderModernEntries(result); !ordered)
                     return std::unexpected(ordered.error());
         }
 
-        if (options_.fallback == SearchFallback::Native && profile_.pageEntriesFirst()
+        if (options_.fallback == SearchFallback::DictionaryRules && profile_.pageEntriesFirst()
             && (result.scope == SearchScope::CompoundNoun || result.scope == SearchScope::Numeral))
             std::ranges::stable_partition(result.entries, [](const EntryId id)
             {
@@ -150,9 +150,9 @@ namespace MKD::detail::search
         };
     }
 
-    Result<SearchSession::Matches> SearchSession::nativeQuery() const
+    Result<SearchSession::Matches> SearchSession::dictionaryQuery() const
     {
-        const auto keys = query_.keys(options_.scope, SearchFallback::Native);
+        const auto keys = query_.keys(options_.scope, SearchFallback::DictionaryRules);
         if (keys.empty())
             return Matches{.scope = options_.scope};
 
@@ -218,7 +218,7 @@ namespace MKD::detail::search
         if (scope == SearchScope::Headword && profile_.allowsScopeFallback())
         {
             scope = SearchScope::Idiom;
-            fallbackKeys = query_.keys(scope, SearchFallback::Native);
+            fallbackKeys = query_.keys(scope, SearchFallback::DictionaryRules);
             auto result = terms(fallbackKeys, scope);
             if (!result || !result->empty())
                 return result;
@@ -252,7 +252,7 @@ namespace MKD::detail::search
             if (!found)
                 return std::unexpected(found.error());
 
-            if (options_.fallback == SearchFallback::Native && scope == SearchScope::Idiom
+            if (options_.fallback == SearchFallback::DictionaryRules && scope == SearchScope::Idiom
                 && options_.match != SearchMode::Suffix && !profile_.japanese())
             {
                 if (auto lemma = searchLemma(text, profile_.language()); lemma && *lemma != text)
@@ -270,7 +270,7 @@ namespace MKD::detail::search
 
             if (!accumulated)
                 accumulated = std::move(*found);
-            else if (options_.fallback == SearchFallback::Native && scope == SearchScope::Headword
+            else if (options_.fallback == SearchFallback::DictionaryRules && scope == SearchScope::Headword
                 && profile_.hasHeadlineKeyIdentifiers())
             {
                 if (auto common = intersectHeadwords(*accumulated, std::move(*found)); !common)
@@ -295,7 +295,7 @@ namespace MKD::detail::search
             return {};
         }
 
-        // Native retains keys from the smaller set, choosing the newer set on a tie.
+        // Monokakido's search retains keys from the smaller set, choosing the newer set on a tie.
         auto& smaller = result.entries.size() < other.entries.size() ? result.entries : other.entries;
         auto& larger = result.entries.size() < other.entries.size() ? other.entries : result.entries;
         auto mapped = mappedHeadwords(smaller, *store);
@@ -372,7 +372,7 @@ namespace MKD::detail::search
         if (!range)
             return std::unexpected(range.error());
 
-        if (range->empty() && mode == SearchMode::Exact && options_.fallback == SearchFallback::Native)
+        if (range->empty() && mode == SearchMode::Exact && options_.fallback == SearchFallback::DictionaryRules)
         {
             mode = SearchMode::Prefix;
             range = keystoreSearch(store, text, mode, stop_);
@@ -429,8 +429,8 @@ namespace MKD::detail::search
         if (cancelled())
             return std::unexpected("Search cancelled");
 
-        if (options_.fallback == SearchFallback::Native && SearchProfile::compoundSearch(scope)
-            && !(profile_.family() == native::search::Family::Kanwa && scope == SearchScope::Idiom)
+        if (options_.fallback == SearchFallback::DictionaryRules && SearchProfile::compoundSearch(scope)
+            && !(profile_.family() == monokakido::search::Family::Kanwa && scope == SearchScope::Idiom)
             && unicode::containsJapaneseScript(text))
             return compound(text, scope);
         return simple(text, scope, options_.match);
@@ -608,7 +608,7 @@ namespace MKD::detail::search
     Result<void> SearchSession::orderModernEntries(Matches& result) const
     {
         const auto& range = profile_.dictionary().searchConfiguration().modernEntryRange;
-        if (!range || profile_.family() != native::search::Family::Kogo)
+        if (!range || profile_.family() != monokakido::search::Family::Kogo)
             return {};
 
         const auto normalized = unicode::normalizeDictionaryKey(text_, profile_.modernNormalization());
@@ -630,7 +630,7 @@ namespace MKD::detail::search
                 continue;
 
             size_t offset = 0;
-            for (size_t i = 0; i < native::search::modernHeadlinePrefixLength && offset < (**value).size(); ++i)
+            for (size_t i = 0; i < monokakido::search::modernHeadlinePrefixLength && offset < (**value).size(); ++i)
                 static_cast<void>(unicode::nextCodepoint(**value, offset));
 
             if (unicode::normalizeDictionaryKey(std::string_view(**value).substr(offset),

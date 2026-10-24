@@ -103,7 +103,7 @@ namespace MKD::content
     };
 
     /** Reports source references without resolving paths or loading resources.
-     * CSS analysis scans dependencies and selected native compatibility issues.
+     * CSS analysis scans dependencies and selected compatibility issues with the Dictionaries article renderer.
      * It does not validate the full CSS grammar. */
     AnalysisResult<ArticleAnalysis> analyzeArticle(uint32_t page, std::string_view xhtml);
     AnalysisResult<Analysis> analyzeCss(std::string_view css, CssInput input = CssInput::Stylesheet);

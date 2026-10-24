@@ -4,7 +4,7 @@
 
 #include "dictionary/navigation/index_format.hpp"
 
-namespace MKD::detail::native::navigation
+namespace MKD::detail::monokakido::navigation
 {
     Result<Header> Header::read(BinaryView data)
     {

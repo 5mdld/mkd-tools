@@ -11,7 +11,7 @@ namespace MKD::detail::search
     {
         if (profile == CreationProfile::Kanwa)
         {
-            for (const auto& names : native::search::kanwaScopes)
+            for (const auto& names : monokakido::search::kanwaScopes)
                 if (names.scope == scope)
                     return names;
 

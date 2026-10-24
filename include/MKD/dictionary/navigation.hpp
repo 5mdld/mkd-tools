@@ -80,7 +80,8 @@ namespace MKD
     public:
         static Result<NavigationView> open(const std::filesystem::path& contents,
                                            const NavigationReference& reference);
-        [[nodiscard]] uint32_t nativeKind() const noexcept;
+        /** Kind code stored in a binary navigation index. Property-list menus report zero. */
+        [[nodiscard]] uint32_t kindCode() const noexcept;
         [[nodiscard]] size_t sectionCount() const noexcept;
         [[nodiscard]] Result<std::string> sectionTitle(size_t section) const;
         [[nodiscard]] Result<size_t> itemCount(size_t section) const;

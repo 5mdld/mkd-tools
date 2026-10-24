@@ -22,7 +22,7 @@ namespace MKD
         EntryId entryId;
         std::optional<std::string> label;
         std::optional<char16_t> firstCharacter;
-        /** Native target dictionary. Zero selects the owner during dictionary creation. */
+        /** Numeric ID of the target dictionary. Zero selects the owner during dictionary creation. */
         uint16_t dictionaryId = 0;
     };
 

@@ -63,7 +63,7 @@ namespace MKD::detail::search
 
         std::vector<std::string> filtered;
         for (const auto& key : keys)
-            if (std::ranges::find(native::search::idiomStopWords, key) == native::search::idiomStopWords.end())
+            if (std::ranges::find(monokakido::search::idiomStopWords, key) == monokakido::search::idiomStopWords.end())
                 filtered.push_back(key);
 
         return filtered;
@@ -76,7 +76,7 @@ namespace MKD::detail::search
 
         std::vector<std::string> result;
         for (const auto& key : keys)
-            if (std::ranges::find(native::search::headlineSkippedWords, key) == native::search::headlineSkippedWords.
+            if (std::ranges::find(monokakido::search::headlineSkippedWords, key) == monokakido::search::headlineSkippedWords.
                 end())
                 result.push_back(key);
 

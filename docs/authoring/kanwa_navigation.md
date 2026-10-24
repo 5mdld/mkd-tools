@@ -48,10 +48,10 @@ Start with the kanwa product in [Subentries and links](subentries.md). Create `t
     ```
 
 This kanwa example opens 部首 → 鳥 → entries grouped by additional strokes.
-`RadicalLabel` arranges the character, optional variants and reading in the native
+`RadicalLabel` arranges the character, optional variants and reading in the kanwa navigation
 cell. It is only available in the kanwa profile.
 
-Kanwa `kind` selects native presentation:
+Kanwa `kind` selects the presentation in Dictionaries:
 
 | Kind | Author supplies |
 | --- | --- |
@@ -68,7 +68,7 @@ subentry destinations.
 
 `AppendixDocument` and `AppendixList` targets can also appear in navigation.
 Cross-dictionary article targets use `AppendixEntryLink(target, dictionary_id)`.
-Native files, offsets and controller classes are generated internally. Specialised
+Index files, offsets and controller classes are generated internally. Specialised
 product controllers are outside the authoring profiles.
 
 Next: [Add appendices](appendices.md).

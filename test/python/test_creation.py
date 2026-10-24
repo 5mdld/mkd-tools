@@ -32,7 +32,7 @@ class CreationTests(DictionaryTest):
             (mkd.SearchScope.SENSE, '鳴禽', sense),
             (mkd.SearchScope.EXAMPLE, '春の林で鳴禽の声を聞く。', example),
         ):
-            for policy in (mkd.SearchFallback.NONE, mkd.SearchFallback.NATIVE):
+            for policy in (mkd.SearchFallback.NONE, mkd.SearchFallback.DICTIONARY_RULES):
                 self.assertEqual(list(search.search(term, scope=scope, fallback=policy,
                                                    match=mkd.SearchMode.EXACT)), [target])
         for term in ('声を', '声ヲ', '声 鳥', '声／鳥'):
@@ -80,7 +80,7 @@ class CreationTests(DictionaryTest):
             with self.assertRaisesRegex(mkd.Error, "Search key.*sense.*Conflicting options"):
                 dictionary.add_search_key(mkd.SearchScope.SENSE, calls[1][0], target, exact_only=calls[1][1])
 
-    def test_native_sense_and_example_indexes_have_distinct_targets(self):
+    def test_sense_and_example_indexes_have_distinct_targets(self):
         for scopes in ((mkd.SearchScope.SENSE, mkd.SearchScope.EXAMPLE),
                        (mkd.SearchScope.EXAMPLE, mkd.SearchScope.SENSE)):
             product = new_product(self.workspace() / 'Scopes', mkd.CreationProfile.KANWA)
@@ -108,7 +108,7 @@ class CreationTests(DictionaryTest):
             with self.assertRaisesRegex(mkd.Error, 'companion.*collides'):
                 dictionary.finish()
 
-    def test_native_passage_companion_ids_must_fit(self):
+    def test_passage_search_record_ids_must_fit(self):
         product = new_product(self.workspace() / 'Overflow', mkd.CreationProfile.KANWA)
         dictionary = new_dictionary(product)
         with self.assertRaisesRegex(mkd.Error, 'companion overflows'):

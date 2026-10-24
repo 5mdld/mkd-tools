@@ -33,7 +33,7 @@ namespace MKD::content
             if (token->kind == CssTokenKind::End)
                 return result;
 
-            // Packaging checks every local mention, including syntax ignored by the native renderer.
+            // Packaging checks every local mention, including syntax ignored by the Dictionaries article renderer.
             if (token->kind == CssTokenKind::Url || (import && token->kind == CssTokenKind::String))
                 if (auto reference = detail::resourceReference(token->value, ResourceSyntax::CssUrl, token->source))
                     result.references.push_back(std::move(*reference));

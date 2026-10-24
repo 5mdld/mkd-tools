@@ -21,9 +21,9 @@ namespace MKD::detail
         const auto path = WriteValidation::fromUtf8(relative);
         const auto first = *path.begin();
 
-        if (first == native::paths::contents || first == native::paths::keys || first == native::paths::secondaryKeys ||
-            first == native::paths::headlines || first == native::paths::audio || first == native::paths::graphics ||
-            first == native::paths::fonts || first == native::paths::contentInfo)
+        if (first == monokakido::paths::contents || first == monokakido::paths::keys || first == monokakido::paths::secondaryKeys ||
+            first == monokakido::paths::headlines || first == monokakido::paths::audio || first == monokakido::paths::graphics ||
+            first == monokakido::paths::fonts || first == monokakido::paths::contentInfo)
             return std::unexpected("Asset path is reserved for generated dictionary resources");
 
         return {};
@@ -65,7 +65,7 @@ namespace MKD::detail
         if (!writer)
         {
             auto created =
-                NamedResourceStoreWriter::create(root_ / (isAudio ? native::paths::audio : native::paths::graphics));
+                NamedResourceStoreWriter::create(root_ / (isAudio ? monokakido::paths::audio : monokakido::paths::graphics));
             if (!created)
                 return std::unexpected(created.error());
 
@@ -81,7 +81,7 @@ namespace MKD::detail
 
     Result<void> AssetWriter::validateGaiji(std::string_view path, std::span<const uint8_t> bytes)
     {
-        if (auto valid = NativeContent::gaijiPath(path); !valid)
+        if (auto valid = ContentMarkup::gaijiPath(path); !valid)
             return valid;
 
         if (path.ends_with(".svg"))

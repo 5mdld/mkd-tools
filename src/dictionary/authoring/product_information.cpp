@@ -26,7 +26,7 @@ namespace MKD::detail
             encoding.append_attribute("http-equiv") = "Content-Type";
             encoding.append_attribute("content") = "text/html; charset=utf-8";
             head.append_child("title").text().set(std::string(title).c_str());
-            // The native information view applies linked stylesheets but ignores inline style blocks.
+            // The Dictionaries information view applies linked stylesheets but ignores inline style blocks.
             stylesheet_ = head.append_child("link");
             stylesheet_.append_attribute("rel") = "stylesheet";
             stylesheet_.append_attribute("type") = "text/css";
@@ -113,7 +113,7 @@ namespace MKD::detail
         static Result<void> requireAsset(const ProductBuild& product, std::string_view path)
         {
             std::error_code error;
-            if (!std::filesystem::is_regular_file(product.path() / native::paths::productContents /
+            if (!std::filesystem::is_regular_file(product.path() / monokakido::paths::productContents /
                                                   WriteValidation::fromUtf8(path), error))
                 return std::unexpected("Missing product information page: " + std::string(path));
             return {};
@@ -122,15 +122,15 @@ namespace MKD::detail
         static void menuItem(pugi::xml_node items, std::string_view name, std::string_view path = {})
         {
             auto item = items.append_child("dict");
-            property_list::string(item, native::information::name, name);
+            property_list::string(item, monokakido::information::name, name);
             if (!path.empty())
-                property_list::string(item, native::information::contents, path);
+                property_list::string(item, monokakido::information::contents, path);
         }
 
         static pugi::xml_node section(pugi::xml_node root)
         {
             auto section = root.append_child("dict");
-            section.append_child("key").text().set(native::information::items);
+            section.append_child("key").text().set(monokakido::information::items);
             return section.append_child("array");
         }
 
@@ -154,7 +154,7 @@ namespace MKD::detail
             if (metadata.version)
                 page.append("p", "Version " + *metadata.version, "version");
 
-            return page.write(product, native::paths::informationPage);
+            return page.write(product, monokakido::paths::informationPage);
         }
     };
 
@@ -189,7 +189,7 @@ namespace MKD::detail
     Result<void> ProductInformationWriter::write(ProductBuild& product)
     {
         const auto& information = product.information();
-        const auto page = information.page.value_or(native::paths::informationPage);
+        const auto page = information.page.value_or(monokakido::paths::informationPage);
         if (information.page)
         {
             if (auto found = InformationDocument::requireAsset(product, page); !found)
@@ -201,7 +201,7 @@ namespace MKD::detail
         pugi::xml_document document;
         auto root = property_list::root(document, "array");
         auto items = InformationDocument::section(root);
-        InformationDocument::menuItem(items, native::information::copyright, page);
+        InformationDocument::menuItem(items, monokakido::information::copyright, page);
         size_t index = 0;
         for (const auto& license : information.licenses)
         {
@@ -220,8 +220,8 @@ namespace MKD::detail
             }
             InformationDocument::menuItem(items, license.title, path);
         }
-        InformationDocument::menuItem(InformationDocument::section(root), native::information::settings);
-        return property_list::write(product.path() / native::paths::productContents /
-                                    native::paths::moreInfo, document);
+        InformationDocument::menuItem(InformationDocument::section(root), monokakido::information::settings);
+        return property_list::write(product.path() / monokakido::paths::productContents /
+                                    monokakido::paths::moreInfo, document);
     }
 }

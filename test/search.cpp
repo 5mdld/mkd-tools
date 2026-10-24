@@ -14,7 +14,7 @@ namespace MKD::test
     TEST_F(SearchTest, FindsBirbsByExactPrefixSuffixAndNormalisedReading)
     {
         DictionarySearch search(birbs());
-        EXPECT_TRUE(search.supportsNativeSearch());
+        EXPECT_TRUE(search.supportsDictionaryRules());
         for (const auto& [query, mode] : std::vector<std::pair<std::string, SearchMode>>{
                  {"ツグミ", SearchMode::Exact}, {"つぐ", SearchMode::Prefix}, {"ぐみ", SearchMode::Suffix}
              })
@@ -72,7 +72,7 @@ namespace MKD::test
         EXPECT_FALSE(std::filesystem::exists(dictionaries() / "BirbKanji/Contents/kanji/key/idiom.keystore"));
         const auto& dictionary = product.dictionaries().front();
         DictionarySearch search(dictionary);
-        EXPECT_TRUE(search.supportsNativeSearch());
+        EXPECT_TRUE(search.supportsDictionaryRules());
         const auto found = require(search.search("ちょうご", {
                                                      .scope = SearchScope::Idiom,
                                                      .match = SearchMode::Exact
@@ -126,11 +126,11 @@ namespace MKD::test
         EXPECT_TRUE(require(search.search("small birb", {.fallback = SearchFallback::None})).empty());
     }
 
-    TEST(Search, UnknownNativeProfilesFailRatherThanInventingSearchRules)
+    TEST(Search, UnknownSearchProfilesFailRatherThanInventingSearchRules)
     {
         Dictionary dictionary(birbContent(), {}, {.productSearchClass = "UnknownBirbSearch"});
         DictionarySearch search(dictionary);
-        EXPECT_FALSE(search.supportsNativeSearch());
+        EXPECT_FALSE(search.supportsDictionaryRules());
         EXPECT_FALSE(search.search("birb"));
     }
 

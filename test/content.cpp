@@ -26,7 +26,7 @@ namespace MKD::test
         EXPECT_NE(xml.find("gaiji/tsugumi.svg"), std::string::npos);
     }
 
-    TEST(InlineContent, PreservesUnrecognisedNativeMarkupWithoutInventingXml)
+    TEST(InlineContent, PreservesUnrecognisedHeadlineMarkupWithoutInventingXml)
     {
         const auto text = require(InlineText::fromHeadline(u"{B:がおー}"));
         EXPECT_EQ(require(text.toHeadline()), u"{B:がおー}");

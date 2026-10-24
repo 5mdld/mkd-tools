@@ -107,9 +107,9 @@ its own night palette for names such as `black` and `blue`.
 - Check long text and both writing directions in the app. Small gaiji, compact
   readings and fixed-size labels need enough space at the reader's chosen size.
 
-Use the [native CSS table](../reference/article_css.md) to find a property, or
+Use the [article CSS table](../reference/article_css.md) to find a property, or
 [layout examples](../reference/layout_examples.md) for warichu, math, hanging
-markers and other native features. [Ruby](ruby.md) and [gaiji](gaiji.md) have their
+markers and other article layout features. [Ruby](ruby.md) and [gaiji](gaiji.md) have their
 own authoring guides.
 
 Next: [Build category navigation](navigation.md).

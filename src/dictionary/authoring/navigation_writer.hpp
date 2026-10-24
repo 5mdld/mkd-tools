@@ -35,7 +35,7 @@ namespace MKD::detail
             NavigationLabel title = std::string{};
             uint16_t flags = 0;
             std::variant<Sections, EntryTable, FileTable, NavigationReference> content;
-            [[nodiscard]] native::navigation::ItemKind kind() const;
+            [[nodiscard]] monokakido::navigation::ItemKind kind() const;
         };
 
         class Encoder

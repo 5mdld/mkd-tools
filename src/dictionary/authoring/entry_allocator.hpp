@@ -37,7 +37,7 @@ namespace MKD::detail
     private:
         CreationProfile profile_;
         std::unordered_set<uint32_t> pages_;
-        std::map<uint32_t, std::array<uint32_t, native::entry::targetRanges.size()>> reserved_;
+        std::map<uint32_t, std::array<uint32_t, monokakido::entry::targetRanges.size()>> reserved_;
         uint32_t next_ = 1;
         std::vector<uint32_t> order_;
     };

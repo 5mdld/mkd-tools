@@ -15,7 +15,7 @@ namespace MKD::detail
                                           DictionarySearchConfiguration& search)
     {
         std::error_code error;
-        const auto path = directory / native::paths::contentInfo;
+        const auto path = directory / monokakido::paths::contentInfo;
         if (!std::filesystem::exists(path, error))
             return error ? Result<void>(std::unexpected(error.message())) : Result<void>{};
 
@@ -34,7 +34,7 @@ namespace MKD::detail
             if (std::string_view(node.name()) != "string")
                 return std::unexpected("Invalid dictionary content type");
 
-            search.allowsScopeFallback = std::string_view(node.child_value()) == native::contentTypes::dictionary;
+            search.allowsScopeFallback = std::string_view(node.child_value()) == monokakido::contentTypes::dictionary;
         }
         if (const auto node = plist->dictionary().value(metadata::content::keyNormalization))
         {
@@ -65,7 +65,7 @@ namespace MKD::detail
 
         for (std::filesystem::directory_iterator it(directory, error), end; !error && it != end; it.increment(error))
         {
-            if (!it->path().filename().generic_u8string().ends_with(native::modernEntries::filenameSuffix))
+            if (!it->path().filename().generic_u8string().ends_with(monokakido::modernEntries::filenameSuffix))
                 continue;
 
             if (search.modernEntryRange)
@@ -75,8 +75,8 @@ namespace MKD::detail
             if (!plist)
                 return std::unexpected(plist.error());
 
-            auto minimum = plist->dictionary().integer(native::modernEntries::minimumKey);
-            auto maximum = plist->dictionary().integer(native::modernEntries::maximumKey);
+            auto minimum = plist->dictionary().integer(monokakido::modernEntries::minimumKey);
+            auto maximum = plist->dictionary().integer(monokakido::modernEntries::maximumKey);
             if (!minimum || !maximum || *minimum > *maximum)
                 return std::unexpected("Invalid modern-entry range");
 
@@ -95,10 +95,10 @@ namespace MKD::detail
         if (auto loaded = loadContent(directory, content, search); !loaded)
             return loaded;
 
-        const auto name = search.productSearchClass.value_or(native::search::defaultClass.name.data());
+        const auto name = search.productSearchClass.value_or(monokakido::search::defaultClass.name.data());
         const auto definition =
-            std::ranges::find(native::search::classes, name, &native::search::ClassDefinition::name);
-        if (definition != native::search::classes.end() && definition->usesModernEntryRange)
+            std::ranges::find(monokakido::search::classes, name, &monokakido::search::ClassDefinition::name);
+        if (definition != monokakido::search::classes.end() && definition->usesModernEntryRange)
             return loadModernRange(directory, search);
 
         return {};

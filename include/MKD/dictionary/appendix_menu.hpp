@@ -29,7 +29,7 @@ namespace MKD
         std::optional<std::string> fragment;
     };
 
-    /** The native graphics.plist thumbnail gallery. Image paths are product-relative. */
+    /** A graphics.plist thumbnail gallery. Image paths are product-relative. */
     struct AppendixGallery
     {
         std::vector<std::string> images;
@@ -62,7 +62,7 @@ namespace MKD
 
     struct AppendixItem
     {
-        /** Native headline markup is preserved in names and titles. */
+        /** Encoded headline markup is preserved in names and titles. */
         std::string name;
         AppendixTarget target;
         std::optional<std::string> title;

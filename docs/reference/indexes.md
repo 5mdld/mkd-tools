@@ -42,7 +42,7 @@ C++ key views borrow their store. Targets default to resolved entry IDs. Request
 underlying conversion scheme. `keysForEntry()` / `keys_for_entry()` builds an
 inverse index on first use and therefore uses additional memory.
 
-Use [Searching](../searching/queries.md) for query normalisation and native search rules.
+Use [Searching](../searching/queries.md) for query normalisation and dictionary-specific search rules.
 Reading an index directly does not apply those rules. Stored keys have already
 been normalised. For example, an authored `すずめ` key may be stored as `スズメ`.
 
@@ -64,7 +64,7 @@ been normalised. For example, an authored `すずめ` key may be stored as `ス�
     auto plain = text.plainText().value();
     ```
 
-Unknown native tokens are preserved as `NativeMarkup` for headline round trips.
+Uninterpreted headline commands are preserved as `HeadlineMarkup` for headline round trips.
 Converting them to XML or plain text returns an error instead of guessing a
 representation. `elements()` / `elements` lets you inspect recognised elements.
 
@@ -88,7 +88,7 @@ postings of one particular index, use the lower-level keystore API:
     ```
 
 This looks up a key taken directly from a headword index. The lower-level API
-expects a stored, normalised key and does not apply native search rules. Returned
+expects a stored, normalised key and does not apply dictionary-specific search rules. Returned
 key views borrow the keystore.
 
 The low-level keystore inspection API above is currently C++ only.

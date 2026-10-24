@@ -44,7 +44,7 @@ After assembling the label, encode it for the intended destination:
 
 Insert `fragment` into article XML before writing it. Use `headline` as a
 `HeadlineComponents` headline. XML ruby uses `<ruby><rb>鶫</rb><rt>つぐみ</rt></ruby>`.
-Headlines use a separate native encoding.
+Headlines use a separate headline command encoding.
 
 ## Configure full-ruby presentation
 
@@ -63,7 +63,7 @@ Headlines use a separate native encoding.
     dictionary.setPresentation({.fullRubyStylesheet = "ruby.css"}).value();
     ```
 
-This records the stylesheet for the native full-ruby presentation. It controls
+This records the stylesheet for the full-ruby presentation in Dictionaries. It controls
 readings already in the article XML. See [Ruby presentation](../reference/layout_examples.md#ruby-presentation)
 for the CSS. Finish the dictionary and product as in [the first dictionary](first_dictionary.md).
 

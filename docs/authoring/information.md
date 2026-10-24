@@ -83,7 +83,7 @@ Read your license text into `license_text` / `licenseText`, then register it:
     }).value();
     ```
 
-The native その他 tab includes copyright, license pages and settings.
+The その他 tab in Dictionaries includes copyright, license pages and settings.
 For a custom information page, set `ProductInformation.page` to the path of a
 product asset added with `addAsset` / `add_asset`. Each license also accepts a
 `page` override. Paths are relative to the product's `Contents/` directory.

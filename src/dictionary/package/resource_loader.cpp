@@ -37,7 +37,7 @@ namespace MKD
             return std::unexpected(directory.error());
         if (!*directory)
             return std::unexpected("Missing contents directory for entry order");
-        return EntryOrder::open(**directory / detail::native::paths::entryOrder, entries);
+        return EntryOrder::open(**directory / detail::monokakido::paths::entryOrder, entries);
     }
 
     Result<std::optional<NamedResourceStore>> ResourceLoader::loadGraphics(std::string_view contentDir) const
@@ -187,7 +187,7 @@ namespace MKD
         std::optional<AppendixMenu> menu;
         if (!appendices_)
         {
-            auto opened = detail::AppendixReader::open(paths_.productRoot() / detail::native::paths::productContents);
+            auto opened = detail::AppendixReader::open(paths_.productRoot() / detail::monokakido::paths::productContents);
             if (!opened)
                 return std::unexpected(opened.error());
 
@@ -199,7 +199,7 @@ namespace MKD
         for (const auto& file : *files)
         {
             const auto relative = file.
-                lexically_relative(paths_.productRoot() / detail::native::paths::productContents);
+                lexically_relative(paths_.productRoot() / detail::monokakido::paths::productContents);
             const auto title = titles.find(relative.generic_string());
             auto list = AppendixEntryList::open(file, title == titles.end() ? std::string{} : title->second);
             if (!list)

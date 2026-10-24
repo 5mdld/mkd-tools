@@ -11,7 +11,7 @@
 
 namespace MKD::content
 {
-    using detail::NativeEntryReference;
+    using detail::EntryReference;
     using detail::WriteValidation;
 
     namespace
@@ -43,7 +43,7 @@ namespace MKD::content
                 {
                     if (!ids_.insert(id.value()).second)
                         error = SourceError{"Duplicate XML id within a page", source_};
-                    if (const auto target = NativeEntryReference::parse(id.value()))
+                    if (const auto target = EntryReference::parse(id.value()))
                     {
                         if (target->pageId != page_)
                             error = SourceError{"Entry anchor belongs to another page", source_};
@@ -104,7 +104,7 @@ namespace MKD::content
 
             void reference(std::string_view value, bool asset)
             {
-                if (const auto target = asset ? std::nullopt : NativeEntryReference::parse(value))
+                if (const auto target = asset ? std::nullopt : EntryReference::parse(value))
                     result.references.push_back({*target, source_});
                 else if (auto reference = detail::resourceReference(value, ResourceSyntax::XmlAttribute, source_))
                     result.references.push_back(std::move(*reference));

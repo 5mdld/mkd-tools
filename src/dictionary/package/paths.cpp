@@ -16,7 +16,7 @@ namespace MKD
 {
     Result<DictionaryPaths> DictionaryPaths::create(fs::path productRoot)
     {
-        auto contentsRoot = productRoot / detail::native::paths::productContents;
+        auto contentsRoot = productRoot / detail::monokakido::paths::productContents;
         if (!fs::is_directory(contentsRoot))
             return std::unexpected("Missing Contents directory: " + contentsRoot.string());
 
@@ -39,17 +39,17 @@ namespace MKD
         switch (type)
         {
         case ResourceType::Contents:
-            return existingDir(base / detail::native::paths::contents);
+            return existingDir(base / detail::monokakido::paths::contents);
         case ResourceType::AppendixEntries:
             return existingDir(base);
         case ResourceType::Audio:
         case ResourceType::AudioLegacy:
-            return existingDir(base / detail::native::paths::audio);
+            return existingDir(base / detail::monokakido::paths::audio);
         case ResourceType::Graphics:
             {
                 static constexpr std::array candidates{
-                    std::string_view(detail::native::paths::graphics),
-                    std::string_view(detail::native::paths::legacyGraphics)
+                    std::string_view(detail::monokakido::paths::graphics),
+                    std::string_view(detail::monokakido::paths::legacyGraphics)
                 };
                 for (const auto name : candidates)
                 {
@@ -60,11 +60,11 @@ namespace MKD
                 return std::optional<fs::path>{};
             }
         case ResourceType::Keystores:
-            return existingDir(base / detail::native::paths::keys);
+            return existingDir(base / detail::monokakido::paths::keys);
         case ResourceType::Headlines:
-            return existingDir(base / detail::native::paths::headlines);
+            return existingDir(base / detail::monokakido::paths::headlines);
         case ResourceType::Fonts:
-            return existingDir(base / detail::native::paths::fonts);
+            return existingDir(base / detail::monokakido::paths::fonts);
         }
         std::unreachable();
     }

@@ -24,7 +24,7 @@ def article(directory, filename, title, *, target, targets=None, **fragments):
         fragments.update({name: str(value) for name, value in targets.items()})
 
     body = template.substitute(fragments)
-    # Keep source indentation from becoming whitespace in the native layout.
+    # Keep source indentation from becoming whitespace in the article layout.
     body = re.sub(r">[ \t]*\n\s*<", "><", body)
     return f'''<html xmlns="http://www.w3.org/1999/xhtml" hmhtml="5" lang="ja">
 <head><title>{escape(title)}</title>

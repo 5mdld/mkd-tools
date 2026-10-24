@@ -12,7 +12,7 @@
 #include <array>
 #include <string_view>
 
-namespace MKD::detail::native::search
+namespace MKD::detail::monokakido::search
 {
     enum class Family
     {

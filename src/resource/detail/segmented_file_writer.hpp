@@ -24,7 +24,7 @@ namespace MKD::detail
     class SegmentedFileWriter
     {
     public:
-        // The native RSC loader stops after file 1024.
+        // Monokakido's RSC loader stops after file 1024.
         static constexpr uint32_t lastRscSequence = 1024;
 
         static Result<SegmentedFileWriter> create(const std::filesystem::path& directory,

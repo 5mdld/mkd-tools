@@ -22,7 +22,7 @@ NHKアクセント groups guides and entry lists in its 付録 menu. Use an open
             std::cout << section.name << ": " << item.name << '\n';
     ```
 
-Sections and items keep native menu order. An empty section name means no heading.
+Sections and items keep stored menu order. An empty section name means no heading.
 Choose an `item` from this menu before using the following snippets.
 
 ## Open a list or document
@@ -68,7 +68,7 @@ Documents may be HTML or PDF. Their retained bytes can outlive the product.
 | `AppendixCustom` | Inspect the recorded fields. An app-specific presenter may be required |
 
 C++ uses `findContent()` and the same target types. Keep a link’s full entry ID
-when it points inside an article. Labels may contain native headline markup.
+when it points inside an article. Labels may contain encoded headline markup.
 
 Products without `Appendix.plist` have an empty menu. Category grids and kanwa
 radical screens use the separate [navigation API](navigation.md).

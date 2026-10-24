@@ -10,9 +10,9 @@
 
 namespace MKD::content
 {
-    using detail::NativeLabelToken;
-    using detail::NativeEntryReference;
-    namespace native = detail::native;
+    using detail::HeadlineToken;
+    using detail::EntryReference;
+    namespace monokakido = detail::monokakido;
     namespace unicode = detail::unicode;
 
     namespace
@@ -26,7 +26,7 @@ namespace MKD::content
                 if (begin == std::string_view::npos)
                     return {};
 
-                auto token = NativeLabelToken::readLeading(text.substr(begin));
+                auto token = HeadlineToken::readLeading(text.substr(begin));
                 if (!token)
                     return std::unexpected(SourceError{token.error(), SourceRange{offset + begin, 0}});
 
@@ -36,17 +36,17 @@ namespace MKD::content
                     result.references.push_back({AssetReference{gaiji->resource.path}, source});
                 else if (const auto link = std::get_if<EntryLink>(&element))
                     result.references.push_back({link->target, source});
-                else if (std::holds_alternative<NativeMarkup>(element))
+                else if (std::holds_alternative<HeadlineMarkup>(element))
                 {
                     const auto name = token->fields.front();
-                    if (name == native::label::image && token->fields.size() >= 2)
+                    if (name == monokakido::headline::image && token->fields.size() >= 2)
                         result.references.push_back({AssetReference{std::string(token->fields[1])}, source});
 
-                    if (name == native::label::reference && token->fields.size() >= 2)
-                        if (const auto target = NativeEntryReference::parse(token->fields[1]))
+                    if (name == monokakido::headline::reference && token->fields.size() >= 2)
+                        if (const auto target = EntryReference::parse(token->fields[1]))
                             result.references.push_back({*target, source});
 
-                    if (std::ranges::find(native::label::commands, name) == native::label::commands.end() &&
+                    if (std::ranges::find(monokakido::headline::commands, name) == monokakido::headline::commands.end() &&
                         !name.starts_with("CID"))
                     {
                         if (name.contains('/'))

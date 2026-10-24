@@ -19,7 +19,7 @@ namespace MKD::detail
     DictionaryBuild::DictionaryBuild(std::shared_ptr<ProductBuild> product, DictionaryContent metadata,
                                      DictionaryWriteOptions options)
         : product_(product), metadata_(std::move(metadata)),
-          root_(product->path() / native::paths::productContents / WriteValidation::fromUtf8(metadata_.directory)),
+          root_(product->path() / monokakido::paths::productContents / WriteValidation::fromUtf8(metadata_.directory)),
           state_(std::in_place_type<Working>, root_, product->profile(), options)
     {
     }
@@ -96,7 +96,7 @@ namespace MKD::detail
 
             if (!work.pages)
             {
-                auto writer = ResourceStoreWriter::create(root_ / native::paths::contents, metadata_.identifier,
+                auto writer = ResourceStoreWriter::create(root_ / monokakido::paths::contents, metadata_.identifier,
                                                           {.encrypt = work.options.encryptContents});
                 if (!writer)
                     return std::unexpected(writer.error());
@@ -187,7 +187,7 @@ namespace MKD::detail
             if (filename.contains('/'))
                 return std::unexpected("Gaiji filename must be a single path component");
 
-            const auto path = std::string(native::label::gaijiDirectory) + std::string(filename);
+            const auto path = std::string(monokakido::headline::gaijiDirectory) + std::string(filename);
             if (auto valid = AssetWriter::validateGaiji(path, bytes); !valid)
                 return std::unexpected(valid.error());
 
@@ -330,7 +330,7 @@ namespace MKD::detail
             if (product->hasFont(filename))
                 return std::unexpected("Font filename must be unique within the product");
 
-            DirectoryOutput fonts(root_ / native::paths::fonts, false, false);
+            DirectoryOutput fonts(root_ / monokakido::paths::fonts, false, false);
             if (auto ready = fonts.prepare(); !ready)
                 return ready;
 
@@ -342,7 +342,7 @@ namespace MKD::detail
             if (written->skipped)
                 return std::unexpected("Duplicate font filename");
 
-            working().assets.registerLoose(std::string(native::paths::fonts) + "/" + std::string(filename));
+            working().assets.registerLoose(std::string(monokakido::paths::fonts) + "/" + std::string(filename));
             product->registerFont(std::string(filename));
             return {};
         });
