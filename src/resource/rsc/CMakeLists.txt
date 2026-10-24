@@ -6,6 +6,8 @@ target_sources(mkd PRIVATE
         resource_store_writer.cpp
 )
 
+add_subdirectory(crypto)
+
 if (APPLE)
     target_link_libraries(mkd PRIVATE "-framework Security")
 elseif (WIN32)
