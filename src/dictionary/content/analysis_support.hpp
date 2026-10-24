@@ -6,6 +6,7 @@
 
 #include "MKD/dictionary/content_analysis.hpp"
 #include <optional>
+#include <utility>
 
 namespace MKD::detail
 {
@@ -16,12 +17,15 @@ namespace MKD::detail
         [[nodiscard]] std::string describe(std::string_view origin,
                                            std::optional<content::SourceRange> range) const;
 
+        [[nodiscard]] std::pair<size_t, size_t> lineColumn(size_t offset) const;
+
     private:
         size_t size_;
         std::vector<size_t> lines_{0};
     };
 
-    inline std::optional<content::Reference> resourceReference(std::string_view value, const content::ResourceSyntax syntax,
+    inline std::optional<content::Reference> resourceReference(std::string_view value,
+                                                               const content::ResourceSyntax syntax,
                                                                std::optional<content::SourceRange> source)
     {
         if (value.empty())

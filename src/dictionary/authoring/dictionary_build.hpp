@@ -21,22 +21,29 @@ namespace MKD::detail
     {
     public:
         DictionaryBuild(std::shared_ptr<ProductBuild> product, DictionaryContent metadata,
-                        DictionaryWriteOptions options);
-        Result<uint32_t> reserveEntry(std::optional<uint32_t> page);
-        Result<EntryId> addTarget(uint32_t page, EntryTargetKind kind);
-        Result<void> addPage(uint32_t page, std::string_view xml);
-        Result<void> writePage(uint32_t page, std::string_view xml);
-        Result<void> addHeadline(HeadlineComponents headline, HeadlineRole role);
-        Result<void> addSearchKey(SearchScope scope, std::string_view key, EntryId target, SearchKeyOptions options);
-        Result<GaijiResource> addGaiji(std::string_view filename, std::span<const uint8_t> bytes);
-        Result<void> setPresentation(DictionaryPresentation presentation);
-        Result<void> writeAsset(std::string_view path, std::span<const uint8_t> bytes);
-        Result<void> writeMedia(std::string_view name, std::span<const uint8_t> bytes, MediaKind kind);
-        Result<void> addFont(std::string_view filename, std::span<const uint8_t> bytes);
-        Result<AppendixDocument> addAppendixDocument(std::string_view relative, std::string_view title);
+                        DictionaryWriteOptions options, SourceContext context);
+        Result<uint32_t> reserveEntry(std::optional<uint32_t> page, SourceContext context = {});
+        Result<EntryId> addTarget(uint32_t page, EntryTargetKind kind, SourceContext context = {});
+        Result<void> addPage(uint32_t page, std::string_view xml, SourceContext context = {});
+        Result<void> writePage(uint32_t page, std::string_view xml, SourceContext context = {});
+        Result<void> addHeadline(HeadlineComponents headline, HeadlineRole role, SourceContext context = {});
+        Result<void> addSearchKey(SearchScope scope, std::string_view key, EntryId target, SearchKeyOptions options,
+                                  SourceContext context = {});
+        Result<GaijiResource> addGaiji(std::string_view filename, std::span<const uint8_t> bytes,
+                                       SourceContext context = {});
+        Result<void> setPresentation(DictionaryPresentation presentation, SourceContext context = {});
+        Result<void> writeAsset(std::string_view path, std::span<const uint8_t> bytes, SourceContext context = {});
+        Result<void> writeMedia(std::string_view name, std::span<const uint8_t> bytes, MediaKind kind,
+                                SourceContext context = {});
+        Result<void> addFont(std::string_view filename, std::span<const uint8_t> bytes, SourceContext context = {});
+        Result<AppendixDocument> addAppendixDocument(std::string_view relative, std::string_view title,
+                                                     SourceContext context = {});
         Result<AppendixList> addAppendixList(std::string_view name, std::string_view title,
-                                             std::span<const AppendixEntry> entries, AppendixListWriteOptions options);
-        Result<void> setEntryOrder(std::span<const uint32_t> pages);
+                                             std::span<const AppendixEntry> entries, AppendixListWriteOptions options,
+                                             SourceContext context = {});
+        Result<void> setEntryOrder(std::span<const uint32_t> pages, SourceContext context = {});
+        Result<ValidationReport> preflight(ValidationOptions options) const;
+        void collectIssues(IssueCollector& issues) const;
         Result<void> finish();
         Result<void> validateTarget(EntryId target) const;
         [[nodiscard]] const DictionaryContent& metadata() const { return metadata_; }
@@ -46,7 +53,7 @@ namespace MKD::detail
 
         [[nodiscard]] const std::vector<AppendixItem>& appendices() const
         {
-            return std::get<Finished>(state_).appendices;
+            return finished() ? std::get<Finished>(state_).appendices : working().appendices;
         }
 
     private:
@@ -54,7 +61,7 @@ namespace MKD::detail
         void fail(std::string error) const;
 
         template <typename Operation>
-        auto mutate(Operation&& operation) -> std::invoke_result_t<Operation>
+        auto mutate(Operation&& operation, const AuthoringOrigin& source) -> std::invoke_result_t<Operation>
         {
             using Return = std::invoke_result_t<Operation>;
             if (auto product = owner(); !product)
@@ -62,7 +69,10 @@ namespace MKD::detail
 
             auto result = std::forward<Operation>(operation)();
             if (!result)
+            {
+                result = std::unexpected(metadata_.identifier + ": " + source.describe() + ": " + result.error());
                 fail(result.error());
+            }
 
             return result;
         }
@@ -81,6 +91,10 @@ namespace MKD::detail
             DictionaryWriteOptions options;
             std::optional<ResourceStoreWriter> pages;
             std::vector<AppendixItem> appendices;
+            std::map<uint32_t, AuthoringOrigin> pageOrigins;
+            std::map<uint32_t, AuthoringOrigin> reservations;
+            AuthoringOrigin orderOrigin;
+            AuthoringOrigin presentationOrigin;
         };
 
         struct Finished
@@ -90,10 +104,10 @@ namespace MKD::detail
             std::vector<AppendixItem> appendices;
         };
 
-        Result<void> validate() const;
         std::weak_ptr<ProductBuild> product_;
         DictionaryContent metadata_;
         std::filesystem::path root_;
+        SourceContext metadataContext_;
         Working& working() { return std::get<Working>(state_); }
         const Working& working() const { return std::get<Working>(state_); }
         std::variant<Working, Finished> state_;

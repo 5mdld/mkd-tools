@@ -35,10 +35,10 @@ namespace MKD
         return ProductWriter(std::make_unique<Impl>(std::move(*product)));
     }
 
-    Result<DictionaryWriter> ProductWriter::addDictionary(DictionaryContent content,
-                                                          DictionaryWriteOptions options) const
+    Result<DictionaryWriter> ProductWriter::addDictionary(DictionaryContent content, DictionaryWriteOptions options,
+                                                          SourceContext context) const
     {
-        auto dictionary = impl_->product->addDictionary(std::move(content), options);
+        auto dictionary = impl_->product->addDictionary(std::move(content), options, context);
         if (!dictionary)
             return std::unexpected(dictionary.error());
 

@@ -27,10 +27,9 @@ namespace MKD::detail
         Result<EntryId> addTarget(uint32_t page, EntryTargetKind kind);
         Result<void> recordPage(uint32_t page);
         void written(const uint32_t page) { reserved_.erase(page); }
-        [[nodiscard]] bool reserved(uint32_t page) const { return reserved_.contains(page); }
+        [[nodiscard]] bool reserved(const uint32_t page) const { return reserved_.contains(page); }
         [[nodiscard]] const auto& pages() const { return pages_; }
         Result<void> setOrder(std::span<const uint32_t> pages);
-        Result<void> validateReservations() const;
         Result<void> validateOrder() const;
         Result<void> writeOrder(const std::filesystem::path& root);
 

@@ -6,7 +6,10 @@
 
 #include "MKD/dictionary/product_writer.hpp"
 #include "io/build_directory.hpp"
+#include "authoring_diagnostics.hpp"
 #include <memory>
+#include <map>
+#include <tuple>
 
 namespace MKD::detail
 {
@@ -20,7 +23,7 @@ namespace MKD::detail
         ProductBuild(std::unique_ptr<BuildDirectory> output, DictionaryMetadata metadata, std::string name,
                      CreationProfile profile);
         Result<std::shared_ptr<DictionaryBuild>> addDictionary(DictionaryContent content,
-                                                               DictionaryWriteOptions options);
+                                                               DictionaryWriteOptions options, SourceContext context);
         Result<void> writeAsset(std::string_view relative, std::span<const uint8_t> bytes) const;
         Result<void> setAppendices(AppendixMenu menu);
         Result<void> setNavigation(NavigationIndex index);
@@ -28,7 +31,7 @@ namespace MKD::detail
         Result<void> setIcon(std::span<const uint8_t> image);
         Result<void> finish();
         Result<void> validateTarget(const AppendixEntryLink& target) const;
-        void referenceAppendix(AppendixEntryLink target) { appendixReferences_.push_back(target); }
+        void referenceAppendix(AppendixEntryLink target, const DictionaryContent& dictionary, AuthoringOrigin origin);
         [[nodiscard]] bool hasFont(std::string_view filename) const;
         void registerFont(std::string filename) { metadata_.fonts.push_back(std::move(filename)); }
         void configureNavigation(bool kanwa);
@@ -43,6 +46,13 @@ namespace MKD::detail
 
     private:
         Result<void> writeAppendices() const;
+        struct AppendixReference
+        {
+            AppendixEntryLink target;
+            std::optional<uint16_t> dictionaryId;
+            std::string dictionary;
+            DependencyOrigins origins;
+        };
         std::unique_ptr<BuildDirectory> output_;
         DictionaryMetadata metadata_;
         std::string name_;
@@ -50,7 +60,7 @@ namespace MKD::detail
         ProductInformation information_;
         std::optional<AppendixMenu> appendices_;
         std::optional<NavigationIndex> navigation_;
-        std::vector<AppendixEntryLink> appendixReferences_;
+        std::map<std::tuple<uint16_t, uint16_t, EntryId>, AppendixReference> appendixReferences_;
         std::vector<std::shared_ptr<DictionaryBuild>> dictionaries_;
     };
 }

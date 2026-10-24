@@ -6,6 +6,7 @@
 
 #include "MKD/resource/entry_id.hpp"
 #include "MKD/result.hpp"
+#include "MKD/dictionary/authoring_diagnostics.hpp"
 #include <memory>
 #include <string_view>
 
@@ -30,9 +31,9 @@ namespace MKD
 
         [[nodiscard]] EntryId target() const noexcept;
         /** Kanwa sense and example allocation reserves companion IDs, leaving 2047 targets of each kind per page. */
-        [[nodiscard]] Result<EntryId> addTarget(EntryTargetKind kind) const;
+        [[nodiscard]] Result<EntryId> addTarget(EntryTargetKind kind, std::optional<SourceContext> context = {}) const;
         /** Writes once. All nonzero targets must appear as canonical XML IDs. */
-        [[nodiscard]] Result<void> writeXml(std::string_view xml) const;
+        [[nodiscard]] Result<void> writeXml(std::string_view xml, std::optional<SourceContext> context = {}) const;
 
     private:
         friend class DictionaryWriter;

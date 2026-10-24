@@ -7,6 +7,7 @@
 #include "MKD/dictionary/content_analysis.hpp"
 #include "unicode/utf8.hpp"
 #include "dictionary/content/content_markup.hpp"
+#include "dictionary/search/search_definitions.hpp"
 #include "dictionary/authoring/metadata_preparation.hpp"
 #include "dictionary/package/metadata_writer.hpp"
 #include "io/write_validation.hpp"
@@ -17,10 +18,10 @@
 namespace MKD::detail
 {
     DictionaryBuild::DictionaryBuild(std::shared_ptr<ProductBuild> product, DictionaryContent metadata,
-                                     DictionaryWriteOptions options)
+                                     DictionaryWriteOptions options, SourceContext context)
         : product_(product), metadata_(std::move(metadata)),
           root_(product->path() / monokakido::paths::productContents / WriteValidation::fromUtf8(metadata_.directory)),
-          state_(std::in_place_type<Working>, root_, product->profile(), options)
+          metadataContext_(std::move(context)), state_(std::in_place_type<Working>, root_, product->profile(), options)
     {
     }
 
@@ -45,39 +46,46 @@ namespace MKD::detail
             (void)product->fail(std::move(error));
     }
 
-    Result<uint32_t> DictionaryBuild::reserveEntry(std::optional<uint32_t> page)
+    Result<uint32_t> DictionaryBuild::reserveEntry(std::optional<uint32_t> page, SourceContext context)
     {
+        const auto source = origin("reserveEntry", page ? std::to_string(*page) : "automatic page", context);
         return mutate([&]() -> Result<uint32_t>
         {
-            return working().entries.reserve(page);
-        });
+            auto reserved = working().entries.reserve(page);
+            if (reserved)
+                working().reservations.emplace(*reserved, source);
+            return reserved;
+        }, source);
     }
 
-    Result<EntryId> DictionaryBuild::addTarget(const uint32_t page, const EntryTargetKind kind)
+    Result<EntryId> DictionaryBuild::addTarget(const uint32_t page, const EntryTargetKind kind, SourceContext context)
     {
+        const auto source = origin("addTarget", std::to_string(page), context);
         return mutate([&]() -> Result<EntryId>
         {
             auto target = working().entries.addTarget(page, kind);
             if (target)
-                working().references.requireTarget(*target, "allocated target " + target->toString());
+                working().references.requireTarget(*target, source);
 
             return target;
-        });
+        }, source);
     }
 
-    Result<void> DictionaryBuild::addPage(const uint32_t page, std::string_view xml)
+    Result<void> DictionaryBuild::addPage(const uint32_t page, std::string_view xml, SourceContext context)
     {
+        const auto source = origin("addPage", "page " + std::to_string(page), context);
         return mutate([&]() -> Result<void>
         {
             if (working().entries.reserved(page))
                 return std::unexpected("Page is reserved. Write its XML through the entry writer");
 
-            return writePage(page, xml);
-        });
+            return writePage(page, xml, context);
+        }, source);
     }
 
-    Result<void> DictionaryBuild::writePage(const uint32_t page, std::string_view xml)
+    Result<void> DictionaryBuild::writePage(const uint32_t page, std::string_view xml, SourceContext context)
     {
+        const auto source = origin("writePage", "page " + std::to_string(page), context);
         return mutate([&]() -> Result<void>
         {
             auto& work = working();
@@ -89,9 +97,9 @@ namespace MKD::detail
                 return std::unexpected(analysis.error().describe("page " + std::to_string(page), xml));
 
             work.references.define(analysis->anchors);
-            if (auto recorded = work.references.record(analysis->references, "page " + std::to_string(page),
-                                                       "page.html", xml);
-                !recorded)
+            work.pageOrigins.emplace(page, source);
+            work.reservations.erase(page);
+            if (auto recorded = work.references.record(analysis->references, source, "page.html", xml); !recorded)
                 return recorded;
 
             if (!work.pages)
@@ -109,11 +117,13 @@ namespace MKD::detail
                 work.entries.written(page);
 
             return result;
-        });
+        }, source);
     }
 
-    Result<void> DictionaryBuild::addHeadline(HeadlineComponents headline, const HeadlineRole role)
+    Result<void> DictionaryBuild::addHeadline(HeadlineComponents headline, const HeadlineRole role,
+                                              SourceContext context)
     {
+        const auto source = origin("addHeadline", headline.entryId.toString(), context);
         return mutate([&]() -> Result<void>
         {
             if (auto valid = WriteValidation::entryId(headline.entryId); !valid)
@@ -128,30 +138,38 @@ namespace MKD::detail
             if (!analysis->references.empty())
             {
                 const auto utf8 = unicode::toUtf8(text);
-                if (auto recorded = working().references.record(analysis->references, origin, {}, utf8); !recorded)
+                if (auto recorded = working().references.record(analysis->references, source, {}, utf8); !recorded)
                     return recorded;
             }
 
-            working().references.requireTarget(headline.entryId, origin);
+            working().references.requireTarget(headline.entryId, source);
             return working().indexes.addHeadline(std::move(headline), role);
-        });
+        }, source);
     }
 
     Result<void> DictionaryBuild::addSearchKey(const SearchScope scope, std::string_view key, const EntryId target,
-                                               const SearchKeyOptions options)
+                                               const SearchKeyOptions options, SourceContext context)
     {
+        const auto product = product_.lock();
+        const auto definition = search::scopeDefinition(scope, product ? product->profile() : CreationProfile::General);
+        const auto scopeName =
+            definition ? std::string(definition->filename) : std::to_string(static_cast<unsigned>(scope));
+        const auto source =
+            origin("addSearchKey", scopeName + " key '" + std::string(key) + "' for " + target.toString(), context);
         return mutate([&]() -> Result<void>
         {
-            auto result = working().indexes.addSearchKey(scope, key, target, options);
+            auto result = working().indexes.addSearchKey(scope, key, target, options, source);
             if (result)
-                working().references.requireTarget(target, "search key '" + std::string(key) + "'");
+                working().references.requireTarget(target, source);
 
             return result;
-        });
+        }, source);
     }
 
-    Result<void> DictionaryBuild::writeAsset(std::string_view path, std::span<const uint8_t> bytes)
+    Result<void> DictionaryBuild::writeAsset(std::string_view path, std::span<const uint8_t> bytes,
+                                             SourceContext context)
     {
+        const auto source = origin("writeAsset", std::string(path), context);
         return mutate([&]() -> Result<void>
         {
             if (auto valid = AssetWriter::validateAssetPath(path); !valid)
@@ -164,24 +182,27 @@ namespace MKD::detail
                 if (!analysis)
                     return std::unexpected(analysis.error().describe(path, css));
 
-                if (auto recorded = working().references.record(analysis->references, path, path, css); !recorded)
+                if (auto recorded = working().references.record(analysis->references, source, path, css); !recorded)
                     return recorded;
             }
             return working().assets.writeAsset(path, bytes);
-        });
+        }, source);
     }
 
     Result<void> DictionaryBuild::writeMedia(std::string_view name, std::span<const uint8_t> bytes,
-                                             const MediaKind kind)
+                                             const MediaKind kind, SourceContext context)
     {
+        const auto source = origin("writeMedia", std::string(name), context);
         return mutate([&]() -> Result<void>
         {
             return working().assets.writeMedia(name, bytes, kind);
-        });
+        }, source);
     }
 
-    Result<GaijiResource> DictionaryBuild::addGaiji(std::string_view filename, std::span<const uint8_t> bytes)
+    Result<GaijiResource> DictionaryBuild::addGaiji(std::string_view filename, std::span<const uint8_t> bytes,
+                                                    SourceContext context)
     {
+        const auto source = origin("addGaiji", std::string(filename), context);
         return mutate([&]() -> Result<GaijiResource>
         {
             if (filename.contains('/'))
@@ -191,68 +212,99 @@ namespace MKD::detail
             if (auto valid = AssetWriter::validateGaiji(path, bytes); !valid)
                 return std::unexpected(valid.error());
 
-            if (auto written = writeAsset(path, bytes); !written)
+            if (auto written = writeAsset(path, bytes, context); !written)
                 return std::unexpected(written.error());
 
             return GaijiResource{path};
-        });
+        }, source);
     }
 
-    Result<void> DictionaryBuild::setPresentation(DictionaryPresentation presentation)
+    Result<void> DictionaryBuild::setPresentation(DictionaryPresentation presentation, SourceContext context)
     {
+        const auto source = origin("setPresentation", "presentation", context);
         return mutate([&]() -> Result<void>
         {
             if (auto valid = metadata_preparation::validatePresentation(presentation); !valid)
                 return valid;
 
             metadata_.presentation = std::move(presentation);
+            working().presentationOrigin = source;
             return {};
-        });
+        }, source);
     }
 
-    Result<void> DictionaryBuild::setEntryOrder(std::span<const uint32_t> pages)
+    Result<void> DictionaryBuild::setEntryOrder(std::span<const uint32_t> pages, SourceContext context)
     {
+        const auto source = origin("setEntryOrder", "entry order", context);
         return mutate([&]() -> Result<void>
         {
+            working().orderOrigin = source;
             return working().entries.setOrder(pages);
-        });
+        }, source);
     }
 
-    Result<void> DictionaryBuild::validate() const
+    void DictionaryBuild::collectIssues(IssueCollector& issues) const
     {
+        if (finished())
+            return;
+
         const auto& work = working();
+        const auto add =
+            [&](std::string code, std::string subject, std::string message, const AuthoringOrigin* source = nullptr)
+        {
+            DependencyOrigins origins;
+            origins.add(source && !source->operation.empty()
+                            ? *source
+                            : origin("preflight", subject, metadataContext_));
+            issues.add(std::move(code), metadata_, std::move(subject), std::move(message), origins);
+        };
+
         if (work.entries.pages().empty())
-            return std::unexpected("Dictionary has no pages");
+            add("missing-pages", "", "Dictionary has no pages");
 
         if (!work.indexes.primaryCount())
-            return std::unexpected("Dictionary has no primary headlines");
+            add("missing-headlines", "", "Dictionary has no primary headlines");
 
         if (!work.indexes.hasHeadwords())
-            return std::unexpected("Dictionary has no headword search keys");
+            add("missing-headwords", "", "Dictionary has no headword search keys");
 
-        if (auto valid = work.entries.validateReservations(); !valid)
-            return valid;
+        for (const auto& [page, source] : work.reservations)
+            add("unwritten-entry", std::to_string(page), "Reserved entry has no XML: page " + std::to_string(page),
+                &source);
 
-        if (auto valid = work.references.validateTargets(); !valid)
-            return valid;
-
+        work.references.validateTargets(issues, metadata_);
         for (auto page : work.entries.pages())
             if (!work.indexes.hasPrimary({page, 0}))
-                return std::unexpected("Each page requires a primary headline");
+                add("missing-page-headline", std::to_string(page),
+                    "Page " + std::to_string(page) + " requires a primary headline", &work.pageOrigins.at(page));
 
-        for (const auto& [path, origin] : work.references.requiredAssets())
+        for (const auto& [path, origins] : work.references.requiredAssets())
             if (!work.assets.contains(path))
-                return std::unexpected("Missing resource " + path + " referenced by " + origin);
+                issues.add("missing-resource", metadata_, path, "Missing resource " + path, origins);
 
-        for (const auto& [name, origin] : work.references.requiredGaiji())
+        for (const auto& [name, origins] : work.references.requiredGaiji())
             if (!work.assets.contains("gaiji/" + name + ".png") && !work.assets.contains("gaiji/" + name + ".svg"))
-                return std::unexpected("Missing gaiji " + name + " referenced by " + origin);
+                issues.add("missing-gaiji", metadata_, name, "Missing gaiji " + name, origins);
 
         const auto& stylesheet = metadata_.presentation.fullRubyStylesheet;
         if (stylesheet && !work.assets.containsLoose(*stylesheet))
-            return std::unexpected("Missing full-ruby stylesheet: " + *stylesheet);
+            add("missing-full-ruby-stylesheet", *stylesheet, "Missing full-ruby stylesheet: " + *stylesheet,
+                &work.presentationOrigin);
 
-        return work.entries.validateOrder();
+        if (auto valid = work.entries.validateOrder(); !valid)
+            add("invalid-entry-order", "entry order", valid.error(), &work.orderOrigin);
+
+        work.indexes.validatePassages(work.references, issues, metadata_);
+    }
+
+    Result<ValidationReport> DictionaryBuild::preflight(ValidationOptions options) const
+    {
+        if (auto product = owner(); !product)
+            return std::unexpected(product.error());
+
+        IssueCollector issues(options);
+        collectIssues(issues);
+        return std::move(issues).take();
     }
 
     Result<void> DictionaryBuild::finish()
@@ -261,12 +313,16 @@ namespace MKD::detail
         if (!product)
             return std::unexpected(product.error());
 
+        auto report = preflight({});
+        if (!report)
+            return std::unexpected(report.error());
+        if (!report->valid())
+            return std::unexpected(report->describe());
+
         auto result = [&]() -> Result<void>
         {
             auto& work = working();
-            if (auto valid = validate(); !valid)
-                return valid;
-            if (auto written = work.indexes.finish(work.references); !written)
+            if (auto written = work.indexes.finish(); !written)
                 return written;
             if (auto written = work.pages->finish(); !written)
                 return written;
@@ -308,8 +364,10 @@ namespace MKD::detail
         return {};
     }
 
-    Result<void> DictionaryBuild::addFont(std::string_view filename, std::span<const uint8_t> bytes)
+    Result<void> DictionaryBuild::addFont(std::string_view filename, std::span<const uint8_t> bytes,
+                                          SourceContext context)
     {
+        const auto source = origin("addFont", std::string(filename), context);
         return mutate([&]() -> Result<void>
         {
             if (auto valid = WriteValidation::relativePath(filename); !valid)
@@ -345,11 +403,13 @@ namespace MKD::detail
             working().assets.registerLoose(std::string(monokakido::paths::fonts) + "/" + std::string(filename));
             product->registerFont(std::string(filename));
             return {};
-        });
+        }, source);
     }
 
-    Result<AppendixDocument> DictionaryBuild::addAppendixDocument(std::string_view relative, std::string_view title)
+    Result<AppendixDocument> DictionaryBuild::addAppendixDocument(std::string_view relative, std::string_view title,
+                                                                  SourceContext context)
     {
+        const auto source = origin("addAppendixDocument", std::string(title), context);
         return mutate([&]() -> Result<AppendixDocument>
         {
             if (auto valid = WriteValidation::relativePath(relative); !valid)
@@ -363,7 +423,7 @@ namespace MKD::detail
             if (extension != ".html" && extension != ".pdf")
                 return std::unexpected("Document appendices must be HTML or PDF assets");
 
-            working().references.requireAsset(std::string(path), "appendix " + std::string(title));
+            working().references.requireAsset(std::string(path), source);
             const auto hash = relative.find('#');
             AppendixDocument document{
                 metadata_.directory + "/" + std::string(path),
@@ -371,13 +431,14 @@ namespace MKD::detail
             };
             working().appendices.push_back({.name = std::string(title), .target = document});
             return document;
-        });
+        }, source);
     }
 
     Result<AppendixList> DictionaryBuild::addAppendixList(std::string_view name, std::string_view title,
                                                           std::span<const AppendixEntry> entries,
-                                                          const AppendixListWriteOptions options)
+                                                          const AppendixListWriteOptions options, SourceContext context)
     {
+        const auto source = origin("addAppendixList", std::string(title), context);
         return mutate([&]() -> Result<AppendixList>
         {
             if (auto valid = WriteValidation::relativePath(name); !valid)
@@ -397,12 +458,15 @@ namespace MKD::detail
             if (!writer)
                 return std::unexpected(writer.error());
 
+            size_t row = 0;
             for (const auto& entry : entries)
             {
                 if (entry.entryId.pageId || entry.entryId.itemId)
                     if (auto valid = WriteValidation::entryId(entry.entryId); !valid)
                         return std::unexpected(valid.error());
 
+                auto rowOrigin = source;
+                rowOrigin.subject += " row " + std::to_string(++row);
                 auto target = entry;
                 if (!target.dictionaryId && target.entryId.pageId)
                     target.dictionaryId = *metadata_.dictionaryId;
@@ -410,14 +474,14 @@ namespace MKD::detail
                 if (entry.entryId.pageId)
                 {
                     if (target.dictionaryId == *metadata_.dictionaryId)
-                        working().references.requireTarget(entry.entryId, "appendix " + std::string(title));
+                        working().references.requireTarget(entry.entryId, rowOrigin);
                     else
                     {
                         auto product = owner();
                         if (!product)
                             return std::unexpected(product.error());
 
-                        (*product)->referenceAppendix({entry.entryId, target.dictionaryId});
+                        (*product)->referenceAppendix({entry.entryId, target.dictionaryId}, metadata_, rowOrigin);
                     }
                 }
                 if (auto result = writer->add(std::move(target)); !result)
@@ -430,6 +494,6 @@ namespace MKD::detail
             working().appendices.push_back({.name = std::string(title), .target = list});
             working().assets.registerLoose(relative);
             return list;
-        });
+        }, source);
     }
 }

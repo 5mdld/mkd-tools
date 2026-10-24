@@ -100,14 +100,6 @@ namespace MKD::detail
         return {};
     }
 
-    Result<void> EntryAllocator::validateReservations() const
-    {
-        for (const auto& page : reserved_ | std::views::keys)
-            if (!pages_.contains(page))
-                return std::unexpected("Reserved entry has no XML: page " + std::to_string(page));
-        return {};
-    }
-
     Result<void> EntryAllocator::setOrder(std::span<const uint32_t> pages)
     {
         if (pages.empty())

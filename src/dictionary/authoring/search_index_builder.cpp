@@ -15,7 +15,7 @@
 namespace MKD::detail
 {
     Result<void> SearchIndexBuilder::addSearchKey(SearchScope scope, std::string_view key, EntryId target,
-                                                  SearchKeyOptions options)
+                                                  SearchKeyOptions options, AuthoringOrigin origin)
     {
         if (auto valid = WriteValidation::entryId(target); !valid)
             return valid;
@@ -69,22 +69,34 @@ namespace MKD::detail
             if (auto written = add(component, {}); !written)
                 return written;
 
-        passages_.try_emplace(target, PassageIndex{scope, {}}).first->second.terms.insert(normalized);
+        auto& passageIndex = passages_.try_emplace(target, PassageIndex{scope, {}, {}}).first->second;
+        passageIndex.terms.insert(normalized);
+        passageIndex.origins.add(std::move(origin));
         return {};
     }
 
-    Result<void> SearchIndexBuilder::writePassageHeadlines(const ReferenceIndex& references)
+    void SearchIndexBuilder::validatePassages(const ReferenceIndex& references, IssueCollector& issues,
+                                              const DictionaryContent& dictionary) const
     {
-        for (const auto& target : passages_ | std::views::keys)
+        for (const auto& [target, passage] : passages_)
         {
             const auto companion = search::companionTarget(target, monokakido::search::normalizedHeadlineOffset);
+            const std::string scope = passage.scope == SearchScope::Sense ? "Sense" : "Example";
             if (references.contains(companion) || references.references(companion))
-                return std::unexpected("Native passage companion " + companion.toString() + " for " +
-                    target.toString() + " collides with an article target or headline");
+                issues.add("passage-companion-collision", dictionary, companion.toString(),
+                           scope + " search for entry " + target.toString() + " reserves ID " + companion.toString() +
+                           " for an automatically generated search record, but this ID is already used or referenced "
+                           "by authored content. Assign a different target to the search keys or remove the conflicting "
+                           "use of " + companion.toString() + ".", passage.origins);
             if (!primary_.contains(target))
-                return std::unexpected("Native passage target needs a primary headline: " + target.toString());
+                issues.add("missing-passage-headline", dictionary, target.toString(),
+                           scope + " search targets entry " + target.toString() +
+                           ", which has no primary headline. Add a primary headline for this entry.", passage.origins);
         }
+    }
 
+    Result<void> SearchIndexBuilder::writePassageHeadlines()
+    {
         for (const auto& [target, passage] : passages_)
         {
             std::string text;
@@ -149,9 +161,9 @@ namespace MKD::detail
         return result;
     }
 
-    Result<void> SearchIndexBuilder::finish(const ReferenceIndex& references)
+    Result<void> SearchIndexBuilder::finish()
     {
-        if (auto result = writePassageHeadlines(references); !result)
+        if (auto result = writePassageHeadlines(); !result)
             return result;
 
         for (auto& writer : headlines_ | std::views::values)

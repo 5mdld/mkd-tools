@@ -5,6 +5,7 @@
 #pragma once
 
 #include "MKD/dictionary/dictionary_writer.hpp"
+#include "authoring_diagnostics.hpp"
 
 namespace MKD
 {
@@ -29,20 +30,24 @@ namespace MKD::detail
         }
 
         Result<void> addHeadline(HeadlineComponents headline, HeadlineRole role);
-        Result<void> addSearchKey(SearchScope scope, std::string_view key, EntryId target, SearchKeyOptions options);
-        Result<void> finish(const ReferenceIndex& references);
+        Result<void> addSearchKey(SearchScope scope, std::string_view key, EntryId target, SearchKeyOptions options,
+                                  AuthoringOrigin origin);
+        void validatePassages(const ReferenceIndex& references, IssueCollector& issues,
+                              const DictionaryContent& dictionary) const;
+        Result<void> finish();
         [[nodiscard]] bool hasPrimary(EntryId target) const { return primary_.contains(target); }
         [[nodiscard]] size_t primaryCount() const { return primary_.size(); }
         [[nodiscard]] bool hasHeadwords() const;
         [[nodiscard]] std::set<SearchScope> scopes() const;
 
     private:
-        Result<void> writePassageHeadlines(const ReferenceIndex& references);
+        Result<void> writePassageHeadlines();
 
         struct PassageIndex
         {
             SearchScope scope;
             std::set<std::string> terms;
+            DependencyOrigins origins;
         };
 
         std::filesystem::path root_;

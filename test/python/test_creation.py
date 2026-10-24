@@ -7,6 +7,41 @@ from support import DictionaryTest, new_dictionary, new_product, one_birb
 
 
 class CreationTests(DictionaryTest):
+    def test_preflight_is_bounded_deterministic_and_keeps_distinct_source_origins(self):
+        reports = []
+        for pages in ((1, 2, 3, 4), (4, 3, 2, 1)):
+            product = new_product(self.workspace() / 'Origins')
+            dictionary = new_dictionary(product)
+            for page in pages:
+                source = mkd.SourceContext(filename='birds.xml', record=str(page))
+                entry = dictionary.create_entry(page_id=page, source=source)
+                entry.write_xml('<html>\n<body><img src="missing.png"/><img src="missing.png"/></body></html>')
+                dictionary.add_headline(mkd.HeadlineComponents('鳥', entry.target))
+                dictionary.add_search_key(mkd.SearchScope.HEADWORD, 'bird', entry.target)
+            report = dictionary.preflight()
+            self.assertIsInstance(report.issues, tuple)
+            issue, = report.issues
+            self.assertEqual(issue.code, 'missing-resource')
+            self.assertEqual(issue.occurrences, 8)
+            self.assertIsInstance(issue.origins, tuple)
+            self.assertEqual(len(issue.origins), 3)
+            self.assertEqual(issue.origins[0].context.filename, 'birds.xml')
+            self.assertEqual(issue.origins[0].location.line, 2)
+            with self.assertRaises(AttributeError):
+                issue.code = 'changed'
+            reports.append(report.describe())
+            limited = dictionary.preflight(options=mkd.ValidationOptions(max_issues=0))
+            self.assertEqual(limited.issues, ())
+            self.assertFalse(limited.valid)
+            self.assertTrue(limited.truncated)
+            with self.assertRaises(mkd.Error):
+                dictionary.finish()
+            dictionary.add_asset('missing.png', b'')
+            dictionary.finish()
+            product.finish()
+            self.assertFalse(report.valid)
+        self.assertEqual(*reports)
+
     def test_kanwa_passage_keys_search_their_normalized_phrases(self):
         path = self.workspace() / 'Passages'
         product = new_product(path, mkd.CreationProfile.KANWA)
@@ -105,7 +140,9 @@ class CreationTests(DictionaryTest):
             entry.write_xml(f'<html><body><p id="{target}">鳥声</p><span id="{companion}"/></body></html>')
             if not keys_first:
                 dictionary.add_search_key(mkd.SearchScope.SENSE, '鳥声', target)
-            with self.assertRaisesRegex(mkd.Error, 'companion.*collides'):
+            report = dictionary.preflight()
+            self.assertIn('passage-companion-collision', [issue.code for issue in report.issues])
+            with self.assertRaisesRegex(mkd.Error, 'reserves ID.*automatically generated search record'):
                 dictionary.finish()
 
     def test_passage_search_record_ids_must_fit(self):

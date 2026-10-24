@@ -49,6 +49,17 @@ namespace MKD::detail
         return (*dictionary)->validateTarget(target.entryId);
     }
 
+    void ProductBuild::referenceAppendix(AppendixEntryLink target, const DictionaryContent& dictionary,
+                                         AuthoringOrigin source)
+    {
+        auto& reference =
+            appendixReferences_
+            .try_emplace(std::tuple{*dictionary.dictionaryId, target.dictionaryId, target.entryId},
+                         AppendixReference{target, dictionary.dictionaryId, dictionary.identifier, {}})
+            .first->second;
+        reference.origins.add(std::move(source));
+    }
+
     void ProductBuild::configureNavigation(bool kanwa)
     {
         metadata_.appendixViewController =
@@ -124,16 +135,21 @@ namespace MKD::detail
     }
 
     Result<std::shared_ptr<DictionaryBuild>> ProductBuild::addDictionary(DictionaryContent content,
-                                                                         DictionaryWriteOptions options)
+                                                                         DictionaryWriteOptions options,
+                                                                         SourceContext context)
     {
+        const auto reject = [&](std::string message)
+        {
+            return output_->fail(origin("addDictionary", "dictionary", context).describe() + ": " + message);
+        };
         if (auto state = output_->check(); !state)
             return std::unexpected(state.error());
 
         auto prepared = metadata_preparation::prepareContent(std::move(content));
         if (!prepared)
         {
-            output_->fail(prepared.error());
-            return std::unexpected(prepared.error());
+            const auto rejected = reject(prepared.error());
+            return std::unexpected(rejected.error());
         }
 
         content = std::move(*prepared);
@@ -143,19 +159,19 @@ namespace MKD::detail
                 existing->metadata().directory == content.directory ||
                 existing->metadata().dictionaryId == content.dictionaryId)
             {
-                output_->fail("Duplicate content identifier, directory or numeric dictionary ID");
-                return std::unexpected("Duplicate content identifier, directory or numeric dictionary ID");
+                const auto rejected = reject("Duplicate content identifier, directory or numeric dictionary ID");
+                return std::unexpected(rejected.error());
             }
         }
 
-        auto dictionary = std::make_shared<DictionaryBuild>(shared_from_this(), std::move(content), options);
+        auto dictionary = std::make_shared<DictionaryBuild>(shared_from_this(), std::move(content), options, context);
         std::error_code error;
         if (!std::filesystem::create_directory(dictionary->root(), error))
         {
             const auto message =
                 "Cannot create content directory: " + (error ? error.message() : "path already exists");
-            output_->fail(message);
-            return std::unexpected(message);
+            const auto rejected = reject(message);
+            return std::unexpected(rejected.error());
         }
 
         dictionaries_.push_back(dictionary);
@@ -198,8 +214,8 @@ namespace MKD::detail
 
     Result<void> ProductBuild::writeAppendices() const
     {
-        for (const auto& reference : appendixReferences_)
-            if (auto valid = validateTarget(reference); !valid)
+        for (const auto& [key, reference] : appendixReferences_)
+            if (auto valid = validateTarget(reference.target); !valid)
                 return valid;
         if (appendices_)
             return AppendixWriter::write(*this, *appendices_);

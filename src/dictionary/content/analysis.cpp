@@ -18,6 +18,13 @@ namespace MKD::detail
             }
     }
 
+    std::pair<size_t, size_t> SourceMap::lineColumn(size_t offset) const
+    {
+        offset = std::min(offset, size_);
+        const auto line = std::ranges::upper_bound(lines_, offset) - lines_.begin() - 1;
+        return {line + 1, offset - lines_[line] + 1};
+    }
+
     std::string SourceMap::describe(std::string_view origin,
                                     std::optional<content::SourceRange> range) const
     {
@@ -31,9 +38,8 @@ namespace MKD::detail
         result += "byte " + std::to_string(range->offset);
         if (range->offset <= size_)
         {
-            const auto line = std::ranges::upper_bound(lines_, range->offset) - lines_.begin() - 1;
-            result += " (line " + std::to_string(line + 1) + ", byte column " +
-                std::to_string(range->offset - lines_[line] + 1) + ")";
+            const auto [line, column] = lineColumn(range->offset);
+            result += " (line " + std::to_string(line) + ", byte column " + std::to_string(column) + ")";
         }
         return result;
     }

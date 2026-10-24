@@ -12,6 +12,7 @@
 #include "MKD/resource/headline_store.hpp"
 #include "MKD/resource/keystore_writer.hpp"
 #include "MKD/resource/appendix_entry_list_writer.hpp"
+#include "MKD/dictionary/authoring_diagnostics.hpp"
 #include <optional>
 
 namespace MKD
@@ -37,10 +38,11 @@ namespace MKD
         DictionaryWriter& operator=(DictionaryWriter&&) noexcept;
 
         /** Automatic page IDs follow allocation order. Supply an ID to keep identity stable across builds. */
-        [[nodiscard]] Result<EntryWriter> createEntry(std::optional<uint32_t> pageId = std::nullopt) const;
-        [[nodiscard]] Result<void> addPage(uint32_t pageId, std::string_view xhtml) const;
-        [[nodiscard]] Result<void> addHeadline(HeadlineComponents headline,
-                                               HeadlineRole role = HeadlineRole::Primary) const;
+        [[nodiscard]] Result<EntryWriter> createEntry(std::optional<uint32_t> pageId = std::nullopt,
+                                                      SourceContext context = {}) const;
+        [[nodiscard]] Result<void> addPage(uint32_t pageId, std::string_view xhtml, SourceContext context = {}) const;
+        [[nodiscard]] Result<void> addHeadline(HeadlineComponents headline, HeadlineRole role = HeadlineRole::Primary,
+                                               SourceContext context = {}) const;
         /**
          * Kanwa sense and example keys generate additional search records for the Dictionaries app.
          * Each indexed sense or example needs a primary headline and its own target. Generated records need no XML anchors.
@@ -48,20 +50,30 @@ namespace MKD
          * Exact-only keys remain raw keys and do not generate passage indexes.
          */
         [[nodiscard]] Result<void> addSearchKey(SearchScope scope, std::string_view key, EntryId target,
-                                                SearchKeyOptions options = {}) const;
+                                                SearchKeyOptions options = {}, SourceContext context = {}) const;
         /** Registers PNG or SVG bytes under gaiji/. No image decoding is performed. */
-        [[nodiscard]] Result<GaijiResource> addGaiji(std::string_view filename, std::span<const uint8_t> bytes) const;
+        [[nodiscard]] Result<GaijiResource> addGaiji(std::string_view filename, std::span<const uint8_t> bytes,
+                                                     SourceContext context = {}) const;
         /** Referenced stylesheets may be added later, before finish(). */
-        [[nodiscard]] Result<void> setPresentation(DictionaryPresentation presentation) const;
-        [[nodiscard]] Result<void> addGraphic(std::string_view name, std::span<const uint8_t> bytes) const;
-        [[nodiscard]] Result<void> addAudio(std::string_view name, std::span<const uint8_t> bytes) const;
-        [[nodiscard]] Result<void> addAsset(std::string_view relativePath, std::span<const uint8_t> bytes) const;
-        [[nodiscard]] Result<void> addFont(std::string_view filename, std::span<const uint8_t> bytes) const;
-        [[nodiscard]] Result<AppendixDocument> addAppendix(std::string_view relativePath, std::string_view title) const;
+        [[nodiscard]] Result<void> setPresentation(DictionaryPresentation presentation,
+                                                   SourceContext context = {}) const;
+        [[nodiscard]] Result<void> addGraphic(std::string_view name, std::span<const uint8_t> bytes,
+                                              SourceContext context = {}) const;
+        [[nodiscard]] Result<void> addAudio(std::string_view name, std::span<const uint8_t> bytes,
+                                            SourceContext context = {}) const;
+        [[nodiscard]] Result<void> addAsset(std::string_view relativePath, std::span<const uint8_t> bytes,
+                                            SourceContext context = {}) const;
+        [[nodiscard]] Result<void> addFont(std::string_view filename, std::span<const uint8_t> bytes,
+                                           SourceContext context = {}) const;
+        [[nodiscard]] Result<AppendixDocument> addAppendix(std::string_view relativePath, std::string_view title,
+                                                           SourceContext context = {}) const;
         [[nodiscard]] Result<AppendixList> addAppendix(std::string_view name, std::string_view title,
-                                               std::span<const AppendixEntry> entries,
-                                               AppendixListWriteOptions options = {}) const;
-        [[nodiscard]] Result<void> setEntryOrder(std::span<const uint32_t> pageIds) const;
+                                                       std::span<const AppendixEntry> entries,
+                                                       AppendixListWriteOptions options = {},
+                                                       SourceContext context = {}) const;
+        [[nodiscard]] Result<void> setEntryOrder(std::span<const uint32_t> pageIds, SourceContext context = {}) const;
+        /** Checks current authoring input without writing or sealing the dictionary. */
+        [[nodiscard]] Result<ValidationReport> preflight(ValidationOptions options = {}) const;
         [[nodiscard]] Result<void> finish() const;
 
     private:

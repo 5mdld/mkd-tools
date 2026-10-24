@@ -9,20 +9,22 @@
 
 namespace MKD::detail
 {
-    Result<void> ReferenceIndex::record(const content::References& references, std::string_view origin,
+    Result<void> ReferenceIndex::record(const content::References& references, AuthoringOrigin sourceOrigin,
                                         std::string_view sourcePath, std::string_view input)
     {
         if (references.empty()) return {};
         const SourceMap source(input);
         for (const auto& reference : references)
         {
-            auto location = source.describe(origin, reference.source);
+            auto location = sourceOrigin;
+            if (reference.source)
+            {
+                const auto [line, column] = source.lineColumn(reference.source->offset);
+                location.location = SourceLocation{reference.source->offset, reference.source->length, line, column};
+            }
             const auto remember = [&](auto& index, auto&& key)
             {
-                if (reference.source)
-                    index.insert_or_assign(std::forward<decltype(key)>(key), std::move(location));
-                else
-                    index.try_emplace(std::forward<decltype(key)>(key), std::move(location));
+                index[std::forward<decltype(key)>(key)].add(location);
             };
             if (const auto target = std::get_if<EntryId>(&reference.target))
                 remember(targets_, *target);
@@ -30,7 +32,7 @@ namespace MKD::detail
             {
                 auto path = resolveAssetReference(*asset, sourcePath);
                 if (!path)
-                    return std::unexpected(location + ": " + path.error());
+                    return std::unexpected(location.describe() + ": " + path.error());
                 if (*path)
                     remember(assets_, std::move(**path));
             }
@@ -45,22 +47,22 @@ namespace MKD::detail
         anchors_.insert(targets.begin(), targets.end());
     }
 
-    void ReferenceIndex::requireTarget(EntryId target, std::string origin)
+    void ReferenceIndex::requireTarget(EntryId target, AuthoringOrigin origin)
     {
-        targets_.try_emplace(target, std::move(origin));
+        targets_[target].add(std::move(origin));
     }
 
-    void ReferenceIndex::requireAsset(std::string path, std::string origin)
+    void ReferenceIndex::requireAsset(std::string path, AuthoringOrigin origin)
     {
-        assets_.try_emplace(std::move(path), std::move(origin));
+        assets_[std::move(path)].add(std::move(origin));
     }
 
-    Result<void> ReferenceIndex::validateTargets() const
+    void ReferenceIndex::validateTargets(IssueCollector& issues, const DictionaryContent& dictionary) const
     {
-        for (const auto& [target, origin] : targets_)
+        for (const auto& [target, origins] : targets_)
             if (!contains(target))
-                return std::unexpected("Missing entry target " + target.toString() + " referenced by " + origin);
-        return {};
+                issues.add("missing-entry-target", dictionary, target.toString(),
+                           "Missing entry target " + target.toString(), origins);
     }
 
     std::vector<EntryId> ReferenceIndex::takeTargets() &&

@@ -21,5 +21,6 @@ namespace MKD
     {
         std::shared_ptr<detail::DictionaryBuild> dictionary;
         uint32_t pageId;
+        SourceContext context;
     };
 }

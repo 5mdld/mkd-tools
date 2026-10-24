@@ -20,13 +20,13 @@ namespace MKD
         return {impl_->pageId, 0};
     }
 
-    Result<EntryId> EntryWriter::addTarget(const EntryTargetKind kind) const
+    Result<EntryId> EntryWriter::addTarget(const EntryTargetKind kind, std::optional<SourceContext> context) const
     {
-        return impl_->dictionary->addTarget(impl_->pageId, kind);
+        return impl_->dictionary->addTarget(impl_->pageId, kind, context.value_or(impl_->context));
     }
 
-    Result<void> EntryWriter::writeXml(std::string_view xml) const
+    Result<void> EntryWriter::writeXml(std::string_view xml, std::optional<SourceContext> context) const
     {
-        return impl_->dictionary->writePage(impl_->pageId, xml);
+        return impl_->dictionary->writePage(impl_->pageId, xml, context.value_or(impl_->context));
     }
 }
