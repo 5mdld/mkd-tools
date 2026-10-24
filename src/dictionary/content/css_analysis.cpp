@@ -47,7 +47,7 @@ namespace MKD::content
                 result.diagnostics.push_back(
                     {
                         DiagnosticKind::IgnoredAtRule, token->source,
-                        "Native article styles ignore " + std::string(
+                        "The Dictionaries article renderer ignores " + std::string(
                             css.substr(token->source.offset, token->source.length))
                     });
 

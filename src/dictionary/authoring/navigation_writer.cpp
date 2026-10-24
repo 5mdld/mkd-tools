@@ -156,7 +156,8 @@ namespace MKD::detail
         }
 
         if (bytes_.size() > UINT32_MAX || count > UINT32_MAX)
-            return std::unexpected("Navigation index exceeds the native size limit");
+            return std::unexpected("Navigation index is too large for the dictionary file format. "
+                "Split it into smaller indexes.");
 
         BinaryBuffer header(nav::headerSize);
         header.writeByte(titleEntry ? 1 : 0);
@@ -187,7 +188,8 @@ namespace MKD::detail
 
             for (const auto* text : {&radical->character, &radical->variants, &radical->reading})
                 if (text->contains("／"))
-                    return std::unexpected("Radical fields must not contain the native separator");
+                    return std::unexpected(
+                        "Radical character, variant and reading fields must not contain the separator '／'");
         }
 
         return WriteValidation::xmlText(nav::encodeLabel(value), true);

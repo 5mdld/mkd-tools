@@ -66,7 +66,7 @@ namespace MKD::content
                     result.diagnostics.push_back(
                         {
                             DiagnosticKind::IgnoredStyleElement, source_,
-                            "Native article styles use linked stylesheets and inline declarations"
+                            "Dictionaries ignores <style> elements. Link a stylesheet or use inline style attributes."
                         });
                     css(node.child_value(), CssInput::Stylesheet);
                 }

@@ -82,7 +82,7 @@ namespace MKD::test
         const auto keywords = require(content::analyzeCss(
             "@color accent = #000000; @COLOR accent = #000000; p { color: @media; }"));
         ASSERT_EQ(keywords.diagnostics.size(), 1);
-        EXPECT_EQ(keywords.diagnostics.front().message, "Native article styles ignore @COLOR");
+        EXPECT_EQ(keywords.diagnostics.front().message, "The Dictionaries article renderer ignores @COLOR");
 
         const std::string nested = "鳥{B:前{REF:9-0000:後}}";
         const auto headline = require(content::analyzeHeadline(u"鳥{B:前{REF:9-0000:後}}"));

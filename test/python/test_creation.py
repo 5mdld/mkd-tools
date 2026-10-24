@@ -210,7 +210,7 @@ class CreationTests(DictionaryTest):
     def test_passage_search_record_ids_must_fit(self):
         product = new_product(self.workspace() / 'Overflow', mkd.CreationProfile.KANWA)
         dictionary = new_dictionary(product)
-        with self.assertRaisesRegex(mkd.Error, 'companion overflows'):
+        with self.assertRaisesRegex(mkd.Error, 'item ID is too high'):
             dictionary.add_search_key(mkd.SearchScope.SENSE, '鳥声', mkd.EntryId(1, 0xF800))
 
     def test_last_explicit_passage_target_has_a_searchable_companion(self):

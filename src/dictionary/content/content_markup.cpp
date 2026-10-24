@@ -29,7 +29,7 @@ namespace MKD::detail
     Result<HeadlineToken> HeadlineToken::read(std::string_view source)
     {
         if (source.size() < 2 || source.front() != '{' || source.back() != '}')
-            return std::unexpected("Expected a complete native label token");
+            return std::unexpected("Expected a complete headline command enclosed in '{' and '}'");
 
         HeadlineToken token{source, {}};
         size_t start = 1;
@@ -39,11 +39,11 @@ namespace MKD::detail
             const auto c = source[i];
             if (c == '{')
             {
-                if (++depth > 64) return std::unexpected("Native label nesting exceeds 64 levels");
+                if (++depth > 64) return std::unexpected("Headline command nesting exceeds 64 levels");
             }
             else if (c == '}')
             {
-                if (!depth) return std::unexpected("Unbalanced native label token");
+                if (!depth) return std::unexpected("Unbalanced braces in headline command");
                 --depth;
             }
             else if (c == ':' && !depth)
@@ -54,7 +54,7 @@ namespace MKD::detail
         }
 
         if (depth)
-            return std::unexpected("Unbalanced native label token");
+            return std::unexpected("Unbalanced braces in headline command");
 
         token.fields.push_back(source.substr(start, source.size() - 1 - start));
         return token;
@@ -63,7 +63,7 @@ namespace MKD::detail
     Result<HeadlineToken> HeadlineToken::readLeading(std::string_view source)
     {
         if (source.empty() || source.front() != '{')
-            return std::unexpected("Expected a native label token");
+            return std::unexpected("Expected a headline command starting with '{'");
 
         size_t end = 0, depth = 0;
         do
@@ -74,7 +74,7 @@ namespace MKD::detail
         }
         while (end < source.size() && depth);
         if (depth)
-            return std::unexpected("Unterminated native label token");
+            return std::unexpected("Headline command is missing its closing '}'");
         return read(source.substr(0, end));
     }
 
@@ -108,7 +108,7 @@ namespace MKD::detail
             return valid;
 
         if (text.find_first_of(field ? "{}:" : "{") != std::string_view::npos)
-            return std::unexpected("Text cannot be represented literally in native label markup");
+            return std::unexpected("Text contains characters reserved by headline command syntax");
 
         return {};
     }
@@ -240,7 +240,8 @@ namespace MKD::detail
 
     Result<std::string_view> PlainTextEncoder::operator()(const HeadlineMarkup&) const
     {
-        return std::unexpected("Unknown native markup has no plain-text representation");
+        return std::unexpected("Encoded headline commands have no plain-text conversion. "
+                               "Use structured inline content instead.");
     }
 
     Result<std::string> XhtmlEncoder::operator()(const std::string& text) const
@@ -291,6 +292,7 @@ namespace MKD::detail
 
     Result<std::string> XhtmlEncoder::operator()(const HeadlineMarkup&) const
     {
-        return std::unexpected("Unknown native markup has no XHTML representation");
+        return std::unexpected("Encoded headline commands cannot be converted to XHTML. "
+                               "Use structured inline content instead.");
     }
 }

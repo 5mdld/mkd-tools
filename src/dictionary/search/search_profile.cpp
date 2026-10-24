@@ -34,7 +34,7 @@ namespace MKD::detail::search
         const auto definition =
             std::ranges::find(monokakido::search::classes, name, &monokakido::search::ClassDefinition::name);
         if (definition == monokakido::search::classes.end())
-            unsupported_ = "Unsupported native search class: " + name;
+            unsupported_ = "Unsupported product search class: " + name;
         else
             class_ = *definition;
 
@@ -45,7 +45,7 @@ namespace MKD::detail::search
             if (found != monokakido::search::delegates.end())
                 delegate_ = *found;
             else if (!unsupported_)
-                unsupported_ = "Unsupported native search delegate: " + *delegate;
+                unsupported_ = "Unsupported product search delegate: " + *delegate;
         }
     }
 

@@ -21,6 +21,6 @@ namespace MKD::detail::search
             if (names.generic && names.scope == scope)
                 return names;
 
-        return std::unexpected("Search scope requires a specialised native search profile");
+        return std::unexpected("Search scope is unavailable in the general creation profile");
     }
 }

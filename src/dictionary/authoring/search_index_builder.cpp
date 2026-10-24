@@ -36,10 +36,13 @@ namespace MKD::detail
         if (passage)
         {
             if (target.itemId > std::numeric_limits<uint16_t>::max() - monokakido::search::normalizedHeadlineOffset)
-                return std::unexpected("Native passage companion overflows target " + target.toString());
+                return std::unexpected("Entry " + target.toString() +
+                    " cannot be used for sense or example search because its item ID is too high to generate "
+                    "the required search record. Allocate a target with the entry writer or choose a lower item ID.");
 
             if (const auto found = passages_.find(target); found != passages_.end() && found->second.scope != scope)
-                return std::unexpected("Native sense and example indexes need distinct targets: " + target.toString());
+                return std::unexpected("Sense and example search keys need distinct targets, but both use entry " +
+                    target.toString() + ". Assign a separate entry target to each.");
         }
 
         auto it = keys_.find(scope);
