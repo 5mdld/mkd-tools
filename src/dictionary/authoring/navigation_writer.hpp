@@ -6,6 +6,7 @@
 
 #include "MKD/dictionary/navigation.hpp"
 #include "binary/binary_buffer.hpp"
+#include "dictionary/navigation/native_navigation.hpp"
 #include <set>
 #include <map>
 #include <pugixml.hpp>
@@ -22,13 +23,19 @@ namespace MKD::detail
     private:
         struct Node
         {
+            using Sections = std::vector<Node>;
+
+            struct EntryTable
+            {
+                std::vector<NavigationItem> items;
+                bool labelled = false;
+            };
+
+            using FileTable = std::vector<std::pair<std::string, std::string>>;
             NavigationLabel title = std::string{};
-            uint8_t kind = 0;
             uint16_t flags = 0;
-            std::vector<Node> children;
-            std::vector<NavigationItem> entries;
-            std::vector<std::pair<std::string, std::string>> files;
-            std::vector<uint32_t> sectionPath;
+            std::variant<Sections, EntryTable, FileTable, NavigationReference> content;
+            [[nodiscard]] native::navigation::ItemKind kind() const;
         };
 
         class Encoder
@@ -36,7 +43,7 @@ namespace MKD::detail
         public:
             explicit Encoder(uint32_t kind);
             Result<void> node(const Node& node, size_t base);
-            std::span<const uint8_t> bytes() const { return bytes_; }
+            [[nodiscard]] std::span<const uint8_t> bytes() const { return bytes_; }
 
         private:
             uint32_t text(std::string_view text, size_t base);

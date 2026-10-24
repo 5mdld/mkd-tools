@@ -23,17 +23,23 @@ namespace MKD
         std::filesystem::path contents;
         std::string path;
 
-        // Binary views retain the mapped file.
-        // A node's offset is file-relative, while offsets inside its header and records are relative to that node.
-        RetainedSpan mapping;
-        size_t offset = 4;
-        uint32_t kind = 0;
-        nav::Header header{};
+        struct Binary
+        {
+            RetainedSpan mapping;
+            size_t offset = 4;
+            uint32_t kind = 0;
+            nav::Header header{};
+        };
 
-        std::shared_ptr<detail::PropertyList> plist;
-        pugi::xml_node node;
-        bool inlineEntries = false;
-        std::shared_ptr<AppendixEntryList> entries;
+        struct Plist
+        {
+            std::shared_ptr<detail::PropertyList> document;
+            pugi::xml_node node;
+            bool inlineEntries = false;
+        };
+
+        using EntryList = std::shared_ptr<AppendixEntryList>;
+        std::variant<Binary, Plist, EntryList> state = Binary{};
 
         // Track only the current branch. Separate branches may refer
         // to the same file or to different sections within it.
@@ -77,8 +83,7 @@ namespace MKD
         return resolve(std::move(impl));
     }
 
-    Result<void> NavigationView::Impl::load(const std::filesystem::path& file,
-                                            std::span<const uint32_t> sectionPath)
+    Result<void> NavigationView::Impl::load(const std::filesystem::path& file, std::span<const uint32_t> sectionPath)
     {
         const auto extension = file.extension();
         if (extension == ".idx")
@@ -94,7 +99,7 @@ namespace MKD
             if (!list)
                 return std::unexpected(list.error());
 
-            entries = std::make_shared<AppendixEntryList>(std::move(*list));
+            state = std::make_shared<AppendixEntryList>(std::move(*list));
         }
         else if (extension == ".plist")
         {
@@ -102,8 +107,8 @@ namespace MKD
             if (!document)
                 return std::unexpected(document.error());
 
-            plist = std::make_shared<detail::PropertyList>(std::move(*document));
-            node = plist->root();
+            auto plist = std::make_shared<detail::PropertyList>(std::move(*document));
+            state = Plist{plist, plist->root()};
         }
         else
             return std::unexpected("Unknown navigation index format: " + path);
@@ -114,23 +119,24 @@ namespace MKD
     Result<void> NavigationView::Impl::loadBinary(const std::filesystem::path& file,
                                                   std::span<const uint32_t> sectionPath)
     {
+        auto& binary = std::get<Binary>(state);
         auto mapped = RetainedSpan::map(file);
         if (!mapped)
             return std::unexpected(mapped.error());
 
-        mapping = std::move(*mapped);
-        const detail::BinaryView bytes(mapping.span());
+        binary.mapping = std::move(*mapped);
+        const detail::BinaryView bytes(binary.mapping.span());
         auto indexKind = bytes.readLittle<uint32_t>(0);
         if (!indexKind)
             return std::unexpected(indexKind.error());
 
         // The first word identifies the presentation kind.
-        kind = *indexKind;
+        binary.kind = *indexKind;
 
         // Validate
         for (size_t depth = 0;; ++depth)
         {
-            auto data = bytes.tail(offset);
+            auto data = bytes.tail(binary.offset);
             if (!data)
                 return std::unexpected(data.error());
 
@@ -138,17 +144,17 @@ namespace MKD
             if (!parsed)
                 return std::unexpected(parsed.error());
 
-            header = *parsed;
+            binary.header = *parsed;
             if (depth == sectionPath.size())
                 return {};
 
             const auto index = sectionPath[depth];
-            if (header.itemKind != nav::ItemKind::Section || index >= header.count)
+            if (binary.header.itemKind != nav::ItemKind::Section || index >= binary.header.count)
                 return std::unexpected("Invalid navigation section path");
 
             // Each section stores offsets relative to its own header.
             // Convert the selected child to a file offset.
-            offset += header.data + nav::headerSize * index;
+            binary.offset += binary.header.data + nav::headerSize * index;
         }
     }
 
@@ -156,7 +162,8 @@ namespace MKD
     {
         // A file may contain several independent subtrees. Only returning to the
         // same file and header on this branch constitutes a reference cycle.
-        const auto identity = std::pair{node->path, node->offset};
+        const auto binary = std::get_if<Binary>(&node->state);
+        const auto identity = std::pair{node->path, binary ? binary->offset : size_t{4}};
         if (node->ancestors.size() >= nav::maximumDepth ||
             std::ranges::find(node->ancestors, identity) != node->ancestors.end())
             return std::unexpected("Cyclic or excessively nested navigation reference");
@@ -165,8 +172,8 @@ namespace MKD
 
         // Reference records are aliases rather than visible menu levels. Follow
         // the selected alias now, leaving all other branches unopened.
-        if (!node->mapping.empty() && node->header.itemKind == nav::ItemKind::Reference)
-            return node->reference(*detail::BinaryView(node->mapping.span()).tail(node->offset), node->header);
+        if (binary && binary->header.itemKind == nav::ItemKind::Reference)
+            return node->reference(*detail::BinaryView(binary->mapping.span()).tail(binary->offset), binary->header);
 
         return NavigationView(std::move(node));
     }
@@ -179,11 +186,12 @@ namespace MKD
 
     Result<NavigationView> NavigationView::Impl::child(const size_t childOffset) const
     {
+        auto& binary = std::get<Binary>(state);
         // Copy the view state. Each child keeps its own header
         // and ancestry while sharing the parent's backing storage.
         auto result = std::make_shared<Impl>(*this);
-        result->offset = childOffset;
-        auto data = detail::BinaryView(mapping.span()).tail(childOffset);
+        std::get<Binary>(result->state).offset = childOffset;
+        auto data = detail::BinaryView(binary.mapping.span()).tail(childOffset);
         if (!data)
             return std::unexpected(data.error());
 
@@ -191,24 +199,25 @@ namespace MKD
         if (!childHeader)
             return std::unexpected(childHeader.error());
 
-        result->header = *childHeader;
+        std::get<Binary>(result->state).header = *childHeader;
         return resolve(std::move(result));
     }
 
     Result<std::pair<detail::BinaryView, nav::Header>> NavigationView::Impl::section(const size_t index) const
     {
-        auto data = detail::BinaryView(mapping.span()).tail(offset);
+        const auto& binary = std::get<Binary>(state);
+        auto data = detail::BinaryView(binary.mapping.span()).tail(binary.offset);
         if (!data)
             return std::unexpected(data.error());
 
         // With this flag, child headers describe groups within the current
         // screen. Without it, they are selectable nodes on the next screen.
-        if (header.flags & nav::sections)
+        if (binary.header.flags & nav::sections)
         {
-            if (index >= header.count || header.itemKind != nav::ItemKind::Section)
+            if (index >= binary.header.count || binary.header.itemKind != nav::ItemKind::Section)
                 return std::unexpected("Navigation section is out of range");
 
-            data = data->tail(header.data + nav::headerSize * index);
+            data = data->tail(binary.header.data + nav::headerSize * index);
             if (!data)
                 return std::unexpected(data.error());
 
@@ -223,19 +232,25 @@ namespace MKD
         if (index)
             return std::unexpected("Navigation section is out of range");
 
-        return std::pair{*data, header};
+        return std::pair{*data, binary.header};
     }
 
-    uint32_t NavigationView::nativeKind() const noexcept { return impl_->kind; }
+    uint32_t NavigationView::nativeKind() const noexcept
+    {
+        const auto binary = std::get_if<Impl::Binary>(&impl_->state);
+        return binary ? binary->kind : 0;
+    }
 
     size_t NavigationView::sectionCount() const noexcept
     {
-        return !impl_->mapping.empty() && (impl_->header.flags & nav::sections) ? impl_->header.count : 1;
+        const auto binary = std::get_if<Impl::Binary>(&impl_->state);
+        return binary && (binary->header.flags & nav::sections) ? binary->header.count : 1;
     }
 
     Result<std::string> NavigationView::sectionTitle(const size_t index) const
     {
-        if (impl_->mapping.empty())
+        const auto binary = std::get_if<Impl::Binary>(&impl_->state);
+        if (!binary)
         {
             if (index)
                 return std::unexpected("Navigation section is out of range");
@@ -248,7 +263,7 @@ namespace MKD
 
         // Headline-backed labels need a dictionary lookup. This string accessor
         // only returns explicit section text.
-        if (!(impl_->header.flags & nav::sections) || section->second.titleKind != 0)
+        if (!(binary->header.flags & nav::sections) || section->second.titleKind != 0)
             return std::string{};
 
         return nav::text(section->first, section->second.title);
@@ -256,7 +271,7 @@ namespace MKD
 
     Result<size_t> NavigationView::itemCount(const size_t section) const
     {
-        if (!impl_->mapping.empty())
+        if (std::holds_alternative<Impl::Binary>(impl_->state))
         {
             auto data = impl_->section(section);
             if (!data)
@@ -267,12 +282,12 @@ namespace MKD
         if (section)
             return std::unexpected("Navigation section is out of range");
 
-        if (impl_->entries)
-            return impl_->entries->size();
+        if (const auto entries = std::get_if<Impl::EntryList>(&impl_->state))
+            return (*entries)->size();
 
-        const auto array = impl_->inlineEntries
-                               ? impl_->node
-                               : detail::PropertyListDictionary(impl_->node).value("children");
+        const auto& plist = std::get<Impl::Plist>(impl_->state);
+        const auto array =
+            plist.inlineEntries ? plist.node : detail::PropertyListDictionary(plist.node).value("children");
         return std::distance(array.children().begin(), array.children().end());
     }
 
@@ -288,10 +303,10 @@ namespace MKD
 
         // Binary indexes resolve sibling files from their own directory.
         // General grids instead store paths from the product's Contents root.
-        const auto relative = relativeToIndex
-                                  ? (std::filesystem::path(path).parent_path() / name).lexically_normal().
-                                  generic_string()
-                                  : name;
+        const auto relative =
+            relativeToIndex
+                ? (std::filesystem::path(path).parent_path() / name).lexically_normal().generic_string()
+                : name;
         auto resolved = detail::resolveProductPath(contents, relative);
         if (!resolved)
             return std::unexpected(resolved.error());
@@ -344,6 +359,7 @@ namespace MKD
 
     Result<NavigationItemView> NavigationView::Impl::binaryItem(size_t sectionIndex, size_t index) const
     {
+        auto& binary = std::get<Binary>(state);
         auto sectionData = section(sectionIndex);
         if (!sectionData)
             return std::unexpected(sectionData.error());
@@ -380,7 +396,7 @@ namespace MKD
             }
 
             // The child header starts a new offset base within the same file.
-            const auto absolute = static_cast<size_t>(bytes->bytes().data() - mapping.span().data());
+            const auto absolute = static_cast<size_t>(bytes->bytes().data() - binary.mapping.span().data());
             auto view = child(absolute);
             if (!view)
                 return std::unexpected(view.error());
@@ -473,16 +489,18 @@ namespace MKD
 
         // Inline arrays are another view into this document.
         auto result = std::make_shared<Impl>(*this);
-        result->node = array;
-        result->inlineEntries = true;
+        auto& plist = std::get<Plist>(result->state);
+        plist.node = array;
+        plist.inlineEntries = true;
         return NavigationViewTarget(NavigationView(std::move(result)));
     }
 
     Result<NavigationItemView> NavigationView::Impl::plistItem(const size_t index) const
     {
-        if (inlineEntries)
+        const auto& plist = std::get<Plist>(state);
+        if (plist.inlineEntries)
         {
-            auto node = this->node.first_child();
+            auto node = plist.node.first_child();
             for (size_t i = 0; i < index; ++i)
                 node = node.next_sibling();
 
@@ -493,7 +511,7 @@ namespace MKD
             return NavigationItemView{std::string{}, *id};
         }
 
-        auto node = detail::PropertyListDictionary(this->node).value("children").first_child();
+        auto node = detail::PropertyListDictionary(plist.node).value("children").first_child();
         for (size_t i = 0; i < index; ++i)
             node = node.next_sibling();
 
@@ -514,13 +532,13 @@ namespace MKD
         if (index >= *count)
             return std::unexpected("Navigation item is out of range");
 
-        if (!impl_->mapping.empty())
+        if (std::holds_alternative<Impl::Binary>(impl_->state))
             return impl_->binaryItem(section, index);
 
         // Entry-list records borrow their labels from mapped storage.
-        if (impl_->entries)
+        if (const auto entries = std::get_if<Impl::EntryList>(&impl_->state))
         {
-            auto entry = impl_->entries->entryAt(index);
+            auto entry = (*entries)->entryAt(index);
             if (!entry)
                 return std::unexpected(entry.error());
 

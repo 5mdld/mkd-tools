@@ -21,6 +21,20 @@ namespace MKD::detail
 {
     namespace nav = native::navigation;
 
+    nav::ItemKind NavigationWriter::Node::kind() const
+    {
+        if (const auto entries = std::get_if<EntryTable>(&content))
+            return entries->labelled ? nav::ItemKind::LabelledEntry : nav::ItemKind::Entry;
+
+        if (std::holds_alternative<Sections>(content))
+            return nav::ItemKind::Section;
+
+        if (std::holds_alternative<FileTable>(content))
+            return nav::ItemKind::File;
+
+        return nav::ItemKind::Reference;
+    }
+
     NavigationWriter::NavigationWriter(ProductBuild& product)
         : product_(product), contents_(product.path() / native::paths::productContents),
           directory_(product.profile() == CreationProfile::Kanwa
@@ -80,24 +94,26 @@ namespace MKD::detail
             title = text(nav::encodeLabel(value.title), base);
 
         const auto data = bytes_.size();
-        const auto kind = static_cast<nav::ItemKind>(value.kind);
+        const auto kind = value.kind();
         size_t count = 0;
         if (kind == nav::ItemKind::Section)
         {
-            count = value.children.size();
+            const auto& children = std::get<Node::Sections>(value.content);
+            count = children.size();
             bytes_.resize(data + count * nav::headerSize);
             for (size_t i = 0; i < count; ++i)
-                if (auto result = node(value.children[i], data + i * nav::headerSize); !result)
+                if (auto result = node(children[i], data + i * nav::headerSize); !result)
                     return result;
         }
         else if (kind == nav::ItemKind::Entry || kind == nav::ItemKind::LabelledEntry)
         {
-            count = value.entries.size();
-            const auto stride = nav::strides[value.kind];
+            const auto& entries = std::get<Node::EntryTable>(value.content).items;
+            count = entries.size();
+            const auto stride = nav::strides[static_cast<size_t>(kind)];
             bytes_.resize(data + count * stride);
             for (size_t i = 0; i < count; ++i)
             {
-                const auto& item = value.entries[i];
+                const auto& item = entries[i];
                 const auto& target = std::get<AppendixEntryLink>(item.target);
                 BinaryBuffer record(stride);
                 record.writeLittle(target.entryId.pageId);
@@ -111,24 +127,26 @@ namespace MKD::detail
         }
         else if (kind == nav::ItemKind::File)
         {
-            count = value.files.size();
+            const auto& files = std::get<Node::FileTable>(value.content);
+            count = files.size();
             bytes_.resize(data + count * 8);
             for (size_t i = 0; i < count; ++i)
             {
                 BinaryBuffer record(8);
-                record.writeLittle(text(value.files[i].first, base));
-                record.writeLittle(text(value.files[i].second, base));
+                record.writeLittle(text(files[i].first, base));
+                record.writeLittle(text(files[i].second, base));
                 patch(data + i * 8, record);
             }
         }
         else
         {
+            const auto& reference = std::get<NavigationReference>(value.content);
             count = 1;
             bytes_.resize(data + 8);
-            const auto file = text(value.files.front().second, base);
-            BinaryBuffer path(4 + value.sectionPath.size() * 4);
-            path.writeLittle(static_cast<uint32_t>(value.sectionPath.size()));
-            for (auto part : value.sectionPath)
+            const auto file = text(reference.path, base);
+            BinaryBuffer path(4 + reference.sectionPath.size() * 4);
+            path.writeLittle(static_cast<uint32_t>(reference.sectionPath.size()));
+            for (auto part : reference.sectionPath)
                 path.writeLittle(part);
 
             const auto offset = append(path, base);
@@ -143,7 +161,7 @@ namespace MKD::detail
 
         BinaryBuffer header(nav::headerSize);
         header.writeByte(titleEntry ? 1 : 0);
-        header.writeByte(value.kind);
+        header.writeByte(static_cast<uint8_t>(kind));
         header.writeLittle(value.flags);
         header.writeLittle(title);
         header.writeLittle(static_cast<uint32_t>(count));
@@ -216,8 +234,9 @@ namespace MKD::detail
 
     std::string NavigationWriter::indexRelative(std::string_view path) const
     {
-        return WriteValidation::fromUtf8(path).lexically_relative(WriteValidation::fromUtf8(directory_)).
-                                               generic_string();
+        return WriteValidation::fromUtf8(path)
+               .lexically_relative(WriteValidation::fromUtf8(directory_))
+               .generic_string();
     }
 
     Result<NavigationIndex> NavigationWriter::entryList(const AppendixList& list) const
@@ -244,10 +263,8 @@ namespace MKD::detail
             if (!list.usingAnchorId)
                 target.itemId = 0;
 
-            result.sections.front().items.push_back({
-                std::string(item->label.value_or("")),
-                AppendixEntryLink{target, item->dictionaryId}
-            });
+            result.sections.front().items.push_back(
+                {std::string(item->label.value_or("")), AppendixEntryLink{target, item->dictionaryId}});
         }
         return result;
     }
@@ -297,9 +314,7 @@ namespace MKD::detail
 
             Node node;
             node.title = nav::plainLabel(item.label);
-            node.kind = static_cast<uint8_t>(nav::ItemKind::Reference);
-            node.files.emplace_back("", indexRelative(reference->path));
-            node.sectionPath = reference->sectionPath;
+            node.content = NavigationReference{indexRelative(reference->path), reference->sectionPath};
             Encoder encoder(0);
             if (auto encoded = encoder.node(node, 4); !encoded)
                 return std::unexpected(encoded.error());
@@ -310,7 +325,10 @@ namespace MKD::detail
 
             return path;
         }
-        if (std::holds_alternative<std::monostate>(item.target)) return std::string{};
+
+        if (std::holds_alternative<std::monostate>(item.target))
+            return std::string{};
+
         return std::unexpected("An article target cannot be used as a navigation file");
     }
 
@@ -319,9 +337,13 @@ namespace MKD::detail
     {
         Node result;
         result.title = value.title;
-        const bool entries = !value.items.empty() && std::holds_alternative<AppendixEntryLink>(
-            value.items.front().target);
-        result.kind = static_cast<uint8_t>(entries ? nav::ItemKind::Entry : nav::ItemKind::File);
+        const bool entries =
+            !value.items.empty() && std::holds_alternative<AppendixEntryLink>(value.items.front().target);
+        if (entries)
+            result.content = Node::EntryTable{};
+        else
+            result.content = Node::FileTable{};
+
         for (const auto& item : value.items)
         {
             if (auto valid = label(item.label); !valid)
@@ -335,10 +357,9 @@ namespace MKD::detail
 
                 auto copy = item;
                 copy.target = *target;
-                result.entries.push_back(std::move(copy));
+                std::get<Node::EntryTable>(result.content).items.push_back(std::move(copy));
                 if (!nav::encodeLabel(item.label).empty())
-                    result.kind = static_cast<uint8_t>(
-                        nav::ItemKind::LabelledEntry);
+                    std::get<Node::EntryTable>(result.content).labelled = true;
             }
             else
             {
@@ -347,7 +368,8 @@ namespace MKD::detail
                 if (!path)
                     return std::unexpected(path.error());
 
-                result.files.emplace_back(nav::encodeLabel(item.label), path->empty() ? "" : indexRelative(*path));
+                std::get<Node::FileTable>(result.content)
+                    .emplace_back(nav::encodeLabel(item.label), path->empty() ? "" : indexRelative(*path));
             }
         }
         return result;
@@ -374,7 +396,7 @@ namespace MKD::detail
                     if (!node)
                         return std::unexpected(node.error());
 
-                    root.children.push_back(std::move(*node));
+                    std::get<Node::Sections>(root.content).push_back(std::move(*node));
                     run = {};
                 }
                 run.items.push_back(item);
@@ -384,11 +406,13 @@ namespace MKD::detail
             if (!node)
                 return std::unexpected(node.error());
 
-            root.children.push_back(std::move(*node));
+            std::get<Node::Sections>(root.content).push_back(std::move(*node));
         }
-        if (root.children.size() == 1 && std::get<std::string>(root.children.front().title).empty())
+
+        if (std::get<Node::Sections>(root.content).size() == 1 &&
+            std::get<std::string>(std::get<Node::Sections>(root.content).front().title).empty())
         {
-            auto node = std::move(root.children.front());
+            auto node = std::move(std::get<Node::Sections>(root.content).front());
             node.title = std::move(root.title);
             root = std::move(node);
         }
@@ -397,11 +421,16 @@ namespace MKD::detail
 
         if (value.compact)
             root.flags |= nav::compact;
-        if (!value.sectionIndex || std::ranges::any_of(root.children, [](const Node& child)
-        {
-            const auto* title = std::get_if<std::string>(&child.title);
-            return title && title->empty();
-        }))
+
+        const auto* sections = std::get_if<Node::Sections>(&root.content);
+        const bool unnamedSection = sections && std::ranges::any_of(*sections,
+                                                                    [](const Node& child)
+                                                                    {
+                                                                        const auto* title =
+                                                                            std::get_if<std::string>(&child.title);
+                                                                        return title && title->empty();
+                                                                    });
+        if (!value.sectionIndex || unnamedSection)
             root.flags |= nav::hideSectionIndex;
         if (value.parentHeadlines)
             root.flags |= nav::parentHeadlines;
@@ -422,8 +451,7 @@ namespace MKD::detail
             if (!link)
                 return std::unexpected(link.error());
 
-            property_list::string(node, "entry",
-                                     link->entryId.toString() + "-" + std::to_string(link->dictionaryId));
+            property_list::string(node, "entry", link->entryId.toString() + "-" + std::to_string(link->dictionaryId));
         }
         else if (!std::holds_alternative<std::monostate>(value.target))
         {
@@ -543,32 +571,35 @@ namespace MKD::detail
             for (const auto& item : section.items)
             {
                 NavigationItem value{item.name, {}};
-                auto translated = std::visit([&](const auto& target) -> Result<void>
-                {
-                    using T = std::decay_t<decltype(target)>;
-                    if constexpr (std::is_same_v<T, AppendixMenu>)
+                auto translated = std::visit(
+                    [&](const auto& target) -> Result<void>
                     {
-                        auto child = appendices(target, depth + 1);
-                        if (!child)
-                            return std::unexpected(child.error());
+                        using T = std::decay_t<decltype(target)>;
+                        if constexpr (std::is_same_v<T, AppendixMenu>)
+                        {
+                            auto child = appendices(target, depth + 1);
+                            if (!child)
+                                return std::unexpected(child.error());
 
-                        value.target = std::move(*child);
-                    }
-                    else if constexpr (std::is_same_v<T, AppendixGallery>)
-                    {
-                        auto path = gallery(target);
-                        if (!path)
-                            return std::unexpected(path.error());
+                            value.target = std::move(*child);
+                        }
+                        else if constexpr (std::is_same_v<T, AppendixGallery>)
+                        {
+                            auto path = gallery(target);
+                            if (!path)
+                                return std::unexpected(path.error());
 
-                        value.target = AppendixDocument{*path, {}};
-                    }
-                    else if constexpr (std::is_same_v<T, AppendixCustom>)
-                        return std::unexpected("Custom appendix presenters cannot be composed into generic navigation");
-                    else
-                        value.target = target;
+                            value.target = AppendixDocument{*path, {}};
+                        }
+                        else if constexpr (std::is_same_v<T, AppendixCustom>)
+                            return std::unexpected(
+                                "Custom appendix presenters cannot be composed into generic navigation");
+                        else
+                            value.target = target;
 
-                    return {};
-                }, item.target);
+                        return {};
+                    },
+                    item.target);
 
                 if (!translated)
                     return std::unexpected(translated.error());
@@ -600,10 +631,9 @@ namespace MKD::detail
         if (writer.kanwa_)
             menu.kind = NavigationKind::Root;
 
-        auto written = writer.index(menu, "インデックス", 0,
-                                    writer.kanwa_
-                                        ? writer.directory_ + "/" + nav::rootIndex
-                                        : std::string(nav::rootPlist));
+        auto written =
+            writer.index(menu, "インデックス", 0,
+                         writer.kanwa_ ? writer.directory_ + "/" + nav::rootIndex : std::string(nav::rootPlist));
         if (!written)
             return std::unexpected(written.error());
 
