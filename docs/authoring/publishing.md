@@ -27,9 +27,43 @@ required content and references. Product completion publishes the staged files
 at `destination`. The generated product can then be opened with
 `DictionaryProduct::openAtPath(destination)`.
 
-Destruction does not publish. Abandoning a build removes its staging files. After
-a mutating operation or completion fails, start a fresh build. Writers are used
-serially, and input strings and byte spans are borrowed only for the call.
+Destruction does not publish. Abandoning a build removes its staging files.
+Writers are used serially, and input strings and byte spans are borrowed only for
+the call.
+
+## Check and repair a build
+
+Use `preflight()` to check a build while you are still adding content. For
+example, if an article links to `article.css` but you forgot to add that file:
+
+=== "Python"
+
+    ```python
+    print(dictionary.preflight().describe())
+
+    dictionary.add_asset("article.css", mkd.Buffer.map("article.css"))
+    dictionary.finish()
+    product.finish()
+    ```
+
+=== "C++"
+
+    ```cpp
+    auto report = dictionary.preflight().value();
+    std::cerr << report.describe() << '\n';
+
+    auto css = MKD::RetainedSpan::map("article.css").value();
+    dictionary.addAsset("article.css", css.span()).value();
+    dictionary.finish().value();
+    product.finish().value();
+    ```
+
+Use `product.preflight()` to check product menus and links between dictionaries
+as well. Its report also lists any dictionaries you still need to finish.
+
+`finish()` checks again, so you can add missing data and retry it. Start a new
+build to replace XML already written, or after an error while adding or changing
+content or writing files.
 
 ## Encryption and validation
 
@@ -46,9 +80,6 @@ Completion checks that:
 - Search, headline, link and appendix targets resolve to existing pages or anchors.
 - Referenced local assets and configured presentation stylesheets exist.
 - Any explicit browsing order contains every page exactly once.
-
-Validation covers supported references and resources, rather than every presentation feature in Dictionaries. Product-specific delegates and headline-key identifier
-authoring are not supported.
 
 ## Install and replace
 
@@ -73,4 +104,4 @@ bookmarks to survive changed article order, preserve the affected IDs when
 [importing content](../reference/authoring_options.md#import-explicit-ids).
 
 Verify search, links, navigation, media and both article presentations in the
-actual app. The writer checks references, but it does not reproduce the layout rendered by Dictionaries.
+Dictionaries app.

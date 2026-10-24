@@ -41,3 +41,37 @@ Fallible C++ operations return `MKD::Result<T>`, an alias for
     Return errors from a function returning `MKD::Result<T>`. Keep the product
     alive while using its dictionaries, and the dictionary alive at the same
     address while using its search object.
+
+## Name the source record
+
+Pass a filename and record label when reserving an entry. They will appear in
+errors from its XML and references.
+
+=== "Python"
+
+    ```python
+    entry = dictionary.create_entry(
+        page_id=7,
+        source=mkd.SourceContext(filename="birds.xml", record="sparrow"),
+    )
+    entry.write_xml(article_xml)
+    print(dictionary.preflight().describe())
+    ```
+
+=== "C++"
+
+    ```cpp
+    auto entry = dictionary.createEntry(7, {
+        .filename = "birds.xml", .record = "sparrow"
+    }).value();
+    entry.writeXml(articleXml).value();
+
+    auto report = dictionary.preflight().value();
+    std::cerr << report.describe() << '\n';
+    ```
+
+The entry keeps these labels for later calls. XML errors also include the line
+and byte column within the supplied XML.
+
+See [check and repair a build](../authoring/publishing.md#check-and-repair-a-build)
+for fixing missing content before publishing.
