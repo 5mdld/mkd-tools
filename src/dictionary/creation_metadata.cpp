@@ -3,9 +3,9 @@
 //
 
 #include "creation_metadata.hpp"
-#include "native_format.hpp"
-#include "native_search.hpp"
-#include "native_navigation.hpp"
+#include "dictionary/package/native_format.hpp"
+#include "dictionary/search/native_definitions.hpp"
+#include "dictionary/navigation/native_navigation.hpp"
 #include "io/output_file.hpp"
 #include "io/write_validation.hpp"
 

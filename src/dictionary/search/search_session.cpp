@@ -4,10 +4,10 @@
 
 #include "search_session.hpp"
 #include "MKD/resource/keystore_search.hpp"
-#include "dictionary/text_normalize.hpp"
+#include "dictionary/search/text_normalize.hpp"
 #include "unicode/unicode.hpp"
 #include "platform/search_lemma.hpp"
-#include "dictionary/native_format.hpp"
+#include "dictionary/package/native_format.hpp"
 #include "resource/keystore/keystore_format.hpp"
 
 #include <algorithm>

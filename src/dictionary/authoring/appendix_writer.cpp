@@ -2,11 +2,11 @@
 // kiwakiwaaにより 2026/10/18 に作成されました。
 //
 
-#include "appendix_writer.hpp"
-#include "appendix_reader.hpp"
-#include "creation_metadata.hpp"
-#include "creation_session.hpp"
-#include "creation_page.hpp"
+#include "dictionary/authoring/appendix_writer.hpp"
+#include "dictionary/navigation/appendix_reader.hpp"
+#include "dictionary/creation_metadata.hpp"
+#include "dictionary/creation_session.hpp"
+#include "dictionary/creation_page.hpp"
 #include "MKD/resource/resource_store.hpp"
 #include "io/write_validation.hpp"
 #include <algorithm>

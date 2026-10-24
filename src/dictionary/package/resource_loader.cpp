@@ -3,10 +3,10 @@
 //
 
 #include "MKD/resource/resource_loader.hpp"
-#include "dictionary/native_format.hpp"
+#include "dictionary/package/native_format.hpp"
 #include "resource/detail/font_format.hpp"
 #include "resource/detail/resource_files.hpp"
-#include "dictionary/appendix_reader.hpp"
+#include "dictionary/navigation/appendix_reader.hpp"
 
 #include <algorithm>
 #include <format>

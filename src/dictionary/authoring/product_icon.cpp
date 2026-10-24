@@ -2,9 +2,9 @@
 // kiwakiwaaにより 2026/10/17 に作成されました。
 //
 
-#include "product_icon.hpp"
-#include "creation_session.hpp"
-#include "native_format.hpp"
+#include "dictionary/authoring/product_icon.hpp"
+#include "dictionary/creation_session.hpp"
+#include "dictionary/package/native_format.hpp"
 
 #define STBI_ONLY_PNG
 #define STBI_ONLY_JPEG

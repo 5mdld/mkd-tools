@@ -1,32 +1,33 @@
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
-        "${CMAKE_CURRENT_SOURCE_DIR}/resources/product_information.css")
-file(READ "${CMAKE_CURRENT_SOURCE_DIR}/resources/product_information.css" MKD_PRODUCT_INFORMATION_CSS)
-configure_file(resources/product_information_style.hpp.in product_information_style.hpp @ONLY)
+        "${CMAKE_CURRENT_SOURCE_DIR}/authoring/resources/product_information.css")
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/authoring/resources/product_information.css" MKD_PRODUCT_INFORMATION_CSS)
+configure_file(authoring/resources/product_information_style.hpp.in product_information_style.hpp @ONLY)
 target_include_directories(mkd PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 
 target_sources(mkd PRIVATE
-        navigation.cpp
-        native_navigation.cpp
-        navigation_writer.cpp
-        appendix_reader.cpp
-        appendix_writer.cpp
-        inline_text.cpp
-        native_content.cpp
-        content_resources.cpp
+        navigation/navigation.cpp
+        navigation/native_navigation.cpp
+        authoring/navigation_writer.cpp
+        navigation/appendix_reader.cpp
+        authoring/appendix_writer.cpp
+        content/inline_text.cpp
+        content/native_content.cpp
+        package/resource_resolver.cpp
         content_references.cpp
+        package/resource_loader.cpp
         entry_order.cpp
         dictionary.cpp
         dictionary_product.cpp
         dictionary_search.cpp
-        metadata.cpp
-        content_info.cpp
-        paths.cpp
-        text_normalize.cpp
-        product_writer.cpp
-        product_information.cpp
-        product_icon.cpp
-        dictionary_writer.cpp
-        entry_writer.cpp
+        package/metadata.cpp
+        package/content_info.cpp
+        package/paths.cpp
+        search/text_normalize.cpp
+        authoring/product_writer.cpp
+        authoring/product_information.cpp
+        authoring/product_icon.cpp
+        authoring/dictionary_writer.cpp
+        authoring/entry_writer.cpp
         creation_metadata.cpp
         creation_page.cpp
         creation_session.cpp

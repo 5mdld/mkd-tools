@@ -4,9 +4,9 @@
 
 #include "creation_session.hpp"
 #include "creation_metadata.hpp"
-#include "native_format.hpp"
+#include "dictionary/package/native_format.hpp"
 #include "creation_page.hpp"
-#include "appendix_writer.hpp"
+#include "dictionary/authoring/appendix_writer.hpp"
 #include "io/write_validation.hpp"
 #include "binary/binary_buffer.hpp"
 

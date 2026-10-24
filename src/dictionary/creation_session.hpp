@@ -10,7 +10,7 @@
 #include "MKD/resource/headline_store_writer.hpp"
 #include "io/build_directory.hpp"
 #include "content_references.hpp"
-#include "native_format.hpp"
+#include "dictionary/package/native_format.hpp"
 #include "output/directory_output.hpp"
 
 #include <map>

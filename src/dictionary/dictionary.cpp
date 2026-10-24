@@ -5,7 +5,7 @@
 
 #include "MKD/dictionary/dictionary.hpp"
 #include "unicode/unicode.hpp"
-#include "content_resources.hpp"
+#include "dictionary/package/resource_resolver.hpp"
 
 #include <utility>
 

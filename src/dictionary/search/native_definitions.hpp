@@ -7,7 +7,7 @@
 #include "unicode/normalization.hpp"
 #include "resource/keystore/scope_definitions.hpp"
 #include "MKD/dictionary/dictionary_search.hpp"
-#include "native_format.hpp"
+#include "dictionary/package/native_format.hpp"
 
 #include <array>
 #include <string_view>

@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "native_content.hpp"
+#include "dictionary/content/native_content.hpp"
 #include <set>
 #include <filesystem>
 

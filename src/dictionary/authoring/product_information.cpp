@@ -2,11 +2,11 @@
 // kiwakiwaaにより 2026/10/17 に作成されました。
 //
 
-#include "product_information.hpp"
+#include "dictionary/authoring/product_information.hpp"
 #include "product_information_style.hpp"
-#include "creation_session.hpp"
-#include "creation_metadata.hpp"
-#include "native_format.hpp"
+#include "dictionary/creation_session.hpp"
+#include "dictionary/creation_metadata.hpp"
+#include "dictionary/package/native_format.hpp"
 #include "io/write_validation.hpp"
 
 #include <sstream>

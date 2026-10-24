@@ -2,10 +2,10 @@
 // kiwakiwaaにより 2026/10/17 に作成されました。
 //
 
-#include "content_info.hpp"
-#include "native_format.hpp"
-#include "native_search.hpp"
-#include "property_list.hpp"
+#include "dictionary/package/content_info.hpp"
+#include "dictionary/package/native_format.hpp"
+#include "dictionary/search/native_definitions.hpp"
+#include "dictionary/package/property_list.hpp"
 
 #include <algorithm>
 

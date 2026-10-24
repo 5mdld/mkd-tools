@@ -2,7 +2,7 @@
 // kiwakiwaaにより 2026/03/13 に作成されました。
 //
 
-#include "text_normalize.hpp"
+#include "dictionary/search/text_normalize.hpp"
 #include "unicode/unicode.hpp"
 
 #include <algorithm>

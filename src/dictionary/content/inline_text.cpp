@@ -3,7 +3,7 @@
 //
 
 #include "MKD/dictionary/inline_text.hpp"
-#include "native_content.hpp"
+#include "dictionary/content/native_content.hpp"
 #include "io/write_validation.hpp"
 #include "unicode/utf8.hpp"
 

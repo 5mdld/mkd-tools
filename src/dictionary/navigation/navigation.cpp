@@ -5,10 +5,10 @@
 #include "MKD/dictionary/navigation.hpp"
 #include "MKD/resource/retained_span.hpp"
 #include "MKD/resource/appendix_entry_list.hpp"
-#include "appendix_reader.hpp"
-#include "native_navigation.hpp"
-#include "property_list.hpp"
-#include "native_content.hpp"
+#include "dictionary/navigation/appendix_reader.hpp"
+#include "dictionary/navigation/native_navigation.hpp"
+#include "dictionary/package/property_list.hpp"
+#include "dictionary/content/native_content.hpp"
 #include <algorithm>
 #include <span>
 

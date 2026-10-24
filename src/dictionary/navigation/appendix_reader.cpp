@@ -2,11 +2,11 @@
 // kiwakiwaaにより 2026/10/18 に作成されました。
 //
 
-#include "appendix_reader.hpp"
-#include "native_format.hpp"
+#include "dictionary/navigation/appendix_reader.hpp"
+#include "dictionary/package/native_format.hpp"
 #include "io/write_validation.hpp"
-#include "native_content.hpp"
-#include "property_list.hpp"
+#include "dictionary/content/native_content.hpp"
+#include "dictionary/package/property_list.hpp"
 #include <charconv>
 
 namespace MKD::detail

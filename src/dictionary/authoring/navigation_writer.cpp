@@ -2,13 +2,13 @@
 // kiwakiwaaにより 2026/10/19 に作成されました。
 //
 
-#include "navigation_writer.hpp"
-#include "native_navigation.hpp"
-#include "native_content.hpp"
-#include "creation_session.hpp"
-#include "creation_metadata.hpp"
-#include "appendix_reader.hpp"
-#include "appendix_writer.hpp"
+#include "dictionary/authoring/navigation_writer.hpp"
+#include "dictionary/navigation/native_navigation.hpp"
+#include "dictionary/content/native_content.hpp"
+#include "dictionary/creation_session.hpp"
+#include "dictionary/creation_metadata.hpp"
+#include "dictionary/navigation/appendix_reader.hpp"
+#include "dictionary/authoring/appendix_writer.hpp"
 #include "MKD/resource/appendix_entry_list.hpp"
 #include "io/write_validation.hpp"
 #include <algorithm>

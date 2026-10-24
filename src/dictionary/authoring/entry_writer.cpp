@@ -3,8 +3,8 @@
 //
 
 #include "MKD/dictionary/entry_writer.hpp"
-#include "creation_session.hpp"
-#include "native_content.hpp"
+#include "dictionary/creation_session.hpp"
+#include "dictionary/content/native_content.hpp"
 #include "io/write_validation.hpp"
 
 namespace MKD

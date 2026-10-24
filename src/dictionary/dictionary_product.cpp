@@ -3,10 +3,10 @@
 //
 
 #include "MKD/dictionary/dictionary_product.hpp"
-#include "native_format.hpp"
-#include "native_navigation.hpp"
-#include "content_info.hpp"
-#include "appendix_reader.hpp"
+#include "dictionary/package/native_format.hpp"
+#include "dictionary/navigation/native_navigation.hpp"
+#include "dictionary/package/content_info.hpp"
+#include "dictionary/navigation/appendix_reader.hpp"
 #include "MKD/resource/resource_loader.hpp"
 
 #include <algorithm>

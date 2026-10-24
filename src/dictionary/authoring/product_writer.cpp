@@ -3,14 +3,14 @@
 //
 
 #include "MKD/dictionary/product_writer.hpp"
-#include "native_format.hpp"
-#include "native_search.hpp"
-#include "creation_metadata.hpp"
-#include "navigation_writer.hpp"
-#include "creation_session.hpp"
+#include "dictionary/package/native_format.hpp"
+#include "dictionary/search/native_definitions.hpp"
+#include "dictionary/creation_metadata.hpp"
+#include "dictionary/authoring/navigation_writer.hpp"
+#include "dictionary/creation_session.hpp"
 #include "io/write_validation.hpp"
-#include "product_information.hpp"
-#include "product_icon.hpp"
+#include "dictionary/authoring/product_information.hpp"
+#include "dictionary/authoring/product_icon.hpp"
 
 #include <algorithm>
 #include <set>

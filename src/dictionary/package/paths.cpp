@@ -3,7 +3,7 @@
 //
 
 #include "MKD/dictionary/paths.hpp"
-#include "native_format.hpp"
+#include "dictionary/package/native_format.hpp"
 
 #include <array>
 #include <span>

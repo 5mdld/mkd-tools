@@ -3,11 +3,11 @@
 //
 
 #include "MKD/dictionary/dictionary_writer.hpp"
-#include "native_format.hpp"
-#include "creation_session.hpp"
-#include "creation_metadata.hpp"
-#include "content_resources.hpp"
-#include "native_content.hpp"
+#include "dictionary/package/native_format.hpp"
+#include "dictionary/creation_session.hpp"
+#include "dictionary/creation_metadata.hpp"
+#include "dictionary/package/resource_resolver.hpp"
+#include "dictionary/content/native_content.hpp"
 #include "io/write_validation.hpp"
 #include "resource/detail/font_format.hpp"
 

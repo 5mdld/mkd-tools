@@ -2,9 +2,9 @@
 // kiwakiwaaにより 2026/10/17 に作成されました。
 //
 
-#include "content_resources.hpp"
-#include "native_content.hpp"
-#include "native_format.hpp"
+#include "dictionary/package/resource_resolver.hpp"
+#include "dictionary/content/native_content.hpp"
+#include "dictionary/package/native_format.hpp"
 #include "io/write_validation.hpp"
 
 #include <algorithm>
