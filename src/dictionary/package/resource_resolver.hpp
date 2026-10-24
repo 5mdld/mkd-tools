@@ -4,16 +4,15 @@
 
 #pragma once
 
-#include "MKD/dictionary/dictionary.hpp"
+#include "MKD/resource/named_resource_store.hpp"
+#include "MKD/resource/resource_store.hpp"
+#include <filesystem>
+#include <variant>
 
 namespace MKD::detail
 {
-    struct ContentResources
-    {
-        static Result<RetainedSpan> read(const std::filesystem::path& directory,
-                                         const NamedResourceStore* graphics,
-                                         const std::variant<ResourceStore, NamedResourceStore>* audio,
-                                         std::string_view path);
-        static Result<void> validateGaiji(std::string_view path, std::span<const uint8_t> bytes);
-    };
+    Result<RetainedSpan> readDictionaryResource(const std::filesystem::path& directory,
+                                                const NamedResourceStore* graphics,
+                                                const std::variant<ResourceStore, NamedResourceStore>* audio,
+                                                std::string_view path);
 }

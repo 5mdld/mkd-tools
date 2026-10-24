@@ -3,17 +3,13 @@
 //
 
 #include "dictionary/package/resource_resolver.hpp"
-#include "dictionary/content/native_content.hpp"
 #include "dictionary/package/native_format.hpp"
 #include "io/write_validation.hpp"
 
-#include <algorithm>
-#include <array>
-#include <pugixml.hpp>
 
 namespace MKD::detail
 {
-    Result<RetainedSpan> ContentResources::read(const std::filesystem::path& directory,
+    Result<RetainedSpan> readDictionaryResource(const std::filesystem::path& directory,
                                                 const NamedResourceStore* graphics,
                                                 const std::variant<ResourceStore, NamedResourceStore>* audio,
                                                 std::string_view path)
@@ -66,30 +62,5 @@ namespace MKD::detail
                 return store->get(name);
 
         return std::unexpected("Missing dictionary resource: " + std::string(path));
-    }
-
-    Result<void> ContentResources::validateGaiji(std::string_view path, std::span<const uint8_t> bytes)
-    {
-        if (auto valid = NativeContent::gaijiPath(path); !valid)
-            return valid;
-
-        if (path.ends_with(".svg"))
-        {
-            pugi::xml_document document;
-            if (!document.load_buffer(bytes.data(), bytes.size(), pugi::parse_default, pugi::encoding_utf8) ||
-                std::string_view(document.document_element().name()) != "svg")
-                return std::unexpected("Gaiji SVG must be a well-formed SVG document");
-
-            for (const auto node : document.children())
-                if (node.type() == pugi::node_element && node != document.document_element())
-                    return std::unexpected("Gaiji SVG must contain exactly one document element");
-        }
-        else
-        {
-            constexpr std::array<uint8_t, 8> signature{137, 80, 78, 71, 13, 10, 26, 10};
-            if (bytes.size() < signature.size() || !std::ranges::equal(bytes.first(signature.size()), signature))
-                return std::unexpected("Gaiji PNG has an invalid signature");
-        }
-        return {};
     }
 }

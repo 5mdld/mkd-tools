@@ -248,7 +248,7 @@ namespace MKD
     Result<RetainedSpan> DictionaryProduct::resource(std::string_view relativePath) const
     {
         auto path = detail::resolveProductPath(paths_.productRoot() / detail::native::paths::productContents,
-                                                    relativePath);
+                                               relativePath);
         if (!path)
             return std::unexpected(path.error());
 
@@ -261,7 +261,7 @@ namespace MKD
             return std::unexpected("Expected an appendix entry list");
 
         auto path = detail::resolveProductPath(paths_.productRoot() / detail::native::paths::productContents,
-                                                    list.path);
+                                               list.path);
         if (!path)
             return std::unexpected(path.error());
 

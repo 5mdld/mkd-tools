@@ -4,8 +4,9 @@
 
 #include "dictionary/authoring/product_information.hpp"
 #include "product_information_style.hpp"
-#include "dictionary/creation_session.hpp"
-#include "dictionary/creation_metadata.hpp"
+#include "dictionary/authoring/product_build.hpp"
+#include "dictionary/package/metadata_writer.hpp"
+#include "dictionary/package/property_list.hpp"
 #include "dictionary/package/native_format.hpp"
 #include "io/write_validation.hpp"
 
@@ -112,7 +113,7 @@ namespace MKD::detail
         static Result<void> requireAsset(const ProductBuild& product, std::string_view path)
         {
             std::error_code error;
-            if (!std::filesystem::is_regular_file(product.output->path() / native::paths::productContents /
+            if (!std::filesystem::is_regular_file(product.path() / native::paths::productContents /
                                                   WriteValidation::fromUtf8(path), error))
                 return std::unexpected("Missing product information page: " + std::string(path));
             return {};
@@ -121,9 +122,9 @@ namespace MKD::detail
         static void menuItem(pugi::xml_node items, std::string_view name, std::string_view path = {})
         {
             auto item = items.append_child("dict");
-            CreationMetadata::string(item, native::information::name, name);
+            property_list::string(item, native::information::name, name);
             if (!path.empty())
-                CreationMetadata::string(item, native::information::contents, path);
+                property_list::string(item, native::information::contents, path);
         }
 
         static pugi::xml_node section(pugi::xml_node root)
@@ -135,12 +136,12 @@ namespace MKD::detail
 
         static Result<void> productPage(ProductBuild& product)
         {
-            const auto& metadata = product.metadata;
+            const auto& metadata = product.metadata();
             const auto title = metadata.productTitle
                                    ? metadata.productTitle->resolve()
                                    : metadata.displayName
                                    ? metadata.displayName->resolve()
-                                   : product.name;
+                                   : product.name();
             InformationPage page(title);
             if (metadata.description)
                 page.append("p", metadata.description->resolve(), "description");
@@ -148,8 +149,8 @@ namespace MKD::detail
             for (const auto& content : metadata.contents)
                 page.content(content);
 
-            if (product.information.copyright)
-                page.append("p", product.information.copyright->resolve(), "copyright");
+            if (product.information().copyright)
+                page.append("p", product.information().copyright->resolve(), "copyright");
             if (metadata.version)
                 page.append("p", "Version " + *metadata.version, "version");
 
@@ -187,7 +188,7 @@ namespace MKD::detail
 
     Result<void> ProductInformationWriter::write(ProductBuild& product)
     {
-        const auto& information = product.information;
+        const auto& information = product.information();
         const auto page = information.page.value_or(native::paths::informationPage);
         if (information.page)
         {
@@ -198,7 +199,7 @@ namespace MKD::detail
             return written;
 
         pugi::xml_document document;
-        auto root = CreationMetadata::plistRoot(document, "array");
+        auto root = property_list::root(document, "array");
         auto items = InformationDocument::section(root);
         InformationDocument::menuItem(items, native::information::copyright, page);
         size_t index = 0;
@@ -220,7 +221,7 @@ namespace MKD::detail
             InformationDocument::menuItem(items, license.title, path);
         }
         InformationDocument::menuItem(InformationDocument::section(root), native::information::settings);
-        return CreationMetadata::writePlist(product.output->path() / native::paths::productContents /
-                                            native::paths::moreInfo, document);
+        return property_list::write(product.path() / native::paths::productContents /
+                                    native::paths::moreInfo, document);
     }
 }

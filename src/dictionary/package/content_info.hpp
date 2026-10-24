@@ -14,7 +14,8 @@ namespace MKD::detail
                                  DictionarySearchConfiguration& search);
 
     private:
-        static Result<void> loadContent(const std::filesystem::path& directory, DictionaryContent& content, DictionarySearchConfiguration& search);
+        static Result<void> loadContent(const std::filesystem::path& directory, DictionaryContent& content,
+                                        DictionarySearchConfiguration& search);
         static Result<void> loadModernRange(const std::filesystem::path& directory,
                                             DictionarySearchConfiguration& search);
     };

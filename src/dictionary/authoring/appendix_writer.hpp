@@ -9,20 +9,13 @@
 #include <filesystem>
 #include <pugixml.hpp>
 
-namespace MKD
-{
-    class ResourceStore;
-}
-
 namespace MKD::detail
 {
-    struct ProductBuild;
+    class ProductBuild;
 
     class AppendixWriter
     {
     public:
-        static Result<void> validateEntry(const ProductBuild& product, const AppendixEntryLink& entry);
-        static Result<void> validateEntry(const ResourceStore& store, EntryId target);
         static Result<void> write(const ProductBuild& product, const AppendixMenu& menu);
 
     private:

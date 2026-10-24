@@ -5,15 +5,6 @@ configure_file(authoring/resources/product_information_style.hpp.in product_info
 target_include_directories(mkd PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 
 target_sources(mkd PRIVATE
-        content/headline_analysis.cpp
-        content/article_analysis.cpp
-        content/css_analysis.cpp
-        content/css_lexer.cpp
-        content/analysis.cpp
-        search/native_definitions.cpp
-        package/property_list.cpp
-        package/metadata_writer.cpp
-        authoring/metadata_preparation.cpp
         navigation/navigation.cpp
         navigation/native_navigation.cpp
         authoring/navigation_writer.cpp
@@ -22,8 +13,10 @@ target_sources(mkd PRIVATE
         content/inline_text.cpp
         content/native_content.cpp
         package/resource_resolver.cpp
-        content_references.cpp
-        package/resource_loader.cpp
+        content/css_lexer.cpp
+        content/analysis.cpp
+        content/css_analysis.cpp
+        content/headline_analysis.cpp
         entry_order.cpp
         dictionary.cpp
         dictionary_product.cpp
@@ -31,16 +24,24 @@ target_sources(mkd PRIVATE
         package/metadata.cpp
         package/content_info.cpp
         package/paths.cpp
+        package/resource_loader.cpp
         search/text_normalize.cpp
+        authoring/product_build.cpp
+        authoring/reference_index.cpp
+        authoring/entry_allocator.cpp
+        authoring/asset_writer.cpp
         authoring/product_writer.cpp
         authoring/product_information.cpp
         authoring/product_icon.cpp
         authoring/dictionary_writer.cpp
         authoring/entry_writer.cpp
-        creation_metadata.cpp
-        creation_page.cpp
-        creation_session.cpp
-        creation_search.cpp
+        search/native_definitions.cpp
+        authoring/metadata_preparation.cpp
+        package/property_list.cpp
+        package/metadata_writer.cpp
+        content/article_analysis.cpp
+        authoring/dictionary_build.cpp
+        authoring/search_index_builder.cpp
 )
 
 target_link_libraries(mkd PUBLIC glaze::glaze)

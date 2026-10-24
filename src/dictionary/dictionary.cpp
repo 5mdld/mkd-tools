@@ -17,7 +17,8 @@ namespace MKD
           content_(std::move(content)),
           searchConfiguration_(std::move(searchConfiguration)),
           entries_(std::move(resources.entries)),
-          entryOrder_(resources.entryOrder.value_or(EntryOrder(entries_ ? static_cast<uint32_t>(entries_->size()) : 0))),
+          entryOrder_(
+              resources.entryOrder.value_or(EntryOrder(entries_ ? static_cast<uint32_t>(entries_->size()) : 0))),
           appendixEntryLists_(std::move(resources.appendixEntryLists)),
           graphics_(std::move(resources.graphics)),
           audio_(std::move(resources.audio)),
@@ -37,7 +38,7 @@ namespace MKD
 
     Result<RetainedSpan> Dictionary::resource(std::string_view path) const
     {
-        return detail::ContentResources::read(directory_, graphics(), audio(), path);
+        return detail::readDictionaryResource(directory_, graphics(), audio(), path);
     }
 
     const std::string& Dictionary::id() const noexcept

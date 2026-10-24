@@ -8,7 +8,7 @@
 
 namespace MKD::detail
 {
-    struct ProductBuild;
+    class ProductBuild;
 
     class ProductInformationWriter
     {

@@ -7,6 +7,7 @@
 #include "io/write_validation.hpp"
 #include "dictionary/package/native_format.hpp"
 
+#include "MKD/dictionary/content_analysis.hpp"
 #include <charconv>
 #include <array>
 #include <span>
@@ -113,5 +114,54 @@ namespace MKD::detail
             return std::unexpected("Appendix path escapes the product");
 
         return resolved;
+    }
+}
+
+namespace MKD::detail
+{
+    Result<std::optional<std::string>> resolveAssetReference(const content::AssetReference& reference,
+                                                             std::string_view sourcePath)
+    {
+        if (reference.syntax == content::ResourceSyntax::Path)
+            return reference.path;
+
+        auto value = std::string_view(reference.path);
+        if (value.empty() || value.front() == '#' || value.contains(':') || value.starts_with("//"))
+            return std::optional<std::string>{};
+
+        value = value.substr(0, value.find_first_of("?#"));
+        if (reference.syntax != content::ResourceSyntax::CssUrl)
+        {
+            if (auto valid = WriteValidation::relativePath(value); !valid)
+                return std::unexpected(valid.error());
+            return std::string(value);
+        }
+        std::string decoded;
+        for (size_t i = 0; i < value.size(); ++i)
+        {
+            if (value[i] != '%')
+                decoded += value[i];
+            else
+            {
+                if (i + 2 >= value.size())
+                    return std::unexpected("Invalid percent escape in CSS resource path");
+
+                unsigned byte{};
+                const auto result = std::from_chars(value.data() + i + 1, value.data() + i + 3, byte, 16);
+                if (result.ec != std::errc{} || result.ptr != value.data() + i + 3)
+                    return std::unexpected("Invalid percent escape in CSS resource path");
+
+                decoded += static_cast<char>(byte);
+                i += 2;
+            }
+        }
+        const auto path = (WriteValidation::fromUtf8(sourcePath).parent_path() / WriteValidation::fromUtf8(decoded))
+                          .lexically_normal()
+                          .generic_u8string();
+        const std::string utf8(reinterpret_cast<const char*>(path.data()), path.size());
+        if (auto valid = WriteValidation::relativePath(utf8); !valid)
+            return std::unexpected(valid.error());
+
+        return utf8;
     }
 }

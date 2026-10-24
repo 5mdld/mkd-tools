@@ -3,15 +3,17 @@
 //
 
 #include "dictionary/package/paths.hpp"
+#include "dictionary/package/native_format.hpp"
 #include "dictionary/authoring/navigation_writer.hpp"
 #include "dictionary/navigation/native_navigation.hpp"
 #include "dictionary/content/native_content.hpp"
-#include "dictionary/creation_session.hpp"
-#include "dictionary/creation_metadata.hpp"
+#include "dictionary/authoring/product_build.hpp"
+#include "dictionary/package/property_list.hpp"
 #include "dictionary/navigation/appendix_reader.hpp"
 #include "dictionary/authoring/appendix_writer.hpp"
 #include "MKD/resource/appendix_entry_list.hpp"
 #include "io/write_validation.hpp"
+#include "io/output_file.hpp"
 #include <algorithm>
 #include <limits>
 
@@ -20,11 +22,11 @@ namespace MKD::detail
     namespace nav = native::navigation;
 
     NavigationWriter::NavigationWriter(ProductBuild& product)
-        : product_(product), contents_(product.output->path() / native::paths::productContents),
-          directory_(product.profile == CreationProfile::Kanwa
-                         ? product.dictionaries.front()->metadata.directory + "/" + nav::directory
+        : product_(product), contents_(product.path() / native::paths::productContents),
+          directory_(product.profile() == CreationProfile::Kanwa
+                         ? product.firstContent().directory + "/" + nav::directory
                          : "navigation-menus"),
-          kanwa_(product.profile == CreationProfile::Kanwa)
+          kanwa_(product.profile() == CreationProfile::Kanwa)
     {
     }
 
@@ -177,31 +179,13 @@ namespace MKD::detail
     Result<AppendixEntryLink> NavigationWriter::entry(AppendixEntryLink target)
     {
         if (!target.dictionaryId)
-            target.dictionaryId = *product_.dictionaries.front()->metadata.dictionaryId;
+            target.dictionaryId = *product_.firstContent().dictionaryId;
 
         const auto identity = std::pair{target.dictionaryId, target.entryId};
         if (checked_.contains(identity))
             return target;
 
-        if (!stores_.contains(target.dictionaryId))
-        {
-            const auto dictionary = std::ranges::find_if(product_.dictionaries, [&](const auto& dictionary)
-            {
-                return dictionary->metadata.dictionaryId == target.dictionaryId;
-            });
-
-            if (dictionary == product_.dictionaries.end())
-                return std::unexpected("Unknown navigation dictionary");
-
-            auto store = ResourceStore::open((*dictionary)->root / native::paths::contents,
-                                             (*dictionary)->metadata.identifier);
-            if (!store)
-                return std::unexpected(store.error());
-
-            stores_.emplace(target.dictionaryId, std::move(*store));
-        }
-
-        if (auto valid = AppendixWriter::validateEntry(stores_.at(target.dictionaryId), target.entryId); !valid)
+        if (auto valid = product_.validateTarget(target); !valid)
             return std::unexpected(valid.error());
 
         checked_.insert(identity);
@@ -431,14 +415,14 @@ namespace MKD::detail
             return valid;
 
         auto node = parent.append_child("dict");
-        CreationMetadata::string(node, "title", nav::plainLabel(value.label));
+        property_list::string(node, "title", nav::plainLabel(value.label));
         if (const auto* target = std::get_if<AppendixEntryLink>(&value.target))
         {
             auto link = entry(*target);
             if (!link)
                 return std::unexpected(link.error());
 
-            CreationMetadata::string(node, "entry",
+            property_list::string(node, "entry",
                                      link->entryId.toString() + "-" + std::to_string(link->dictionaryId));
         }
         else if (!std::holds_alternative<std::monostate>(value.target))
@@ -447,11 +431,11 @@ namespace MKD::detail
             if (!path)
                 return std::unexpected(path.error());
 
-            CreationMetadata::string(node, "file", *path);
+            property_list::string(node, "file", *path);
             if (const auto* child = std::get_if<NavigationIndex>(&value.target))
             {
-                CreationMetadata::string(node, "orientation", child->vertical ? "vertical" : "horizontal");
-                CreationMetadata::boolean(node, "shorten", child->shortenHeadlines);
+                property_list::string(node, "orientation", child->vertical ? "vertical" : "horizontal");
+                property_list::boolean(node, "shorten", child->shortenHeadlines);
             }
         }
         return {};
@@ -461,13 +445,13 @@ namespace MKD::detail
                                          size_t depth)
     {
         pugi::xml_document document;
-        auto node = CreationMetadata::plistRoot(document, "dict");
-        CreationMetadata::string(node, "title", title);
+        auto node = property_list::root(document, "dict");
+        property_list::string(node, "title", title);
         if (value.rows)
-            CreationMetadata::integer(node, "row", value.rows);
+            property_list::integer(node, "row", value.rows);
 
         if (value.columns)
-            CreationMetadata::integer(node, "col", value.columns);
+            property_list::integer(node, "col", value.columns);
 
         node.append_child("key").text().set("children");
         auto array = node.append_child("array");
@@ -497,7 +481,7 @@ namespace MKD::detail
         if (error)
             return std::unexpected(error.message());
 
-        return CreationMetadata::writePlist(target, document);
+        return property_list::write(target, document);
     }
 
     Result<std::string> NavigationWriter::index(const NavigationIndex& value, std::string title, size_t depth,
@@ -623,20 +607,19 @@ namespace MKD::detail
         if (!written)
             return std::unexpected(written.error());
 
-        product.metadata.appendixViewController = writer.kanwa_ ? nav::kanwaController : nav::generalController;
-        product.metadata.appendixFirst = true;
+        product.configureNavigation(writer.kanwa_);
         if (writer.kanwa_)
         {
             pugi::xml_document document;
-            auto root = CreationMetadata::plistRoot(document, "dict");
+            auto root = property_list::root(document, "dict");
             for (const auto& [kind, info] : writer.types_)
             {
                 root.append_child("key").text().set(std::to_string(kind).c_str());
                 auto node = root.append_child("dict");
-                CreationMetadata::string(node, "fileName", info.first);
-                CreationMetadata::string(node, "title", info.second);
+                property_list::string(node, "fileName", info.first);
+                property_list::string(node, "title", info.second);
             }
-            return CreationMetadata::writePlist(writer.contents_ / writer.directory_ / nav::typeInfo, document);
+            return property_list::write(writer.contents_ / writer.directory_ / nav::typeInfo, document);
         }
         return {};
     }

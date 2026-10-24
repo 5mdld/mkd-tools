@@ -3,7 +3,7 @@
 //
 
 #include "dictionary/authoring/product_icon.hpp"
-#include "dictionary/creation_session.hpp"
+#include "dictionary/authoring/product_build.hpp"
 #include "dictionary/package/native_format.hpp"
 
 #define STBI_ONLY_PNG
@@ -85,7 +85,7 @@ namespace MKD::detail
             if (!png)
                 return std::unexpected(png.error());
 
-            const auto path = std::string(native::paths::icons) + "/" + product.name + std::string(variant.suffix);
+            const auto path = std::string(native::paths::icons) + "/" + product.name() + std::string(variant.suffix);
             if (auto written = product.writeAsset(path, *png); !written)
                 return written;
         }

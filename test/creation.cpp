@@ -93,11 +93,36 @@ namespace MKD::test
         // A failed write poisons its build, so check unresolved assets in a fresh one.
         BirbBuild missing(workspace.path / "MissingBirb");
         auto entry = require(missing.dictionary.createEntry());
-        require(entry.writeXml("<html><body><img src=\"graphics/saberlion.png\"/></body></html>"));
+        require(entry.writeXml("<html>\n<body><img src=\"graphics/saberlion.png\"/></body></html>"));
         require(missing.dictionary.addHeadline({.headline = u"獅子", .entryId = entry.target()}));
         require(missing.dictionary.addSearchKey(SearchScope::Headword, "saberlion", entry.target()));
-        EXPECT_FALSE(missing.dictionary.finish());
+        const auto result = missing.dictionary.finish();
+        ASSERT_FALSE(result);
+        EXPECT_NE(result.error().find("page 1 at byte "), std::string::npos);
+        EXPECT_NE(result.error().find("line 2"), std::string::npos);
         EXPECT_FALSE(std::filesystem::exists(workspace.path / "MissingBirb"));
+    }
+
+    TEST(Creation, SourceLocationsReachImmediateAndDeferredErrors)
+    {
+        Workspace workspace;
+        BirbBuild syntax(workspace.path / "Syntax");
+        const auto malformed = syntax.dictionary.addAsset("article.css", bytes("p{}\r\n/* unfinished"));
+        ASSERT_FALSE(malformed);
+        EXPECT_NE(malformed.error().find("article.css at byte 5 (line 2, byte column 1)"), std::string::npos);
+
+        BirbBuild paths(workspace.path / "Paths");
+        const auto invalid = paths.dictionary.addAsset("article.css", bytes("p{}\np { src:url(bad%zz); }"));
+        ASSERT_FALSE(invalid);
+        EXPECT_NE(invalid.error().find("article.css at byte 12 (line 2, byte column 9)"), std::string::npos);
+
+        BirbBuild missing(workspace.path / "Missing");
+        missing.addBirb();
+        require(missing.dictionary.addAsset("article.css", bytes("p {}\r\np { fill: url(missing.svg); }")));
+        const auto unresolved = missing.dictionary.finish();
+        ASSERT_FALSE(unresolved);
+        EXPECT_NE(unresolved.error().find("article.css at byte 16 (line 2, byte column 11)"), std::string::npos);
+        EXPECT_FALSE(std::filesystem::exists(workspace.path / "Missing"));
     }
 
     TEST(Creation, DuplicatePagesAndIncompleteOrdersAreRejected)

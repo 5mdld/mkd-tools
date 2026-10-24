@@ -6,14 +6,13 @@
 
 #include "MKD/dictionary/navigation.hpp"
 #include "binary/binary_buffer.hpp"
-#include "MKD/resource/resource_store.hpp"
 #include <set>
 #include <map>
 #include <pugixml.hpp>
 
 namespace MKD::detail
 {
-    struct ProductBuild;
+    class ProductBuild;
 
     class NavigationWriter
     {
@@ -67,7 +66,6 @@ namespace MKD::detail
         std::string directory_;
         bool kanwa_;
         size_t next_ = 0;
-        std::map<uint16_t, ResourceStore> stores_;
         std::set<std::pair<uint16_t, EntryId>> checked_;
         std::map<uint32_t, std::pair<std::string, std::string>> types_;
     };
