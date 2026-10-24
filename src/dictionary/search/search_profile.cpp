@@ -31,7 +31,8 @@ namespace MKD::detail::search
     {
         const auto name = dictionary_.searchConfiguration().productSearchClass.value_or(
             native::search::defaultClass.name.data());
-        const auto definition = std::ranges::find(native::search::classes, name, &native::search::ClassDefinition::name);
+        const auto definition =
+            std::ranges::find(native::search::classes, name, &native::search::ClassDefinition::name);
         if (definition == native::search::classes.end())
             unsupported_ = "Unsupported native search class: " + name;
         else
@@ -61,7 +62,7 @@ namespace MKD::detail::search
             unsupported_ = "Unsupported key normalisation: " + name;
     }
 
-    void SearchProfile::addStores(SearchScope destination, SearchScope source)
+    void SearchProfile::addStores(const SearchScope destination, const SearchScope source)
     {
         if (const auto found = directStores_.find(source); found != directStores_.end())
         {
@@ -107,11 +108,14 @@ namespace MKD::detail::search
     }
 
     bool SearchProfile::japanese() const noexcept { return language().starts_with(metadata::language::japanese); }
+
     bool SearchProfile::hasEnglish() const noexcept
     {
         const auto& languages = dictionary_.content().languages;
         return languages && std::ranges::any_of(*languages, [](const auto& language)
-            { return language.starts_with(metadata::language::english); });
+        {
+            return language.starts_with(metadata::language::english);
+        });
     }
 
     bool SearchProfile::hasHeadlineKeyIdentifiers() const noexcept
@@ -139,14 +143,14 @@ namespace MKD::detail::search
         }
     }
 
-    bool SearchProfile::splitsQuery(SearchScope scope) const noexcept
+    bool SearchProfile::splitsQuery(const SearchScope scope) const noexcept
     {
         if (class_.family == native::search::Family::Kanwa && scope == SearchScope::Idiom) return false;
         return hasHeadlineKeyIdentifiers() || compoundSearch(scope)
             || (class_.family == native::search::Family::Kogo && scope == SearchScope::Modern);
     }
 
-    bool SearchProfile::complexSearch(SearchScope scope) const noexcept
+    bool SearchProfile::complexSearch(const SearchScope scope) const noexcept
     {
         if (class_.family == native::search::Family::Kanwa || class_.family == native::search::Family::Complex)
             return scope == SearchScope::Example || scope == SearchScope::Sense;
@@ -158,21 +162,21 @@ namespace MKD::detail::search
             && (scope == SearchScope::Example || scope == SearchScope::Sense || scope == SearchScope::Modern);
     }
 
-    std::span<const Keystore* const> SearchProfile::stores(SearchScope scope, SearchFallback fallback) const
+    std::span<const Keystore* const> SearchProfile::stores(const SearchScope scope, const SearchFallback fallback) const
     {
         const auto& map = fallback == SearchFallback::Native ? nativeStores_ : directStores_;
         const auto found = map.find(scope);
         return found == map.end() ? std::span<const Keystore* const>{} : found->second;
     }
 
-    std::span<const SearchScope> SearchProfile::scopes(SearchFallback fallback) const noexcept
+    std::span<const SearchScope> SearchProfile::scopes(const SearchFallback fallback) const noexcept
     {
         if (fallback == SearchFallback::None)
             return directScopes_;
         return unsupported_ ? std::span<const SearchScope>{} : nativeScopes_;
     }
 
-    uint16_t SearchProfile::headlineOffset(SearchScope scope) const noexcept
+    uint16_t SearchProfile::headlineOffset(const SearchScope scope) const noexcept
     {
         return class_.family == native::search::Family::Kogo && scope == SearchScope::Modern
                    ? native::search::modernHeadlineOffset

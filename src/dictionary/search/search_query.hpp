@@ -20,13 +20,6 @@ namespace MKD::detail::search
         [[nodiscard]] std::vector<std::string> withoutHeadlineStopWords(const std::vector<std::string>& keys) const;
         [[nodiscard]] std::vector<std::string> variations(std::string_view key, SearchScope scope) const;
 
-        struct Components
-        {
-            std::vector<std::string> values;
-            bool filterHeadlines = false;
-        };
-
-        [[nodiscard]] static Components components(const std::vector<std::string>& keys);
         [[nodiscard]] static std::string joined(const std::vector<std::string>& keys);
 
     private:

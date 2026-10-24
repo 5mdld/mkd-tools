@@ -1,7 +1,7 @@
 #include "creation_session.hpp"
 #include "creation_metadata.hpp"
 #include "io/write_validation.hpp"
-#include "search/search_query.hpp"
+#include "search/key_analysis.hpp"
 #include "unicode/unicode.hpp"
 
 #include <limits>
@@ -61,7 +61,7 @@ namespace MKD::detail
         if (!passage)
             return {};
 
-        for (const auto& component : search::SearchQuery::components({normalized}).values)
+        for (const auto& component : search::keyComponents(std::span{&normalized, size_t{1}}).values)
             if (auto written = add(component, {}); !written)
                 return written;
 
@@ -73,8 +73,7 @@ namespace MKD::detail
     {
         for (const auto& [target, passage] : passageIndexes)
         {
-            const EntryId companion{target.pageId,
-                static_cast<uint16_t>(target.itemId + native::search::normalizedHeadlineOffset)};
+            const auto companion = search::companionTarget(target, native::search::normalizedHeadlineOffset);
             if (anchors.contains(companion) || references.contains(companion))
                 return std::unexpected("Native passage companion " + companion.toString() +
                     " for " + target.toString() + " collides with an article target or headline");
@@ -93,8 +92,7 @@ namespace MKD::detail
             }
 
             // Native filtering reads this record directly. Only the passage itself is a jump target.
-            const EntryId companion{target.pageId,
-                static_cast<uint16_t>(target.itemId + native::search::normalizedHeadlineOffset)};
+            const auto companion = search::companionTarget(target, native::search::normalizedHeadlineOffset);
             if (auto written = headlines.at(HeadlineRole::Primary).add({
                     .headline = unicode::toUtf16(text), .sortingHeadline = unicode::toUtf16(text),
                     .entryId = companion}); !written)

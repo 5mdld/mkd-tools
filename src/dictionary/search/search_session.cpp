@@ -3,6 +3,7 @@
 //
 
 #include "search_session.hpp"
+#include "key_analysis.hpp"
 #include "MKD/resource/keystore_search.hpp"
 #include "dictionary/search/text_normalize.hpp"
 #include "unicode/unicode.hpp"
@@ -62,7 +63,7 @@ namespace MKD::detail::search
     {
     }
 
-    Result<SearchResult> SearchSession::run()
+    Result<SearchResult> SearchSession::run() const
     {
         if (auto valid = validate(); !valid)
             return std::unexpected(valid.error());
@@ -149,7 +150,7 @@ namespace MKD::detail::search
         };
     }
 
-    Result<SearchSession::Matches> SearchSession::nativeQuery()
+    Result<SearchSession::Matches> SearchSession::nativeQuery() const
     {
         const auto keys = query_.keys(options_.scope, SearchFallback::Native);
         if (keys.empty())
@@ -196,7 +197,7 @@ namespace MKD::detail::search
         return result;
     }
 
-    Result<SearchSession::Matches> SearchSession::headlineFallback(const std::vector<std::string>& keys)
+    Result<SearchSession::Matches> SearchSession::headlineFallback(const std::vector<std::string>& keys) const
     {
         const auto filtered = query_.withoutHeadlineStopWords(keys);
         if (filtered == keys)
@@ -209,7 +210,7 @@ namespace MKD::detail::search
         return joinedQuery(filtered);
     }
 
-    Result<SearchSession::Matches> SearchSession::fallbackScopes(const std::vector<std::string>& keys)
+    Result<SearchSession::Matches> SearchSession::fallbackScopes(const std::vector<std::string>& keys) const
     {
         auto scope = options_.scope;
         auto fallbackKeys = keys;
@@ -242,7 +243,7 @@ namespace MKD::detail::search
         return empty;
     }
 
-    Result<SearchSession::Matches> SearchSession::terms(const std::vector<std::string>& keys, SearchScope scope)
+    Result<SearchSession::Matches> SearchSession::terms(const std::vector<std::string>& keys, SearchScope scope) const
     {
         std::optional<Matches> accumulated;
         for (const auto& text : keys)
@@ -270,7 +271,7 @@ namespace MKD::detail::search
             if (!accumulated)
                 accumulated = std::move(*found);
             else if (options_.fallback == SearchFallback::Native && scope == SearchScope::Headword
-                     && profile_.hasHeadlineKeyIdentifiers())
+                && profile_.hasHeadlineKeyIdentifiers())
             {
                 if (auto common = intersectHeadwords(*accumulated, std::move(*found)); !common)
                     return std::unexpected(common.error());
@@ -532,7 +533,7 @@ namespace MKD::detail::search
     Result<SearchSession::Matches> SearchSession::complex(const std::vector<std::string>& keys,
                                                           const SearchScope scope) const
     {
-        const auto prepared = SearchQuery::components(keys);
+        const auto prepared = keyComponents(keys);
         auto result = intersectComponents(prepared.values, scope);
         if (!result)
             return std::unexpected(result.error());
@@ -578,9 +579,7 @@ namespace MKD::detail::search
             if (cancelled())
                 return std::unexpected("Search cancelled");
 
-            const EntryId headlineId{
-                entry.pageId, static_cast<uint16_t>(entry.itemId + profile_.headlineOffset(result.scope))
-            };
+            const auto headlineId = companionTarget(entry, profile_.headlineOffset(result.scope));
 
             auto value = headline(headlineId, true);
             if (!value)

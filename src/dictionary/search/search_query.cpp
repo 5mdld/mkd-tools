@@ -76,7 +76,8 @@ namespace MKD::detail::search
 
         std::vector<std::string> result;
         for (const auto& key : keys)
-            if (std::ranges::find(native::search::headlineSkippedWords, key) == native::search::headlineSkippedWords.end())
+            if (std::ranges::find(native::search::headlineSkippedWords, key) == native::search::headlineSkippedWords.
+                end())
                 result.push_back(key);
 
         if (result.empty() && !keys.empty())
@@ -93,27 +94,7 @@ namespace MKD::detail::search
         return text;
     }
 
-    SearchQuery::Components SearchQuery::components(const std::vector<std::string>& keys)
-    {
-        Components result;
-        for (const auto& key : keys)
-        {
-            const auto clusters = unicode::graphemeClusters(key);
-            for (size_t i = 0; i < clusters.size(); ++i)
-            {
-                auto value = unicode::normalizeDictionaryKey(clusters[i]);
-                if (value.empty())
-                    continue;
-
-                result.filterHeadlines = result.filterHeadlines || i != 0;
-                if (std::ranges::find(result.values, value) == result.values.end())
-                    result.values.push_back(std::move(value));
-            }
-        }
-        return result;
-    }
-
-    std::vector<std::string> SearchQuery::variations(std::string_view key, SearchScope scope) const
+    std::vector<std::string> SearchQuery::variations(std::string_view key, const SearchScope scope) const
     {
         std::vector<std::string_view> languages;
         if (scope == SearchScope::English)

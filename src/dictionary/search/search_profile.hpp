@@ -25,10 +25,12 @@ namespace MKD::detail::search
         [[nodiscard]] bool hasEnglish() const noexcept;
         [[nodiscard]] bool foldsKanjiNumbers() const noexcept { return delegate_.foldsKanjiNumbers; }
         [[nodiscard]] bool pageEntriesFirst() const noexcept { return delegate_.pageEntriesFirst; }
+
         [[nodiscard]] bool allowsScopeFallback() const noexcept
         {
             return dictionary_.searchConfiguration().allowsScopeFallback;
         }
+
         [[nodiscard]] bool hasHeadlineKeyIdentifiers() const noexcept;
         [[nodiscard]] const Keystore* headwordStore() const noexcept;
         [[nodiscard]] bool splitsQuery(SearchScope scope) const noexcept;

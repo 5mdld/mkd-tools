@@ -13,7 +13,7 @@ namespace MKD::detail::search
     public:
         SearchSession(const SearchProfile& profile, std::string_view query,
                       const SearchOptions& options, std::stop_token stop);
-        [[nodiscard]] Result<SearchResult> run();
+        [[nodiscard]] Result<SearchResult> run() const;
 
     private:
         struct Matches
@@ -31,9 +31,10 @@ namespace MKD::detail::search
 
         [[nodiscard]] Result<void> validate() const;
         [[nodiscard]] Result<SearchResult> finish(Matches result) const;
-        [[nodiscard]] Result<Matches> nativeQuery();
-        [[nodiscard]] Result<Matches> fallbackScopes(const std::vector<std::string>& keys);
-        [[nodiscard]] Result<Matches> terms(const std::vector<std::string>& keys, SearchScope scope);
+        [[nodiscard]] Result<Matches> nativeQuery() const;
+        [[nodiscard]] Result<Matches> fallbackScopes(const std::vector<std::string>& keys) const;
+        [[nodiscard]] Result<Matches> terms(const std::vector<std::string>& keys, SearchScope scope) const;
+
         struct HeadlineKey
         {
             EntryId key;
@@ -42,9 +43,9 @@ namespace MKD::detail::search
 
         [[nodiscard]] Result<void> intersectHeadwords(Matches& result, Matches other) const;
         [[nodiscard]] Result<std::vector<HeadlineKey>> mappedHeadwords(std::span<const EntryId> keys,
-                                                                      const Keystore& store) const;
+                                                                       const Keystore& store) const;
         [[nodiscard]] Result<Matches> joinedQuery(const std::vector<std::string>& keys) const;
-        [[nodiscard]] Result<Matches> headlineFallback(const std::vector<std::string>& keys);
+        [[nodiscard]] Result<Matches> headlineFallback(const std::vector<std::string>& keys) const;
         [[nodiscard]] Result<Matches> key(std::string_view text, SearchScope scope) const;
         [[nodiscard]] Result<Matches> simple(std::string_view text, SearchScope scope, SearchMode mode) const;
         [[nodiscard]] Result<Matches> lookup(std::string_view text, SearchScope scope, SearchMode mode,
