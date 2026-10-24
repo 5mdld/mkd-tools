@@ -1,0 +1,111 @@
+//
+// kiwakiwaaにより 2026/10/24 に作成されました。
+//
+
+#pragma once
+
+#include "MKD/resource/entry_id.hpp"
+#include "MKD/result.hpp"
+#include <cstddef>
+#include <set>
+#include <optional>
+#include <string_view>
+#include <string>
+#include <variant>
+#include <vector>
+
+namespace MKD::content
+{
+    /** UTF-8 byte range. A zero length identifies a position or containing element.
+     * Headline ranges refer to the UTF-8 encoding of the supplied UTF-16 text. */
+    struct SourceRange
+    {
+        size_t offset = 0;
+        size_t length = 0;
+    };
+
+    struct SourceError
+    {
+        std::string message;
+        std::optional<SourceRange> source;
+        [[nodiscard]] std::string describe(std::string_view origin = {}, std::string_view input = {}) const;
+    };
+
+    template <typename T>
+    using AnalysisResult = std::expected<T, SourceError>;
+
+    enum class ResourceSyntax
+    {
+        Path,
+        XmlAttribute,
+        CssUrl
+    };
+
+    struct AssetReference
+    {
+        std::string path;
+        ResourceSyntax syntax = ResourceSyntax::Path;
+    };
+
+    struct GaijiReference
+    {
+        std::string name;
+    };
+    struct FragmentReference
+    {
+        std::string identifier;
+        ResourceSyntax syntax = ResourceSyntax::XmlAttribute;
+    };
+    struct ExternalReference
+    {
+        std::string url;
+    };
+
+    using ReferenceTarget = std::variant<EntryId, AssetReference, GaijiReference, FragmentReference, ExternalReference>;
+
+    struct Reference
+    {
+        ReferenceTarget target;
+        std::optional<SourceRange> source;
+    };
+
+    using References = std::vector<Reference>;
+
+    enum class DiagnosticKind
+    {
+        IgnoredAtRule,
+        IgnoredStyleElement
+    };
+
+    struct Diagnostic
+    {
+        DiagnosticKind kind;
+        std::optional<SourceRange> source;
+        std::string message;
+    };
+
+    /** Owns its references and diagnostics independently of the input buffer. */
+    struct Analysis
+    {
+        References references;
+        std::vector<Diagnostic> diagnostics;
+    };
+
+    struct ArticleAnalysis : Analysis
+    {
+        std::set<EntryId> anchors;
+    };
+
+    enum class CssInput
+    {
+        Stylesheet,
+        Declarations
+    };
+
+    /** Reports source references without resolving paths or loading resources.
+     * CSS analysis scans dependencies and selected native compatibility issues.
+     * It does not validate the full CSS grammar. */
+    AnalysisResult<ArticleAnalysis> analyzeArticle(uint32_t page, std::string_view xhtml);
+    AnalysisResult<Analysis> analyzeCss(std::string_view css, CssInput input = CssInput::Stylesheet);
+    AnalysisResult<Analysis> analyzeHeadline(std::u16string_view text);
+}

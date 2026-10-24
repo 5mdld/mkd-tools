@@ -34,27 +34,12 @@ namespace MKD
             if (begin == std::string::npos)
                 break;
 
-            size_t end = begin;
-            size_t depth = 0;
-            do
-            {
-                if (utf8[end] == '{')
-                    ++depth;
-                else if (utf8[end] == '}')
-                    --depth;
-                ++end;
-            }
-            while (end < utf8.size() && depth);
-
-            if (depth)
-                return std::unexpected("Unterminated native label token");
-
-            auto token = detail::NativeLabelToken::read(std::string_view(utf8).substr(begin, end - begin));
+            auto token = detail::NativeLabelToken::readLeading(std::string_view(utf8).substr(begin));
             if (!token)
                 return std::unexpected(token.error());
 
             result.append(token->element());
-            position = end;
+            position = begin + token->source.size();
         }
         return result;
     }

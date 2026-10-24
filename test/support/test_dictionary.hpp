@@ -12,11 +12,16 @@
 
 namespace MKD::test
 {
-    template <typename T>
-    T require(Result<T> result)
+    template <typename T, typename Error>
+    T require(std::expected<T, Error> result)
     {
         if (!result)
-            throw std::runtime_error(result.error());
+        {
+            if constexpr (std::is_same_v<Error, std::string>)
+                throw std::runtime_error(result.error());
+            else
+                throw std::runtime_error(result.error().describe());
+        }
         if constexpr (!std::is_void_v<T>)
             return std::move(*result);
     }

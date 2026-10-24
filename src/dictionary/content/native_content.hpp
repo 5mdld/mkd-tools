@@ -20,6 +20,7 @@ namespace MKD::detail
         std::string_view source;
         std::vector<std::string_view> fields;
         static Result<NativeLabelToken> read(std::string_view source);
+        static Result<NativeLabelToken> readLeading(std::string_view source);
         [[nodiscard]] InlineElement element() const;
     };
 

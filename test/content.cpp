@@ -55,4 +55,39 @@ namespace MKD::test
         std::unordered_map<EntryId, std::string> names{{target, "雀躍"}};
         EXPECT_EQ(names.at(target), "雀躍");
     }
+
+    TEST(ContentAnalysis, RecognisesEscapedUrlsWithoutTreatingStringsAsDependencies)
+    {
+        const std::string css = R"css(p { content: "url(fake.png)"; background: u\72l("im\61 ge.png"); }
+            /* url(comment.png) */ @import "other.css";
+            @media print { p { background: url(print.png); } })css";
+        auto analysis = require(content::analyzeCss(std::string(css)));
+        ASSERT_EQ(analysis.references.size(), 3);
+        EXPECT_EQ(std::get<content::AssetReference>(analysis.references[0].target).path, "image.png");
+        EXPECT_EQ(std::get<content::AssetReference>(analysis.references[1].target).path, "other.css");
+        EXPECT_EQ(std::get<content::AssetReference>(analysis.references[2].target).path, "print.png");
+        ASSERT_TRUE(analysis.references[0].source);
+        const auto source = *analysis.references[0].source;
+        EXPECT_TRUE(std::string_view(css).substr(source.offset, source.length).starts_with("u\\72l("));
+        ASSERT_EQ(analysis.diagnostics.size(), 2);
+        EXPECT_EQ(analysis.diagnostics[0].kind, content::DiagnosticKind::IgnoredAtRule);
+
+        auto article = require(content::analyzeArticle(7, std::string(
+            "<html><body><p id=\"anchor\"/><a href=\"#anchor\"/>"
+            "<img style=\"fill: url(#paint)\" src=\"../image.png\"/></body></html>")));
+        EXPECT_TRUE(article.anchors.contains({7, 0}));
+        ASSERT_EQ(article.references.size(), 3);
+        EXPECT_EQ(std::get<content::AssetReference>(article.references.back().target).path, "../image.png");
+
+        const auto keywords = require(content::analyzeCss(
+            "@color accent = #000000; @COLOR accent = #000000; p { color: @media; }"));
+        ASSERT_EQ(keywords.diagnostics.size(), 1);
+        EXPECT_EQ(keywords.diagnostics.front().message, "Native article styles ignore @COLOR");
+
+        const std::string nested = "鳥{B:前{REF:9-0000:後}}";
+        const auto headline = require(content::analyzeHeadline(u"鳥{B:前{REF:9-0000:後}}"));
+        ASSERT_EQ(headline.references.size(), 1);
+        ASSERT_TRUE(headline.references.front().source);
+        EXPECT_EQ(headline.references.front().source->offset, nested.find("{REF:"));
+    }
 }

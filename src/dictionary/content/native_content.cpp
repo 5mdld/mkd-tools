@@ -30,6 +30,7 @@ namespace MKD::detail
     {
         if (source.size() < 2 || source.front() != '{' || source.back() != '}')
             return std::unexpected("Expected a complete native label token");
+
         NativeLabelToken token{source, {}};
         size_t start = 1;
         size_t depth = 0;
@@ -57,6 +58,24 @@ namespace MKD::detail
 
         token.fields.push_back(source.substr(start, source.size() - 1 - start));
         return token;
+    }
+
+    Result<NativeLabelToken> NativeLabelToken::readLeading(std::string_view source)
+    {
+        if (source.empty() || source.front() != '{')
+            return std::unexpected("Expected a native label token");
+
+        size_t end = 0, depth = 0;
+        do
+        {
+            if (source[end] == '{') ++depth;
+            else if (source[end] == '}') --depth;
+            ++end;
+        }
+        while (end < source.size() && depth);
+        if (depth)
+            return std::unexpected("Unterminated native label token");
+        return read(source.substr(0, end));
     }
 
     InlineElement NativeLabelToken::element() const

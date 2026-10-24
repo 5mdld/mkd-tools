@@ -5,6 +5,11 @@ configure_file(authoring/resources/product_information_style.hpp.in product_info
 target_include_directories(mkd PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 
 target_sources(mkd PRIVATE
+        content/headline_analysis.cpp
+        content/article_analysis.cpp
+        content/css_analysis.cpp
+        content/css_lexer.cpp
+        content/analysis.cpp
         search/native_definitions.cpp
         package/property_list.cpp
         package/metadata_writer.cpp
